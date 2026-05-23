@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,7847649_1,1,appworld_simple_note_count_bucket_list_status,1,1,2,0,2,0,0,0,7,1,1,9754,25,9779,appworld_rave_simple_note_count_bucket_list_status,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,7847649_2,1,appworld_simple_note_count_bucket_list_status,1,1,2,0,2,0,0,0,7,1,1,9756,25,9781,appworld_rave_simple_note_count_bucket_list_status,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,7847649_3,1,appworld_simple_note_count_bucket_list_status,1,1,2,0,2,0,0,0,7,1,1,9754,25,9779,appworld_rave_simple_note_count_bucket_list_status,0,,,,

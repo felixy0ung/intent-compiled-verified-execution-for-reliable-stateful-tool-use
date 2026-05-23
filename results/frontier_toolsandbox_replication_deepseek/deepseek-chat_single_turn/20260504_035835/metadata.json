@@ -1,0 +1,23 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "deepseek-chat",
+  "base_url": "https://api.deepseek.com/v1",
+  "scenario_suite": "single_turn_no_distraction",
+  "scenario_count": 5,
+  "scenarios": [
+    "cellular_off",
+    "get_cellular",
+    "wifi_off",
+    "get_wifi",
+    "search_phone_number_with_name"
+  ],
+  "methods": [
+    "rave",
+    "rave_no_rave2_dsl",
+    "react"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

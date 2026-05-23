@@ -1,0 +1,14 @@
+{
+  "benchmark": "AppWorld public dev/train stateful slice",
+  "method": "rave_appworld_llm_intent_slice",
+  "agent": "llm-intent",
+  "model": "deepseek-chat",
+  "experiment_name": "rave_official_test_normal_simple_note_bucket_count_llm_intent_deepseek_chat_smoke",
+  "task_ids": [
+    "7847649_1",
+    "7847649_2",
+    "7847649_3"
+  ],
+  "appworld_root": "appworld_020_root",
+  "note": "This is a targeted public AppWorld slice, not a full AppWorld leaderboard run. It does not use ground-truth solution code or ground-truth public_data to construct actions."
+}

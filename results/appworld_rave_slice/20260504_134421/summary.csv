@@ -1,0 +1,2 @@
+method,episodes,success_rate,supported_rate,invalid_tool_calls_per_task,unsafe_state_changes_per_task,api_calls_per_task,code_exec_calls_per_task,llm_calls_per_task,token_proxy_per_task
+rave_appworld_slice,1,1.0,1.0,3.0,0.0,14.0,1.0,0.0,267.0

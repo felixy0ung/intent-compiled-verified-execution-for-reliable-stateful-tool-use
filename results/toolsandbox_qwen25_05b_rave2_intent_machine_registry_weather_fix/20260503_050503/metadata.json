@@ -1,0 +1,17 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "qwen25-0.5b",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 1,
+  "scenarios": [
+    "find_temperature"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

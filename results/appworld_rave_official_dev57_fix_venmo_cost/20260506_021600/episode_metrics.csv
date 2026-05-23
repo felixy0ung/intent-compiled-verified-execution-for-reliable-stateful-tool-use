@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,37a8675_1,2,appworld_venmo_send_to_phone_number,1,1,6,0,6,0,0,0,11,1,0,0,0,274,appworld_rave_venmo_send_to_phone_number,0,,,,
+rave_appworld_slice,deterministic,,37a8675_2,2,appworld_venmo_send_to_phone_number,1,1,6,0,6,1,1,0,11,1,0,0,0,274,appworld_rave_venmo_send_to_phone_number,0,,,,
+rave_appworld_slice,deterministic,,37a8675_3,2,appworld_venmo_send_to_phone_number,1,1,6,0,6,1,1,0,11,1,0,0,0,274,appworld_rave_venmo_send_to_phone_number,0,,,,
+rave_appworld_slice,deterministic,,530b157_1,3,appworld_venmo_pay_grocery_from_text_and_notify,1,1,10,0,10,0,0,0,12,1,0,0,0,423,appworld_rave_venmo_pay_grocery_from_text_and_notify,0,,,,
+rave_appworld_slice,deterministic,,530b157_2,3,appworld_venmo_pay_grocery_from_text_and_notify,1,1,10,0,10,0,0,0,12,1,0,0,0,421,appworld_rave_venmo_pay_grocery_from_text_and_notify,0,,,,
+rave_appworld_slice,deterministic,,530b157_3,3,appworld_venmo_pay_grocery_from_text_and_notify,1,1,10,0,10,0,0,0,12,1,0,0,0,427,appworld_rave_venmo_pay_grocery_from_text_and_notify,0,,,,

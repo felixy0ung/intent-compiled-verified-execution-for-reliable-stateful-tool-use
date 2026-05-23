@@ -1,0 +1,2 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,652485c_1,3,appworld_spotify_public_liked_library_playlist_share,1,1,11,0,11,0,0,0,24,1,0,0,0,237,appworld_rave_spotify_public_liked_library_playlist_share,0,,,,

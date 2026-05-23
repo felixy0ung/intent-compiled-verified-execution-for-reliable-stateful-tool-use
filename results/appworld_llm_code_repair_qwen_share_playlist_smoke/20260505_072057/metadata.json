@@ -1,0 +1,14 @@
+{
+  "benchmark": "AppWorld public dev/train stateful slice",
+  "method": "appworld_llm_code_repair_slice",
+  "agent": "llm-code-repair",
+  "model": "Qwen/Qwen2.5-3B-Instruct",
+  "experiment_name": "appworld_code_repair_qwen_share_playlist_smoke",
+  "task_ids": [
+    "652485c_1",
+    "652485c_2",
+    "652485c_3"
+  ],
+  "appworld_root": "<PROJECT_ROOT>",
+  "note": "This is a targeted public AppWorld slice, not a full AppWorld leaderboard run. It does not use ground-truth solution code or ground-truth public_data to construct actions."
+}

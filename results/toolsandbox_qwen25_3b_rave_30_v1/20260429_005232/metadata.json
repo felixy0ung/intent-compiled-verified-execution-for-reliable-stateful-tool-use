@@ -1,0 +1,43 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_count": 30,
+  "scenarios": [
+    "cellular_off",
+    "get_cellular",
+    "wifi_off",
+    "get_wifi",
+    "search_phone_number_with_name",
+    "search_name_with_relationship",
+    "search_relationship_with_phone_number",
+    "add_contact_with_name_and_phone_number",
+    "remove_contact_with_id",
+    "update_contact_with_id_and_phone_number",
+    "search_sender_phone_number_with_content",
+    "send_message_with_phone_number_and_content",
+    "search_message_with_recency_latest",
+    "search_message_with_recency_latest_alt",
+    "search_message_with_recency_oldest",
+    "search_message_with_recency_oldest_alt",
+    "remove_contact_by_phone",
+    "remove_contact_by_phone_alt",
+    "remove_contact_by_phone_ambiguous",
+    "remove_contact_by_phone_ambiguous_alt",
+    "turn_on_wifi_low_battery_mode",
+    "turn_on_wifi_low_battery_mode_implicit",
+    "turn_on_cellular_low_battery_mode",
+    "turn_on_cellular_low_battery_mode_implicit",
+    "turn_on_location_low_battery_mode",
+    "turn_on_location_low_battery_mode_implicit",
+    "send_message_with_contact_content_cellular_off",
+    "send_message_with_contact_content_cellular_off_alt",
+    "update_contact_relationship_with_relationship",
+    "update_contact_relationship_with_relationship_alt"
+  ],
+  "methods": [
+    "react",
+    "rave"
+  ],
+  "note": "Uses a deterministic passive user, so default scenarios are single-user-turn oriented."
+}

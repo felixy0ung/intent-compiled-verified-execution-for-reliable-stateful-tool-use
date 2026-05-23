@@ -1,0 +1,19 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct-local",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 3,
+  "scenarios": [
+    "modify_contact_with_message_recency",
+    "modify_contact_with_message_recency_alt",
+    "turn_on_location_low_battery_mode_implicit"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "on",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

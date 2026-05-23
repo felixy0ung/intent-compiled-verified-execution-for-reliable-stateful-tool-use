@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,32616b5_1,3,appworld_splitwise_record_trip_expenses_from_simple_note,1,0,5,5,10,0,0,0,57,1,0,0,0,571,appworld_rave_splitwise_record_trip_expenses_from_simple_note,0,,,,
+rave_appworld_slice,deterministic,,32616b5_2,3,appworld_splitwise_record_trip_expenses_from_simple_note,1,0,5,5,10,0,0,0,64,1,0,0,0,571,appworld_rave_splitwise_record_trip_expenses_from_simple_note,0,,,,
+rave_appworld_slice,deterministic,,32616b5_3,3,appworld_splitwise_record_trip_expenses_from_simple_note,1,0,5,5,10,0,0,0,66,1,0,0,0,571,appworld_rave_splitwise_record_trip_expenses_from_simple_note,0,,,,

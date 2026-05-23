@@ -1,0 +1,21 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct-local",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 5,
+  "scenarios": [
+    "modify_contact_with_message_recency_insufficient_information_alt",
+    "remove_contact_by_phone_no_remove_contact_insufficient_information",
+    "remove_contact_by_phone_no_remove_contact_insufficient_information_alt",
+    "send_message_with_contact_content_cellular_off_insufficient_information",
+    "send_message_with_contact_content_cellular_off_insufficient_information_alt"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "hidden-task",
+  "rapidapi_fixture": "on",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

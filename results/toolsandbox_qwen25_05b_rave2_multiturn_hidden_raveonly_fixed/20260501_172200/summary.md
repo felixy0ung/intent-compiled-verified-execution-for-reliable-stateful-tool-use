@@ -1,0 +1,5 @@
+# ToolSandbox Kill-Criteria Summary
+
+| method | episodes | success_rate | mean_similarity | unsafe_state_changes_per_task | invalid_tool_calls_per_task | verifier_rejections_per_task | repair_calls_per_task | llm_calls_per_task | tool_calls_per_task | token_proxy_per_task | user_llm_calls_per_task | user_token_proxy_per_task | parse_errors_per_task |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ToolSandbox RAVE | 28 | 0.5357 | 0.7475 | 0.0 | 0.9286 | 0.1429 | 2.6786 | 1.5 | 3.3929 | 1221.0357 | 0.0 | 0.0 | 0.1786 |

@@ -1,0 +1,6 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox RAVE,cellular_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_contact_with_id,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_temperature,CANONICALIZATION;SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,add_reminder_content_and_week_delta_and_time_alt,CANONICALIZATION;MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,5,0,2,0,0,0,0,0,2,0,,
+ToolSandbox RAVE,find_current_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,

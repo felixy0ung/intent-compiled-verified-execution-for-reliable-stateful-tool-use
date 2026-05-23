@@ -1,0 +1,17 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "deepseek-reasoner",
+  "base_url": "https://api.deepseek.com/v1",
+  "scenario_suite": "single_turn_no_distraction",
+  "scenario_count": 1,
+  "scenarios": [
+    "find_stock_symbol_with_company_name"
+  ],
+  "methods": [
+    "react"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

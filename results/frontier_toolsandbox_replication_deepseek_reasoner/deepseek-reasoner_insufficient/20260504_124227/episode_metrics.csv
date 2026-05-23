@@ -1,0 +1,117 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox RAVE,find_current_city_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_current_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_current_city_low_battery_mode_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_current_location_low_battery_mode_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_min_temperature_weekday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_min_temperature_weekday_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_days_till_holiday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_days_till_holiday_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_temperature_f_with_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_temperature_f_with_location_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,modify_contact_with_message_recency_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,modify_contact_with_message_recency_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_contact_by_phone_no_remove_contact_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_contact_by_phone_no_remove_contact_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_contact_by_phone_no_search_contacts_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_contact_by_phone_no_search_contacts_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,send_message_with_contact_content_cellular_off_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,send_message_with_contact_content_cellular_off_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_distance_with_location_name_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_distance_with_location_name_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,search_reminder_with_recency_upcoming_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,search_reminder_with_recency_upcoming_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,search_reminder_with_recency_yesterday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,search_reminder_with_recency_yesterday_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,search_reminder_with_creation_recency_yesterday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,search_reminder_with_creation_recency_yesterday_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,modify_reminder_with_recency_latest_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_reminder_with_recency_latest_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,
+ToolSandbox RAVE - no abstention verifier,find_current_city_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,470,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_current_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,488,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_current_city_low_battery_mode_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,389,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_current_location_low_battery_mode_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,879,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_min_temperature_weekday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,723,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_min_temperature_weekday_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,660,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_days_till_holiday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,1,1,0,0,0,0,0,2,0,,
+ToolSandbox RAVE - no abstention verifier,find_days_till_holiday_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,1,1,0,0,0,0,0,2,0,,
+ToolSandbox RAVE - no abstention verifier,find_temperature_f_with_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,475,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_temperature_f_with_location_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,404,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,modify_contact_with_message_recency_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,1,911,0,0,0,1,0,,
+ToolSandbox RAVE - no abstention verifier,modify_contact_with_message_recency_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,707,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,remove_contact_by_phone_no_remove_contact_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,0,0.6776,0.6776,0.0,0,3,0,1,1,816,0,0,0,1,0,,
+ToolSandbox RAVE - no abstention verifier,remove_contact_by_phone_no_remove_contact_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,0,0.5405,0.5405,0.0,0,3,0,1,1,671,0,0,0,1,0,,
+ToolSandbox RAVE - no abstention verifier,remove_contact_by_phone_no_search_contacts_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,396,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,remove_contact_by_phone_no_search_contacts_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,593,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,send_message_with_contact_content_cellular_off_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,470,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,send_message_with_contact_content_cellular_off_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,431,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_distance_with_location_name_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,465,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,find_distance_with_location_name_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,301,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,search_reminder_with_recency_upcoming_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1238,0,0,0,0,1,,
+ToolSandbox RAVE - no abstention verifier,search_reminder_with_recency_upcoming_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,30,0,0,0,0,0,0,0,0,0,RuntimeError,"<CONDA_PATH>"", line 634, in http_response
+    response = self.parent.error(
+               ^^^^^^^^^^^^^^^^^^
+  File ""<CONDA_ROOT>/envs/pctu-sim/lib/python3.11/urllib/request.py"", line 563, in error
+    return self._call_chain(*args)
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<CONDA_ROOT>/envs/pctu-sim/lib/python3.11/urllib/request.py"", line 496, in _call_chain
+    result = func(*args)
+             ^^^^^^^^^^^
+  File ""<CONDA_ROOT>/envs/pctu-sim/lib/python3.11/urllib/request.py"", line 643, in http_error_default
+    raise HTTPError(req.full_url, code, msg, hdrs, fp)
+urllib.error.HTTPError: HTTP Error 550: Mid Origin Return Unknown Error
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File ""<PROJECT_ROOT>/experiments/run_toolsandbox_kill_criteria.py"", line 563, in run_one
+    result = scenario.play_and_evaluate(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/scenario.py"", line 141, in play_and_evaluate
+    self.play(roles=roles, scenario_name=scenario_name)
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/scenario.py"", line 102, in play
+    roles[sandbox_db[""recipient""][-1]].respond()
+  File ""<PROJECT_ROOT>/src/pctu_pilot/toolsandbox_agents.py"", line 980, in respond
+    response_json = self._call_model(visible_messages, available_tools)
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/src/pctu_pilot/toolsandbox_agents.py"", line 601, in _call_model
+    response = self.client.chat(
+               ^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/src/pctu_pilot/llm_client.py"", line 64, in chat
+    raise RuntimeError(
+RuntimeError: Could not reach OpenAI-compatible server at https://api.deepseek.com/v1: HTTP Error 550: Mid Origin Return Unknown Error
+"
+ToolSandbox RAVE - no abstention verifier,search_reminder_with_recency_yesterday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1053,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,search_reminder_with_recency_yesterday_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1104,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,search_reminder_with_creation_recency_yesterday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1240,0,0,0,0,1,,
+ToolSandbox RAVE - no abstention verifier,search_reminder_with_creation_recency_yesterday_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1063,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,modify_reminder_with_recency_latest_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1144,0,0,0,0,0,,
+ToolSandbox RAVE - no abstention verifier,remove_reminder_with_recency_latest_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1085,0,0,0,0,0,,
+ToolSandbox ReAct,find_current_city_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,457,0,0,0,0,0,,
+ToolSandbox ReAct,find_current_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,319,0,0,0,0,0,,
+ToolSandbox ReAct,find_current_city_low_battery_mode_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,633,0,0,0,0,0,,
+ToolSandbox ReAct,find_current_location_low_battery_mode_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,465,0,0,0,0,0,,
+ToolSandbox ReAct,find_min_temperature_weekday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,371,0,0,0,0,0,,
+ToolSandbox ReAct,find_min_temperature_weekday_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,718,0,0,0,0,0,,
+ToolSandbox ReAct,find_days_till_holiday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,376,0,0,0,0,0,,
+ToolSandbox ReAct,find_days_till_holiday_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,940,0,0,0,0,1,,
+ToolSandbox ReAct,find_temperature_f_with_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,442,0,0,0,0,0,,
+ToolSandbox ReAct,find_temperature_f_with_location_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,431,0,0,0,0,0,,
+ToolSandbox ReAct,modify_contact_with_message_recency_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,627,0,0,0,0,0,,
+ToolSandbox ReAct,modify_contact_with_message_recency_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,692,0,0,0,0,0,,
+ToolSandbox ReAct,remove_contact_by_phone_no_remove_contact_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,0,0.6248,0.6248,0.0,0,3,0,1,2,1354,0,0,0,0,0,,
+ToolSandbox ReAct,remove_contact_by_phone_no_remove_contact_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,0,0.5949,0.5949,0.0,0,3,0,1,2,1376,0,0,0,0,0,,
+ToolSandbox ReAct,remove_contact_by_phone_no_search_contacts_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,412,0,0,0,0,0,,
+ToolSandbox ReAct,remove_contact_by_phone_no_search_contacts_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,420,0,0,0,0,0,,
+ToolSandbox ReAct,send_message_with_contact_content_cellular_off_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,446,0,0,0,0,0,,
+ToolSandbox ReAct,send_message_with_contact_content_cellular_off_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,400,0,0,0,0,0,,
+ToolSandbox ReAct,find_distance_with_location_name_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,420,0,0,0,0,0,,
+ToolSandbox ReAct,find_distance_with_location_name_insufficient_information_alt,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,468,0,0,0,0,0,,
+ToolSandbox ReAct,search_reminder_with_recency_upcoming_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1088,0,0,0,0,0,,
+ToolSandbox ReAct,search_reminder_with_recency_upcoming_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,957,0,0,0,0,0,,
+ToolSandbox ReAct,search_reminder_with_recency_yesterday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1068,0,0,0,0,0,,
+ToolSandbox ReAct,search_reminder_with_recency_yesterday_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,1,1,2,2123,0,0,0,0,0,,
+ToolSandbox ReAct,search_reminder_with_creation_recency_yesterday_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,984,0,0,0,0,0,,
+ToolSandbox ReAct,search_reminder_with_creation_recency_yesterday_insufficient_information_implicit,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,995,0,0,0,0,0,,
+ToolSandbox ReAct,modify_reminder_with_recency_latest_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,1327,0,0,0,0,1,,
+ToolSandbox ReAct,remove_reminder_with_recency_latest_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,1,788,0,0,0,0,0,,

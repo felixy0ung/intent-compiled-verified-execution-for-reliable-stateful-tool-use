@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,0de03ea_1,3,unsupported,0,0,2,3,5,1,0,0,0,0,1,6513,30,6543,llm_intent_unsupported,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,0de03ea_2,3,unsupported,0,0,2,3,5,1,0,0,0,0,1,6512,13,6525,llm_intent_unsupported,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,0de03ea_3,3,unsupported,0,0,2,3,5,1,0,0,0,0,1,6513,30,6543,llm_intent_unsupported,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,9ef798c_1,2,unsupported,0,0,0,6,6,1,0,0,0,0,1,6504,32,6536,llm_intent_unsupported,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,9ef798c_2,2,unsupported,0,0,0,6,6,1,0,0,0,0,1,6503,32,6535,llm_intent_unsupported,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,9ef798c_3,2,unsupported,0,0,0,6,6,1,0,0,0,0,1,6504,32,6536,llm_intent_unsupported,0,,,,

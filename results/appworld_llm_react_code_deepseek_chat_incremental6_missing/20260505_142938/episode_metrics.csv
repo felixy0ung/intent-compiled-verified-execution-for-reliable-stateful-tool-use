@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+appworld_llm_react_code_slice,llm-react-code,deepseek-chat,692c77d_1,2,appworld_llm_react_code,1,0,1,6,7,4,4,0,10,3,5,11551,1119,12670,appworld_llm_react_code,0,,,,
+appworld_llm_react_code_slice,llm-react-code,deepseek-chat,692c77d_2,2,appworld_llm_react_code,0,0,1,6,7,6,5,0,0,0,5,13814,1996,15810,appworld_llm_react_code,0,no_executable_code_step,,,
+appworld_llm_react_code_slice,llm-react-code,deepseek-chat,692c77d_3,2,appworld_llm_react_code,1,0,1,6,7,2,2,0,11,5,5,15983,1120,17103,appworld_llm_react_code,0,,,,
+appworld_llm_react_code_slice,llm-react-code,deepseek-chat,31dc501_1,1,appworld_llm_react_code,1,0,5,1,6,0,0,0,7,4,5,11508,332,11840,appworld_llm_react_code,0,,,,
+appworld_llm_react_code_slice,llm-react-code,deepseek-chat,31dc501_2,1,appworld_llm_react_code,1,0,5,1,6,0,0,0,8,5,5,10865,316,11181,appworld_llm_react_code,0,,,,
+appworld_llm_react_code_slice,llm-react-code,deepseek-chat,31dc501_3,1,appworld_llm_react_code,1,0,5,1,6,0,0,0,8,5,5,11384,324,11708,appworld_llm_react_code,0,,,,

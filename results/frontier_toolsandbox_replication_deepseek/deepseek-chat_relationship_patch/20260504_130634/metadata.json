@@ -1,0 +1,18 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "deepseek-chat",
+  "base_url": "https://api.deepseek.com/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 2,
+  "scenarios": [
+    "update_contact_relationship_with_relationship_multiple_user_turn",
+    "update_contact_relationship_with_relationship_twice_multiple_user_turn"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "hidden-task",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

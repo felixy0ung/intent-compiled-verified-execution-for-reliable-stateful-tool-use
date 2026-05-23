@@ -1,0 +1,14 @@
+{
+  "benchmark": "MiniStore RAVE synthetic stateful tool-use pilot",
+  "seed": 20260427,
+  "tasks": 500,
+  "methods": [
+    "Proof-Carrying Tool Use",
+    "ReAct",
+    "ReAct + JSON repair",
+    "ReAct + retry",
+    "ReAct + state ledger",
+    "Risk-Adaptive Verified Execution"
+  ],
+  "note": "This is a controlled pilot simulator for RAVE method debugging. It is not a substitute for ToolSandbox, AppWorld, or another public benchmark."
+}

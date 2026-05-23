@@ -1,0 +1,13 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,3d9a636_1,2,appworld_venmo_reset_friends_to_phone_friends,1,1,5,0,5,0,0,0,17,1,0,0,0,168,appworld_rave_venmo_reset_friends_to_phone_friends,0,,,,
+rave_appworld_slice,deterministic,,3d9a636_2,2,appworld_venmo_reset_friends_to_phone_friends,1,1,5,0,5,0,0,0,16,1,0,0,0,168,appworld_rave_venmo_reset_friends_to_phone_friends,0,,,,
+rave_appworld_slice,deterministic,,3d9a636_3,2,appworld_venmo_reset_friends_to_phone_friends,1,1,5,0,5,0,0,0,17,1,0,0,0,168,appworld_rave_venmo_reset_friends_to_phone_friends,0,,,,
+rave_appworld_slice,deterministic,,fd1f8fa_1,1,appworld_spotify_filter_queue_by_liked_status,1,1,5,0,5,0,0,0,18,1,0,0,0,154,appworld_rave_spotify_filter_queue_by_liked_status,0,,,,
+rave_appworld_slice,deterministic,,fd1f8fa_2,1,appworld_spotify_filter_queue_by_liked_status,1,1,5,0,5,0,0,0,19,1,0,0,0,155,appworld_rave_spotify_filter_queue_by_liked_status,0,,,,
+rave_appworld_slice,deterministic,,fd1f8fa_3,1,appworld_spotify_filter_queue_by_liked_status,1,1,5,0,5,0,0,0,18,1,0,0,0,154,appworld_rave_spotify_filter_queue_by_liked_status,0,,,,
+rave_appworld_slice,deterministic,,325d6ec_1,2,appworld_spotify_navigate_until_private_status,1,1,5,0,5,0,0,0,22,1,0,0,0,177,appworld_rave_spotify_navigate_until_private_status,0,,,,
+rave_appworld_slice,deterministic,,325d6ec_2,2,appworld_spotify_navigate_until_private_status,1,1,5,0,5,0,0,0,19,1,0,0,0,177,appworld_rave_spotify_navigate_until_private_status,0,,,,
+rave_appworld_slice,deterministic,,325d6ec_3,2,appworld_spotify_navigate_until_private_status,1,1,5,0,5,0,0,0,19,1,0,0,0,177,appworld_rave_spotify_navigate_until_private_status,0,,,,
+rave_appworld_slice,deterministic,,29a7b7e_1,1,appworld_file_reorganize_dated_meeting_files,1,1,4,0,4,0,0,0,45,1,0,0,0,180,appworld_rave_file_reorganize_dated_meeting_files,0,,,,
+rave_appworld_slice,deterministic,,29a7b7e_2,1,appworld_file_reorganize_dated_meeting_files,1,1,4,0,4,0,0,0,45,1,0,0,0,180,appworld_rave_file_reorganize_dated_meeting_files,0,,,,
+rave_appworld_slice,deterministic,,29a7b7e_3,1,appworld_file_reorganize_dated_meeting_files,1,1,4,0,4,0,0,0,45,1,0,0,0,180,appworld_rave_file_reorganize_dated_meeting_files,0,,,,

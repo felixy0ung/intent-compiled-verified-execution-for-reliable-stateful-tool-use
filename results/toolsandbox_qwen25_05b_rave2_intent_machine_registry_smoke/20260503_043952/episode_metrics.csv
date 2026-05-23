@@ -1,0 +1,28 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox RAVE,cellular_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,remove_contact_with_id,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,find_temperature,CANONICALIZATION;SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,30,0,0,0,0,0,0,0,0,0,NameError,"Traceback (most recent call last):
+  File ""<PROJECT_ROOT>/experiments/run_toolsandbox_kill_criteria.py"", line 563, in run_one
+    result = scenario.play_and_evaluate(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/scenario.py"", line 141, in play_and_evaluate
+    self.play(roles=roles, scenario_name=scenario_name)
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/scenario.py"", line 102, in play
+    roles[sandbox_db[""recipient""][-1]].respond()
+  File ""<PROJECT_ROOT>/src/pctu_pilot/toolsandbox_agents.py"", line 858, in respond
+    runtime_action = self._next_runtime_action(messages, available_tools)
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/src/pctu_pilot/toolsandbox_agents.py"", line 943, in _next_runtime_action
+    frame = self._compile_intent_frame(messages, available_tools)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/src/pctu_pilot/toolsandbox_agents.py"", line 992, in _compile_intent_frame
+    frame = machine.compiler(request, raw_request, available_tools)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/src/pctu_pilot/toolsandbox_agents.py"", line 1133, in _compile_weather_frame
+    day_request = latest_request or request
+                  ^^^^^^^^^^^^^^
+NameError: name 'latest_request' is not defined
+"
+ToolSandbox RAVE,convert_currency_canonicalize,CANONICALIZATION;SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,
+ToolSandbox RAVE,add_reminder_content_and_week_delta_and_time_alt,CANONICALIZATION;MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,5,0,2,0,0,0,0,0,2,0,,
+ToolSandbox RAVE,find_current_location_insufficient_information,INSUFFICIENT_INFORMATION;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,1,0,0,0,0,0,0,0,1,0,,

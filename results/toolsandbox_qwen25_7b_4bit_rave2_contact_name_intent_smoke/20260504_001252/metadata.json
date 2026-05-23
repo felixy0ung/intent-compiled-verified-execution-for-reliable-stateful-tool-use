@@ -1,0 +1,17 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen2.5-7B-Instruct-local-4bit",
+  "base_url": "http://127.0.0.1:8007/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 1,
+  "scenarios": [
+    "search_name_with_relationship"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

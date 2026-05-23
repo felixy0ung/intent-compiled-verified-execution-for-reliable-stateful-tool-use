@@ -1,0 +1,14 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_count": 2,
+  "scenarios": [
+    "search_sender_phone_number_with_content",
+    "search_message_with_recency_latest"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "note": "Uses a deterministic passive user, so default scenarios are single-user-turn oriented."
+}

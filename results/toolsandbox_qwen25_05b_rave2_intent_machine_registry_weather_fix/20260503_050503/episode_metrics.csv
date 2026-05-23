@@ -1,0 +1,2 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox RAVE,find_temperature,CANONICALIZATION;SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,,

@@ -1,0 +1,13 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,0d8a4ee_1,2,appworld_phone_message_non_venmo_contacts,1,1,5,0,5,0,0,0,13,1,1,461,45,506,appworld_rave_phone_message_non_venmo_contacts,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,0d8a4ee_2,2,appworld_phone_message_non_venmo_contacts,1,1,5,0,5,0,0,0,14,1,1,462,46,508,appworld_rave_phone_message_non_venmo_contacts,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,0d8a4ee_3,2,appworld_phone_message_non_venmo_contacts,1,1,5,0,5,0,0,0,19,1,1,464,47,511,appworld_rave_phone_message_non_venmo_contacts,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,37a8675_1,2,appworld_venmo_send_to_phone_number,1,1,6,0,6,3,3,0,14,1,1,453,36,489,appworld_rave_venmo_send_to_phone_number,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,37a8675_2,2,appworld_venmo_send_to_phone_number,1,1,6,0,6,1,1,0,11,1,1,453,36,489,appworld_rave_venmo_send_to_phone_number,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,37a8675_3,2,appworld_venmo_send_to_phone_number,1,1,6,0,6,1,1,0,11,1,1,453,36,489,appworld_rave_venmo_send_to_phone_number,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,771d8fc_1,1,appworld_delete_phone_spam_messages,1,1,6,0,6,0,0,0,28,1,1,452,27,479,appworld_rave_delete_phone_spam_messages,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,771d8fc_2,1,appworld_delete_phone_spam_messages,1,1,6,0,6,0,0,0,25,1,1,452,27,479,appworld_rave_delete_phone_spam_messages,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,771d8fc_3,1,appworld_delete_phone_spam_messages,1,1,6,0,6,0,0,0,26,1,1,452,27,479,appworld_rave_delete_phone_spam_messages,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,cf6abd2_1,1,appworld_bucket_list_status_update,1,1,8,0,8,0,0,0,8,1,1,454,31,485,appworld_rave_bucket_list_status_update,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,cf6abd2_2,1,appworld_bucket_list_status_update,1,1,8,0,8,0,0,0,8,1,1,453,29,482,appworld_rave_bucket_list_status_update,0,,,,
+rave_appworld_llm_intent_slice,llm-intent,deepseek-chat,cf6abd2_3,1,appworld_bucket_list_status_update,1,1,8,0,8,0,0,0,8,1,1,453,30,483,appworld_rave_bucket_list_status_update,0,,,,

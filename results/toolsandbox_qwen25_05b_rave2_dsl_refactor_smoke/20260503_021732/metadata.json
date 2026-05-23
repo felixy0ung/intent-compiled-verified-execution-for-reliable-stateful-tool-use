@@ -1,0 +1,21 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "qwen25-0.5b",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 5,
+  "scenarios": [
+    "cellular_off",
+    "remove_contact_with_id",
+    "find_temperature",
+    "add_reminder_content_and_week_delta_and_time_alt",
+    "find_current_location_insufficient_information"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

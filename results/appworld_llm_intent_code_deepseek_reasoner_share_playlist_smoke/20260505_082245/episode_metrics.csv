@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+appworld_llm_intent_code_slice,llm-intent-code,deepseek-reasoner,652485c_1,3,appworld_llm_intent_code,1,0,2,9,11,1,0,0,0,1,2,4996,1044,6040,appworld_llm_intent_code,1,,,,
+appworld_llm_intent_code_slice,llm-intent-code,deepseek-reasoner,652485c_2,3,appworld_llm_intent_code,0,0,2,9,11,1,0,0,0,0,2,4995,1047,6042,llm_intent_code_code_parse_error,0,Model returned empty code.,,,
+appworld_llm_intent_code_slice,llm-intent-code,deepseek-reasoner,652485c_3,3,appworld_llm_intent_code,1,0,2,9,11,1,0,0,0,1,2,4996,1004,6000,appworld_llm_intent_code,1,,,,

@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,634f342_1,2,appworld_spotify_archive_playlist_songs_from_file,1,0,3,4,7,0,0,0,14,1,0,0,0,259,appworld_rave_spotify_archive_playlist_songs_from_file,0,,,,
+rave_appworld_slice,deterministic,,634f342_2,2,appworld_spotify_archive_playlist_songs_from_file,1,0,3,4,7,0,0,0,16,1,0,0,0,259,appworld_rave_spotify_archive_playlist_songs_from_file,0,,,,
+rave_appworld_slice,deterministic,,634f342_3,2,appworld_spotify_archive_playlist_songs_from_file,1,0,3,4,7,0,0,0,15,1,0,0,0,261,appworld_rave_spotify_archive_playlist_songs_from_file,0,,,,

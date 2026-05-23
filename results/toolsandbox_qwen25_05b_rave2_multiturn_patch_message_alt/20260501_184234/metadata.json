@@ -1,0 +1,18 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "qwen25-0.5b",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 2,
+  "scenarios": [
+    "search_message_with_recency_latest_multiple_user_turn_alt",
+    "search_message_with_recency_oldest_multiple_user_turn_alt"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "hidden-task",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

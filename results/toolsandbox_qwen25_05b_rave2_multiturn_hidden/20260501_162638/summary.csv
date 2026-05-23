@@ -1,0 +1,3 @@
+method,episodes,success_rate,mean_similarity,unsafe_state_changes_per_task,invalid_tool_calls_per_task,verifier_rejections_per_task,repair_calls_per_task,llm_calls_per_task,tool_calls_per_task,token_proxy_per_task,user_llm_calls_per_task,user_token_proxy_per_task,parse_errors_per_task
+ToolSandbox RAVE,28,0.2143,0.4,0.0,1.3214,0.1786,1.3571,2.9643,3.4643,2188.5714,0.0,0.0,0.3929
+ToolSandbox ReAct,28,0.0,0.0255,0.0,6.6071,0.0,0.0,9.0,8.0,10826.6429,0.0,0.0,0.4643

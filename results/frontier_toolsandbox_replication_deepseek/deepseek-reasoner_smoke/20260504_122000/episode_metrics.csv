@@ -1,0 +1,2 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox ReAct,find_stock_symbol_with_company_name,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.9886,0.9886,0.0,0,3,0,1,2,732,0,0,0,0,0,,

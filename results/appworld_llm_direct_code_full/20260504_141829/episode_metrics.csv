@@ -1,0 +1,13 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,0d8a4ee_1,2,appworld_llm_direct_code,1,0,1,4,5,1,0,0,4,1,1,557,562,1119,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,0d8a4ee_2,2,appworld_llm_direct_code,1,0,2,3,5,0,0,0,8,1,1,558,453,1011,appworld_llm_direct_code,0,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,0d8a4ee_3,2,appworld_llm_direct_code,1,0,1,4,5,1,0,0,4,1,1,560,500,1060,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,37a8675_1,2,appworld_llm_direct_code,1,0,1,5,6,0,0,0,5,1,1,549,415,964,appworld_llm_direct_code,0,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,37a8675_2,2,appworld_llm_direct_code,1,0,0,6,6,1,0,0,5,1,1,549,799,1348,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,37a8675_3,2,appworld_llm_direct_code,1,0,0,6,6,1,0,0,5,1,1,549,450,999,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,771d8fc_1,1,appworld_llm_direct_code,1,0,2,4,6,1,0,0,4,1,1,548,291,839,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,771d8fc_2,1,appworld_llm_direct_code,1,0,2,4,6,1,0,0,4,1,1,548,324,872,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,771d8fc_3,1,appworld_llm_direct_code,1,0,2,4,6,1,0,0,4,1,1,548,311,859,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,cf6abd2_1,1,appworld_llm_direct_code,1,0,1,7,8,1,0,0,4,1,1,550,386,936,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,cf6abd2_2,1,appworld_llm_direct_code,1,0,1,7,8,1,0,0,4,1,1,549,516,1065,appworld_llm_direct_code,1,,,,
+appworld_llm_direct_code_slice,llm-code,deepseek-chat,cf6abd2_3,1,appworld_llm_direct_code,1,0,1,7,8,1,0,0,4,1,1,549,526,1075,appworld_llm_direct_code,1,,,,

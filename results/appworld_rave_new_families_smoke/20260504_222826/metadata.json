@@ -1,0 +1,17 @@
+{
+  "benchmark": "AppWorld public dev/train stateful slice",
+  "method": "rave_appworld_slice",
+  "agent": "deterministic",
+  "model": "",
+  "experiment_name": "appworld_rave_new_families_smoke",
+  "task_ids": [
+    "024c982_1",
+    "024c982_2",
+    "024c982_3",
+    "6171bbc_1",
+    "6171bbc_2",
+    "6171bbc_3"
+  ],
+  "appworld_root": "<PROJECT_ROOT>",
+  "note": "This is a targeted public AppWorld slice, not a full AppWorld leaderboard run. It does not use ground-truth solution code or ground-truth public_data to construct actions."
+}

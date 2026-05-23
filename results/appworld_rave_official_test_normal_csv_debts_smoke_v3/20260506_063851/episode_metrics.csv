@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,6b6ca61_1,3,appworld_pay_csv_debts_via_venmo_or_splitwise,1,1,19,0,19,0,0,0,75,1,0,0,0,669,appworld_rave_pay_csv_debts_via_venmo_or_splitwise,0,,,,
+rave_appworld_slice,deterministic,,6b6ca61_2,3,appworld_pay_csv_debts_via_venmo_or_splitwise,1,1,19,0,19,0,0,0,101,1,0,0,0,669,appworld_rave_pay_csv_debts_via_venmo_or_splitwise,0,,,,
+rave_appworld_slice,deterministic,,6b6ca61_3,3,appworld_pay_csv_debts_via_venmo_or_splitwise,1,1,19,0,19,0,0,0,127,1,0,0,0,669,appworld_rave_pay_csv_debts_via_venmo_or_splitwise,0,,,,

@@ -1,0 +1,28 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "qwen25-0.5b",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 12,
+  "scenarios": [
+    "search_message_with_recency_latest_multiple_user_turn",
+    "search_message_with_recency_oldest_multiple_user_turn",
+    "remove_contact_by_phone_multiple_user_turn",
+    "add_reminder_content_and_date_and_time_multiple_user_turn_alt",
+    "add_reminder_content_and_week_delta_and_time_multiple_user_turn_alt",
+    "add_reminder_content_and_weekday_delta_and_time_multiple_user_turn_alt",
+    "add_reminder_content_and_week_delta_and_time_and_location_multiple_user_turn_alt",
+    "add_reminder_content_and_week_delta_and_time_and_location_low_battery_mode_multiple_user_turn_alt",
+    "find_temperature_f_with_location_and_time_diff_low_battery_mode_multiple_user_turn",
+    "modify_contact_with_message_recency_multiple_user_turn_alt",
+    "update_contact_relationship_with_relationship_multiple_user_turn",
+    "update_contact_relationship_with_relationship_twice_multiple_user_turn"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "hidden-task",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

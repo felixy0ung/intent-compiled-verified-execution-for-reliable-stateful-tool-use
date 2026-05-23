@@ -1,0 +1,7 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox RAVE,update_contact_relationship_with_relationship,MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.9312,0.9312,0.0,0,7,0,3,0,0,0,0,0,3,0,,
+ToolSandbox RAVE,update_contact_relationship_with_relationship_alt,MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,7,0,3,0,0,0,0,0,3,0,,
+ToolSandbox RAVE - no RAVE-2 DSL,update_contact_relationship_with_relationship,MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.9312,0.9312,0.0,0,7,0,3,0,0,0,0,0,3,0,,
+ToolSandbox RAVE - no RAVE-2 DSL,update_contact_relationship_with_relationship_alt,MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,7,0,3,0,0,0,0,0,3,0,,
+ToolSandbox ReAct,update_contact_relationship_with_relationship,MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.937,0.937,0.0,0,7,0,3,4,2555,0,0,0,0,0,,
+ToolSandbox ReAct,update_contact_relationship_with_relationship_alt,MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,7,0,3,4,2567,0,0,0,0,0,,

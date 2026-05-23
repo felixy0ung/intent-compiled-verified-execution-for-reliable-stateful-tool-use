@@ -1,0 +1,2 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox RAVE,find_temperature_f_with_location_and_time_diff_low_battery_mode_multiple_user_turn,CANONICALIZATION;STATE_DEPENDENCY;MULTIPLE_TOOL_CALL;MULTIPLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.6,0.6,0.0,0,21,0,6,0,0,0,0,0,6,0,,

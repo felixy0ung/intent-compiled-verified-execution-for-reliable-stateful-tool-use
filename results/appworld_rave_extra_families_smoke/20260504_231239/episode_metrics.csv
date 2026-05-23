@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,ff58e36_1,2,appworld_venmo_add_friends_by_relationships,1,1,6,0,6,0,0,0,27,1,0,0,0,175,appworld_rave_venmo_add_friends_by_relationships,0,,,,
+rave_appworld_slice,deterministic,,ff58e36_2,2,appworld_venmo_add_friends_by_relationships,1,1,6,0,6,0,0,0,29,1,0,0,0,175,appworld_rave_venmo_add_friends_by_relationships,0,,,,
+rave_appworld_slice,deterministic,,ff58e36_3,2,appworld_venmo_add_friends_by_relationships,1,1,6,0,6,0,0,0,23,1,0,0,0,175,appworld_rave_venmo_add_friends_by_relationships,0,,,,
+rave_appworld_slice,deterministic,,f3f60f0_1,1,appworld_spotify_like_all_library_items,1,1,8,0,8,0,0,0,40,1,0,0,0,161,appworld_rave_spotify_like_all_library_items,0,,,,
+rave_appworld_slice,deterministic,,f3f60f0_2,1,appworld_spotify_like_all_library_items,1,1,8,0,8,0,0,0,36,1,0,0,0,161,appworld_rave_spotify_like_all_library_items,0,,,,
+rave_appworld_slice,deterministic,,f3f60f0_3,1,appworld_spotify_like_all_library_items,1,1,8,0,8,0,0,0,47,1,0,0,0,161,appworld_rave_spotify_like_all_library_items,0,,,,

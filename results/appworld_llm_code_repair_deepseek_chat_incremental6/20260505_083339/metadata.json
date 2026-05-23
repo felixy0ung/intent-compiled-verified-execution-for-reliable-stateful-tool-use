@@ -1,0 +1,17 @@
+{
+  "benchmark": "AppWorld public dev/train stateful slice",
+  "method": "appworld_llm_code_repair_slice",
+  "agent": "llm-code-repair",
+  "model": "deepseek-chat",
+  "experiment_name": "appworld_code_repair_deepseek_chat_incremental6",
+  "task_ids": [
+    "57c3486_1",
+    "57c3486_2",
+    "57c3486_3",
+    "652485c_1",
+    "652485c_2",
+    "652485c_3"
+  ],
+  "appworld_root": "<PROJECT_ROOT>",
+  "note": "This is a targeted public AppWorld slice, not a full AppWorld leaderboard run. It does not use ground-truth solution code or ground-truth public_data to construct actions."
+}

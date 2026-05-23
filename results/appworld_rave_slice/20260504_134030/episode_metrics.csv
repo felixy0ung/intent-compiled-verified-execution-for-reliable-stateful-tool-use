@@ -1,0 +1,5 @@
+method,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,token_proxy,reason,execution_failed,output_preview,failed_requirements
+rave_appworld_slice,0d8a4ee_1,2,appworld_phone_message_non_venmo_contacts,1,1,5,0,5,0,0,13,1,0,167,appworld_rave_phone_message_non_venmo_contacts,0,,
+rave_appworld_slice,37a8675_1,2,appworld_venmo_send_to_phone_number,1,0,0,6,6,1,0,4,1,0,174,appworld_rave_venmo_send_to_phone_number,1,,
+rave_appworld_slice,771d8fc_1,1,appworld_delete_phone_spam_messages,1,1,6,0,6,0,0,28,1,0,131,appworld_rave_delete_phone_spam_messages,0,,
+rave_appworld_slice,cf6abd2_1,1,appworld_bucket_list_status_update,1,0,1,7,8,1,0,3,1,0,196,appworld_rave_bucket_list_status_update,1,,

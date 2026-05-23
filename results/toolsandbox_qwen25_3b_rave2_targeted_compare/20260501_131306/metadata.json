@@ -1,0 +1,28 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct-local",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 9,
+  "scenarios": [
+    "find_address_with_lat_lon",
+    "find_phone_number_with_location_name",
+    "find_temperature",
+    "find_stock_symbol_with_company_name",
+    "convert_currency",
+    "convert_currency_canonicalize",
+    "find_days_till_holiday",
+    "search_reminder_with_recency_upcoming",
+    "add_reminder_content_and_date_and_time"
+  ],
+  "methods": [
+    "react",
+    "rave",
+    "rave_no_rave2_dsl",
+    "rave_no_abstention"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "on",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

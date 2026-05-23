@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,270f1ff_1,2,appworld_venmo_birthday_child_payment_and_text,1,1,11,0,11,0,0,0,18,1,0,0,0,580,appworld_rave_venmo_birthday_child_payment_and_text,0,,,,
+rave_appworld_slice,deterministic,,270f1ff_2,2,appworld_venmo_birthday_child_payment_and_text,1,1,11,0,11,0,0,0,19,1,0,0,0,586,appworld_rave_venmo_birthday_child_payment_and_text,0,,,,
+rave_appworld_slice,deterministic,,270f1ff_3,2,appworld_venmo_birthday_child_payment_and_text,1,1,11,0,11,0,0,0,19,1,0,0,0,583,appworld_rave_venmo_birthday_child_payment_and_text,0,,,,

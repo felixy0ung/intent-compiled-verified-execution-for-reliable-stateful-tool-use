@@ -1,0 +1,23 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_count": 11,
+  "scenarios": [
+    "search_relationship_with_phone_number",
+    "search_sender_phone_number_with_content",
+    "send_message_with_phone_number_and_content",
+    "search_message_with_recency_latest",
+    "search_message_with_recency_oldest",
+    "remove_contact_by_phone_ambiguous",
+    "turn_on_wifi_low_battery_mode",
+    "turn_on_wifi_low_battery_mode_implicit",
+    "turn_on_cellular_low_battery_mode",
+    "turn_on_location_low_battery_mode",
+    "update_contact_relationship_with_relationship"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "note": "Uses a deterministic passive user, so default scenarios are single-user-turn oriented."
+}

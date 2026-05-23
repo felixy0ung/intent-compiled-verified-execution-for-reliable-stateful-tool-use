@@ -1,0 +1,4 @@
+method,episodes,success_rate,mean_similarity,unsafe_state_changes_per_task,invalid_tool_calls_per_task,verifier_rejections_per_task,repair_calls_per_task,llm_calls_per_task,tool_calls_per_task,token_proxy_per_task,user_llm_calls_per_task,user_token_proxy_per_task,parse_errors_per_task
+ToolSandbox RAVE,28,0.8214,0.8679,0.1071,0.25,0.1786,1.1429,0.7857,0.8214,666.2143,0.0,0.0,0.0357
+ToolSandbox RAVE - no abstention verifier,28,0.5,0.5,0.4286,1.6786,0.1786,0.4643,7.3571,6.7857,6810.8929,0.0,0.0,0.3929
+ToolSandbox ReAct,28,0.5,0.5409,0.4286,2.2143,0.0,0.0,11.75,9.9643,9954.3929,0.0,0.0,0.4286

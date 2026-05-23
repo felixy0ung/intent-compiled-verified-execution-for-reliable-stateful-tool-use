@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,0de03ea_1,3,appworld_spotify_play_offline_downloaded_collection,1,1,5,0,5,0,0,0,8,1,0,0,0,260,appworld_rave_spotify_play_offline_downloaded_collection,0,,,,
+rave_appworld_slice,deterministic,,0de03ea_2,3,appworld_spotify_play_offline_downloaded_collection,1,1,5,0,5,0,0,0,9,1,0,0,0,260,appworld_rave_spotify_play_offline_downloaded_collection,0,,,,
+rave_appworld_slice,deterministic,,0de03ea_3,3,appworld_spotify_play_offline_downloaded_collection,1,1,5,0,5,0,0,0,9,1,0,0,0,260,appworld_rave_spotify_play_offline_downloaded_collection,0,,,,

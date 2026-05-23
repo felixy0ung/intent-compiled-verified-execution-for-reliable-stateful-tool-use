@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,2c544f9_1,3,appworld_venmo_send_to_named_user,1,0,5,1,6,2,2,0,16,1,0,0,0,428,appworld_rave_venmo_send_to_named_user,0,,,,
+rave_appworld_slice,deterministic,,2c544f9_2,3,appworld_venmo_send_to_named_user,1,0,5,1,6,2,2,0,16,1,0,0,0,428,appworld_rave_venmo_send_to_named_user,0,,,,
+rave_appworld_slice,deterministic,,2c544f9_3,3,appworld_venmo_send_to_named_user,1,0,5,1,6,2,2,0,15,1,0,0,0,428,appworld_rave_venmo_send_to_named_user,0,,,,

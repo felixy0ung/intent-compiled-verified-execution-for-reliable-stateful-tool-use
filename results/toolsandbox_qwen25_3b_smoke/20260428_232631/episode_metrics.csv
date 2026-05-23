@@ -1,0 +1,29 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,verifier_rejections,repair_calls,parse_errors,exception_type,traceback
+ToolSandbox ReAct,cellular_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,1,0,0,1,185,0,0,1,,
+ToolSandbox ReAct,get_cellular,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,12,1,6,6,2048,0,0,0,,
+ToolSandbox ReAct,wifi_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,3,0,1,2,411,0,0,1,,
+ToolSandbox ReAct,get_wifi,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,12,6,6,6,2322,0,0,0,AssertionError,"Traceback (most recent call last):
+  File ""<PROJECT_ROOT>/experiments/run_toolsandbox_kill_criteria.py"", line 237, in run_one
+    result = scenario.play_and_evaluate(
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/scenario.py"", line 194, in play_and_evaluate
+    conversation = serialize_to_conversation(
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/message_conversion.py"", line 348, in serialize_to_conversation
+    openai_messages, openai_messages_to_subset_indices_mapping = to_openai_messages(
+                                                                 ^^^^^^^^^^^^^^^^^^^
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/message_conversion.py"", line 203, in to_openai_messages
+    python_code_to_openai_tool_call(
+  File ""<PROJECT_ROOT>/third_party/ToolSandbox-main/tool_sandbox/common/message_conversion.py"", line 121, in python_code_to_openai_tool_call
+    assert match is not None
+           ^^^^^^^^^^^^^^^^^
+AssertionError
+"
+ToolSandbox ReAct,search_phone_number_with_name,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,9,0,4,5,2805,0,0,0,,
+ToolSandbox ReAct,search_name_with_relationship,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,12,0,6,6,2577,0,0,0,,
+ToolSandbox PCTU,cellular_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,1,0,0,1,332,0,0,1,,
+ToolSandbox PCTU,get_cellular,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,12,0,6,6,3352,0,0,0,,
+ToolSandbox PCTU,wifi_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,3,0,1,3,1091,1,0,1,,
+ToolSandbox PCTU,get_wifi,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,12,0,6,6,3227,0,0,0,,
+ToolSandbox PCTU,search_phone_number_with_name,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.5,0.5,0.0,0,3,0,1,2,1428,0,0,1,,
+ToolSandbox PCTU,search_name_with_relationship,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,0,0.0,0.0,0.0,0,12,0,6,7,4695,1,0,0,,

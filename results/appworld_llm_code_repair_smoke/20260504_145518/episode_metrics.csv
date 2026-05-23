@@ -1,0 +1,5 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,0d8a4ee_1,2,appworld_llm_code_repair,1,0,4,1,5,2,2,0,71,3,3,3960,2119,6079,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,37a8675_1,2,appworld_llm_code_repair,1,0,0,6,6,3,3,0,1012,3,3,4644,2321,6965,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,771d8fc_1,1,appworld_llm_code_repair,1,1,6,0,6,1,1,0,34,2,2,1486,586,2072,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,cf6abd2_1,1,appworld_llm_code_repair,1,0,2,6,8,1,1,0,10,2,2,1593,780,2373,appworld_llm_code_repair,0,,,,

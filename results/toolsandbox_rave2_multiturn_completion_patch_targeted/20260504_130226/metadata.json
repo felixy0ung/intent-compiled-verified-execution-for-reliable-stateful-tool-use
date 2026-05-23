@@ -1,0 +1,22 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "stub-model",
+  "base_url": "http://127.0.0.1:8123/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 6,
+  "scenarios": [
+    "search_message_with_recency_oldest_multiple_user_turn",
+    "search_message_with_recency_oldest_multiple_user_turn_alt",
+    "modify_contact_with_message_recency_multiple_user_turn",
+    "modify_contact_with_message_recency_multiple_user_turn_alt",
+    "remove_contact_by_phone_multiple_user_turn_alt",
+    "find_temperature_f_with_location_and_time_diff_low_battery_mode_multiple_user_turn"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "hidden-task",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

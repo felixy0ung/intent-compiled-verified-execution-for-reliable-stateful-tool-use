@@ -1,0 +1,20 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "deepseek-chat",
+  "base_url": "https://api.deepseek.com/v1",
+  "scenario_suite": "single_turn_no_distraction",
+  "scenario_count": 2,
+  "scenarios": [
+    "update_contact_relationship_with_relationship",
+    "update_contact_relationship_with_relationship_alt"
+  ],
+  "methods": [
+    "rave",
+    "rave_no_rave2_dsl",
+    "react"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

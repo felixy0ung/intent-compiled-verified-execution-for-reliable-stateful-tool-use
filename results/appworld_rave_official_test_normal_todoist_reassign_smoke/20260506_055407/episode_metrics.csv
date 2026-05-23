@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,8ce6779_1,3,appworld_todoist_reassign_accepted_takeover_tasks,1,0,5,4,9,0,0,0,19,1,0,0,0,411,appworld_rave_todoist_reassign_accepted_takeover_tasks,0,,,,
+rave_appworld_slice,deterministic,,8ce6779_2,3,appworld_todoist_reassign_accepted_takeover_tasks,1,0,5,4,9,0,0,0,26,1,0,0,0,409,appworld_rave_todoist_reassign_accepted_takeover_tasks,0,,,,
+rave_appworld_slice,deterministic,,8ce6779_3,3,appworld_todoist_reassign_accepted_takeover_tasks,1,0,5,4,9,0,0,0,27,1,0,0,0,413,appworld_rave_todoist_reassign_accepted_takeover_tasks,0,,,,

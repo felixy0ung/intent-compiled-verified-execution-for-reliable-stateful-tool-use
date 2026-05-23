@@ -1,0 +1,10 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,2c544f9_1,3,appworld_venmo_send_to_named_user,1,1,6,0,6,2,2,0,15,1,0,0,0,378,appworld_rave_venmo_send_to_named_user,0,,,,
+rave_appworld_slice,deterministic,,2c544f9_2,3,appworld_venmo_send_to_named_user,1,1,6,0,6,2,2,0,15,1,0,0,0,378,appworld_rave_venmo_send_to_named_user,0,,,,
+rave_appworld_slice,deterministic,,2c544f9_3,3,appworld_venmo_send_to_named_user,1,1,6,0,6,2,2,0,14,1,0,0,0,378,appworld_rave_venmo_send_to_named_user,0,,,,
+rave_appworld_slice,deterministic,,9ef798c_1,2,appworld_venmo_accept_named_carpool_request_this_month,1,1,6,0,6,0,0,0,12,1,0,0,0,431,appworld_rave_venmo_accept_named_carpool_request_this_month,0,,,,
+rave_appworld_slice,deterministic,,9ef798c_2,2,appworld_venmo_accept_named_carpool_request_this_month,1,1,6,0,6,0,0,0,13,1,0,0,0,431,appworld_rave_venmo_accept_named_carpool_request_this_month,0,,,,
+rave_appworld_slice,deterministic,,9ef798c_3,2,appworld_venmo_accept_named_carpool_request_this_month,1,1,6,0,6,0,0,0,13,1,0,0,0,431,appworld_rave_venmo_accept_named_carpool_request_this_month,0,,,,
+rave_appworld_slice,deterministic,,9dabbc9_1,3,appworld_venmo_correct_housing_bill_request,1,0,0,9,9,1,0,0,7,1,0,0,0,386,appworld_rave_venmo_correct_housing_bill_request,1,,,,
+rave_appworld_slice,deterministic,,9dabbc9_2,3,appworld_venmo_correct_housing_bill_request,1,0,0,9,9,1,0,0,7,1,0,0,0,388,appworld_rave_venmo_correct_housing_bill_request,1,,,,
+rave_appworld_slice,deterministic,,9dabbc9_3,3,appworld_venmo_correct_housing_bill_request,1,0,0,9,9,1,0,0,7,1,0,0,0,384,appworld_rave_venmo_correct_housing_bill_request,1,,,,

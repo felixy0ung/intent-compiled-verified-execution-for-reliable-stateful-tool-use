@@ -1,0 +1,28 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "microsoft/Phi-3-mini-4k-instruct",
+  "base_url": "http://127.0.0.1:8002/v1",
+  "scenario_suite": "insufficient_no_distraction",
+  "scenario_count": 10,
+  "scenarios": [
+    "find_current_city_insufficient_information",
+    "find_current_location_insufficient_information",
+    "find_current_city_low_battery_mode_insufficient_information",
+    "find_current_location_low_battery_mode_insufficient_information",
+    "find_min_temperature_weekday_insufficient_information",
+    "find_min_temperature_weekday_insufficient_information_alt",
+    "find_days_till_holiday_insufficient_information",
+    "find_days_till_holiday_insufficient_information_alt",
+    "find_temperature_f_with_location_insufficient_information",
+    "find_temperature_f_with_location_insufficient_information_alt"
+  ],
+  "methods": [
+    "rave",
+    "rave_no_abstention",
+    "react"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

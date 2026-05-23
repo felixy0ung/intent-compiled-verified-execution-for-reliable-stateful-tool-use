@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,d4e9306_1,1,appworld_llm_code_repair,1,0,2,4,6,1,1,0,31,2,2,3846,976,4822,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,d4e9306_2,1,appworld_llm_code_repair,1,0,2,4,6,1,1,0,38,2,2,3846,976,4822,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,d4e9306_3,1,appworld_llm_code_repair,1,0,2,4,6,1,1,0,41,2,2,3824,1055,4879,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,b7a9ee9_1,2,appworld_llm_code_repair,1,0,1,3,4,3,3,0,41,3,3,6335,1160,7495,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,b7a9ee9_2,2,appworld_llm_code_repair,1,1,4,0,4,2,2,0,106,3,3,6337,1250,7587,appworld_llm_code_repair,0,,,,
+appworld_llm_code_repair_slice,llm-code-repair,deepseek-chat,b7a9ee9_3,2,appworld_llm_code_repair,1,1,4,0,4,1,1,0,64,2,2,3763,824,4587,appworld_llm_code_repair,0,,,,

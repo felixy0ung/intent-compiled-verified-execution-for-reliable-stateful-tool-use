@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,d6ac34d_1,2,appworld_simple_note_add_today_habit_log,1,0,1,8,9,1,0,0,33,1,0,0,0,304,appworld_rave_simple_note_add_today_habit_log,1,,,,
+rave_appworld_slice,deterministic,,d6ac34d_2,2,appworld_simple_note_add_today_habit_log,1,0,1,8,9,1,0,0,30,1,0,0,0,303,appworld_rave_simple_note_add_today_habit_log,1,,,,
+rave_appworld_slice,deterministic,,d6ac34d_3,2,appworld_simple_note_add_today_habit_log,1,0,1,8,9,1,0,0,25,1,0,0,0,303,appworld_rave_simple_note_add_today_habit_log,1,,,,
+rave_appworld_slice,deterministic,,f323bae_1,3,appworld_simple_note_export_habit_tracker_csv,1,1,9,0,9,0,0,0,46,1,0,0,0,348,appworld_rave_simple_note_export_habit_tracker_csv,0,,,,
+rave_appworld_slice,deterministic,,f323bae_2,3,appworld_simple_note_export_habit_tracker_csv,1,1,9,0,9,0,0,0,35,1,0,0,0,348,appworld_rave_simple_note_export_habit_tracker_csv,0,,,,
+rave_appworld_slice,deterministic,,f323bae_3,3,appworld_simple_note_export_habit_tracker_csv,1,1,9,0,9,0,0,0,42,1,0,0,0,348,appworld_rave_simple_note_export_habit_tracker_csv,0,,,,

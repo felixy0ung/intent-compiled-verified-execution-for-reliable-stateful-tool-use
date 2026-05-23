@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,5e27cd7_1,1,appworld_delete_gmail_empty_drafts,1,1,4,0,4,0,0,0,15,1,0,0,0,141,appworld_rave_delete_gmail_empty_drafts,0,,,,
+rave_appworld_slice,deterministic,,5e27cd7_2,1,appworld_delete_gmail_empty_drafts,1,1,4,0,4,0,0,0,13,1,0,0,0,141,appworld_rave_delete_gmail_empty_drafts,0,,,,
+rave_appworld_slice,deterministic,,5e27cd7_3,1,appworld_delete_gmail_empty_drafts,1,1,4,0,4,0,0,0,10,1,0,0,0,141,appworld_rave_delete_gmail_empty_drafts,0,,,,

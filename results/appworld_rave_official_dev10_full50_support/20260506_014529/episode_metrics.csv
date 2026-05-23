@@ -1,0 +1,11 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,50e1ac9_1,2,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,22,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,50e1ac9_2,2,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,22,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,50e1ac9_3,2,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,22,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,fac291d_1,2,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,16,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,fac291d_2,2,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,16,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,fac291d_3,2,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,16,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,530b157_1,3,unsupported,0,0,1,9,10,1,0,0,0,0,0,0,0,43,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,530b157_2,3,unsupported,0,0,1,9,10,1,0,0,0,0,0,0,0,42,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,530b157_3,3,unsupported,0,0,1,9,10,1,0,0,0,0,0,0,0,45,no_appworld_intent_machine_matched,0,,,,
+rave_appworld_slice,deterministic,,4ec8de5_1,1,unsupported,0,0,1,1,2,1,0,0,0,0,0,0,0,18,no_appworld_intent_machine_matched,0,,,,

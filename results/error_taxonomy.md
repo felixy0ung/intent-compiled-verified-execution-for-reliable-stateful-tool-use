@@ -1,0 +1,10 @@
+# Pilot Error Taxonomy
+
+| method | episodes | missing_schema_errors_per_task | unsupported_argument_errors_per_task | precondition_errors_per_task | postcondition_errors_per_task | collateral_changes_per_task |
+| --- | --- | --- | --- | --- | --- | --- |
+| Proof-Carrying Tool Use | 500 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |
+| ReAct | 500 | 0.11 | 0.0 | 0.46 | 0.0 | 0.144 |
+| ReAct + JSON repair | 500 | 0.062 | 0.0 | 0.504 | 0.0 | 0.146 |
+| ReAct + retry | 500 | 0.16 | 0.0 | 0.468 | 0.0 | 0.136 |
+| ReAct + state ledger | 500 | 0.07 | 0.0 | 0.282 | 0.0 | 0.02 |
+| Risk-Adaptive Verified Execution | 500 | 0.0 | 0.0 | 0.0 | 0.0 | 0.0 |

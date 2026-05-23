@@ -1,0 +1,2 @@
+method,episodes,success_rate,supported_rate,invalid_tool_calls_per_task,unsafe_state_changes_per_task,api_calls_per_task,code_exec_calls_per_task,llm_calls_per_task,prompt_tokens_per_task,completion_tokens_per_task,token_proxy_per_task
+appworld_llm_react_code_slice,57,0.2456,0.9825,1.0877,0.0,23.7193,3.1754,4.0351,10045.4211,1034.0526,11079.4737

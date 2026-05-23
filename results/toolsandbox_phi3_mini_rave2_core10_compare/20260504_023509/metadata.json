@@ -1,0 +1,27 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "microsoft/Phi-3-mini-4k-instruct",
+  "base_url": "http://127.0.0.1:8002/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 10,
+  "scenarios": [
+    "cellular_off",
+    "get_cellular",
+    "wifi_off",
+    "get_wifi",
+    "search_phone_number_with_name",
+    "search_name_with_relationship",
+    "search_relationship_with_phone_number",
+    "add_contact_with_name_and_phone_number",
+    "remove_contact_with_id",
+    "update_contact_with_id_and_phone_number"
+  ],
+  "methods": [
+    "rave",
+    "react"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

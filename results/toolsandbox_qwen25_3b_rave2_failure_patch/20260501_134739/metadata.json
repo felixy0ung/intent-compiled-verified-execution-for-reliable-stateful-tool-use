@@ -1,0 +1,31 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "Qwen/Qwen2.5-3B-Instruct-local",
+  "base_url": "http://127.0.0.1:8000/v1",
+  "scenario_suite": "core30",
+  "scenario_count": 15,
+  "scenarios": [
+    "find_days_till_holiday_alt",
+    "find_days_till_holiday_wifi_off_alt",
+    "find_temperature_f_with_location",
+    "find_temperature_f_with_location_alt",
+    "find_temperature_f_with_location_wifi_off",
+    "find_temperature_f_with_location_wifi_off_alt",
+    "find_stock_symbol_with_company_name_low_battery_mode",
+    "find_stock_symbol_with_company_name_low_battery_mode_alt",
+    "find_current_city_low_battery_mode",
+    "find_current_city_low_battery_mode_alt",
+    "find_distance_with_location_name",
+    "find_distance_with_location_name_alt",
+    "add_reminder_content_and_week_delta_and_time_and_location",
+    "modify_reminder_with_recency_latest",
+    "remove_reminder_with_recency_latest"
+  ],
+  "methods": [
+    "rave"
+  ],
+  "user_mode": "passive",
+  "rapidapi_fixture": "on",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}
