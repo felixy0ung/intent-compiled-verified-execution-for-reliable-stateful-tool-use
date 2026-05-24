@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 33/417 `test_challenge` instructions to complete frames. The same
+  instructions and 36/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -206,6 +206,14 @@ extraction call per task plus the runtime-checked executor.
   machine grounds Gmail song evidence, creates the requested Spotify playlist, and
   reaches 3/3 success with 0 invalid calls and 0 unsafe state changes. This is a narrow
   held-out slice, not a full `test_challenge` or leaderboard result.
+- Held-out AppWorld phone-message Amazon recommendation purchase slice:
+  `results/appworld_amazon_phone_recommendation_purchase_20260525/20260525_011413`
+  records three local `test_challenge` tasks whose public instructions ask to buy the
+  product recommended by a named contact in a phone message. One general cross-app ICVE
+  machine grounds the phone-message evidence, resolves quoted or constrained Amazon
+  product candidates, places the bounded order, and reaches 3/3 success with 0 invalid
+  calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
+  `test_challenge` or leaderboard result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication
@@ -328,7 +336,7 @@ extraction call per task plus the runtime-checked executor.
   reaches 3/3 success, 0 unsafe state changes, and 0 invalid tool calls. The dedicated
   15-task Simple Note gap smoke under
   `results/appworld_rave_official_test_normal_simple_note_gap15_smoke_v2/20260506_071635`
-  reaches 15/15 success, 0 unsafe state changes, and 0 invalid tool calls.
+  reaches 18/18 success, 0 unsafe state changes, and 0 invalid tool calls.
   `results/appworld_rave_official_test_normal_smoke60_llm_intent_deepseek_chat/20260506_043113`
   records DeepSeek-chat intent extraction on the same 60 tasks: 38/60 success, 0 unsafe
   state changes, and 1 LLM call per task. The follow-up guard smoke

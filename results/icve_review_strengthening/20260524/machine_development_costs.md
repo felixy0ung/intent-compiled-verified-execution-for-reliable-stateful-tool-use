@@ -6,7 +6,7 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 91
+- Registered AppWorld machines: 92
 - Used by full168 supported tasks: 55
 - Supported tasks: 168
 - Tasks per used machine: 3.05
@@ -72,6 +72,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_amazon_move_product_type_between_saved_lists | 3 | 18 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_rating_filtered_products | 4 | 20 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_product_type_from_saved_list | 4 | 19 | 114 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_purchase_phone_recommendation | 4 | 19 | 250 | 0 | amazon,phone,supervisor | not_recorded |
 | appworld_bucket_list_status_update | 2 | 16 | 51 | 0 | simple_note,supervisor | not_recorded |
 | appworld_delete_gmail_empty_drafts | 1 | 16 | 39 | 0 | gmail,supervisor | not_recorded |
 | appworld_delete_phone_spam_messages | 1 | 15 | 44 | 0 | phone,supervisor | not_recorded |

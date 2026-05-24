@@ -1058,6 +1058,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_purchase_phone_recommendation",
+                (
+                    SlotSpec("recommender_first_name"),
+                    SlotSpec("product_type"),
+                    SlotSpec("address_name"),
+                    SlotSpec("card_name"),
+                ),
+            ),
+            compiler=compile_amazon_purchase_phone_recommendation,
+            handler=handle_amazon_purchase_phone_recommendation,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -3481,6 +3494,27 @@ def compile_amazon_order_product_type_from_saved_list(
         return None
     frame = IntentFrame("appworld_amazon_order_product_type_from_saved_list")
     frame.set_slot("source_container", normalize_amazon_container(match.group("source")), source="regex")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("address_name", "Home", source="default")
+    frame.set_slot("card_name", "", source="default")
+    return frame
+
+
+def compile_amazon_purchase_phone_recommendation(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Buy me a (?P<product_type>.+?) as (?P<first_name>[A-Z][A-Za-z'-]+) "
+        r"recommended in (?:his|her|their) phone message\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_purchase_phone_recommendation")
+    frame.set_slot("recommender_first_name", match.group("first_name"), source="regex")
     frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
     frame.set_slot("address_name", "Home", source="default")
     frame.set_slot("card_name", "", source="default")
@@ -7146,6 +7180,271 @@ print(json.dumps({{"source_container": source_container, "product_type": target_
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_product_type_from_saved_list",
+    )
+
+
+def handle_amazon_purchase_phone_recommendation(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    recommender_first_name = frame.get("recommender_first_name")
+    product_type = frame.get("product_type")
+    address_name = frame.get("address_name") or "Home"
+    card_name = frame.get("card_name") or ""
+    if not recommender_first_name or not product_type:
+        frame.abstain_reason = "missing_phone_recommended_amazon_purchase_slots"
+        return None
+    code = common_appworld_prelude(["phone", "amazon"]) + f"""
+recommender_first_name = {json.dumps(str(recommender_first_name))}
+target_product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+address_name = {json.dumps(str(address_name))}
+card_name = {json.dumps(str(card_name))}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def product_type_matches(product):
+    product_type = normalize_text(product.get("product_type"))
+    target = normalize_text(target_product_type)
+    if product_type == target:
+        return True
+    target_words = word_set(target)
+    combined_words = word_set(str(product.get("name") or "") + " " + str(product.get("description") or ""))
+    return bool(target_words) and target_words <= combined_words
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if str(address.get("name", "")).strip().lower() == address_name.strip().lower():
+            return address
+    if address_name.strip().lower() == "home" and len(addresses) == 1:
+        return addresses[0]
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+    candidates = []
+    for card in cards:
+        if card_name and card_name.strip().lower() not in str(card.get("card_name", "")).strip().lower():
+            continue
+        candidates.append(card)
+    if not candidates:
+        raise Exception(f"No Amazon payment card matched {{card_name or 'any card'}}.")
+    return sorted(
+        candidates,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+def extract_recommendation_queries(message):
+    text = str(message or "")
+    queries = []
+    for quoted in re.findall(r"[\\\"']([^\\\"']+)[\\\"']", text):
+        if quoted.strip():
+            queries.append(quoted.strip())
+    patterns = [
+        r"recommend(?:ed|s)?\\s+(?:that\\s+you\\s+)?(?:buy|get|purchase)?\\s*(?:the|a|an)?\\s*(?P<item>[^.;!\\n]+)",
+        r"suggest(?:ed|s)?\\s+(?:that\\s+you\\s+)?(?:buy|get|purchase)?\\s*(?:the|a|an)?\\s*(?P<item>[^.;!\\n]+)",
+        r"(?:buy|get|purchase)\\s+(?:the|a|an)?\\s*(?P<item>[^.;!\\n]+)",
+    ]
+    for pattern in patterns:
+        for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+            item = re.sub(r"\\s+", " ", match.group("item")).strip(" ,:-")
+            if item:
+                queries.append(item)
+    target_words = word_set(target_product_type)
+    for sentence in re.split(r"[.!?\\n]+", text):
+        sentence = sentence.strip()
+        if sentence and target_words and target_words <= word_set(sentence):
+            queries.append(sentence)
+    queries.append(target_product_type)
+    deduped = []
+    seen = set()
+    for query in queries:
+        cleaned = re.sub(r"\\s+", " ", query).strip(" ,:-")
+        key = normalize_text(cleaned)
+        if cleaned and key and key not in seen:
+            deduped.append(cleaned)
+            seen.add(key)
+    return deduped
+
+def find_best_product_for_query(query, search_trace):
+    best = None
+    best_key = None
+    for search_kwargs in [
+        {{"query": query, "product_type": target_product_type}},
+        {{"query": query}},
+        {{"query": target_product_type, "product_type": target_product_type}},
+    ]:
+        products = paged(lambda page, search_kwargs=search_kwargs: apis.amazon.search_products(
+            page_index=page,
+            page_limit=20,
+            **search_kwargs,
+        ))
+        search_trace.append({{"query": search_kwargs, "count": len(products)}})
+        query_words = word_set(query)
+        for product in products:
+            if int(product.get("inventory_quantity") or 0) <= 0:
+                continue
+            if not product_type_matches(product):
+                continue
+            product_words = word_set(str(product.get("name") or "") + " " + str(product.get("description") or ""))
+            overlap = len(query_words & product_words)
+            exact_name = normalize_text(product.get("name")) == normalize_text(query)
+            key = (
+                int(exact_name),
+                overlap,
+                float(product.get("rating") or 0),
+                -float(product.get("price") or 0),
+                -int(product["product_id"]),
+            )
+            if best is None or key > best_key:
+                best = product
+                best_key = key
+        if best is not None:
+            break
+    return best
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    query=recommender_first_name,
+    page_index=page,
+    page_limit=20,
+))
+matching_contacts = []
+for contact in contacts:
+    if str(contact.get("first_name") or "").strip().lower() == recommender_first_name.strip().lower():
+        matching_contacts.append(contact)
+if len(matching_contacts) != 1:
+    raise Exception(f"Could not uniquely resolve phone contact {{recommender_first_name}}.")
+contact = matching_contacts[0]
+phone_number = str(contact.get("phone_number") or "").strip()
+if not phone_number:
+    raise Exception(f"Contact {{recommender_first_name}} has no phone number.")
+
+candidate_messages = []
+text_messages = paged(lambda page: apis.phone.search_text_messages(
+    access_token=tokens["phone"],
+    phone_number=phone_number,
+    page_index=page,
+    page_limit=20,
+))
+voice_messages = paged(lambda page: apis.phone.search_voice_messages(
+    access_token=tokens["phone"],
+    phone_number=phone_number,
+    page_index=page,
+    page_limit=20,
+))
+for kind, messages in [("text", text_messages), ("voice", voice_messages)]:
+    for message in messages:
+        sender_phone = ((message.get("sender") or {{}}).get("phone_number") or "")
+        if sender_phone != phone_number:
+            continue
+        message_text = str(message.get("message") or "")
+        if word_set(target_product_type) <= word_set(message_text) or re.search(r"recommend|suggest|buy|get|purchase", message_text, flags=re.IGNORECASE):
+            candidate_messages.append({{
+                "kind": kind,
+                "sent_at": message.get("sent_at", ""),
+                "message": message_text,
+                "id": message.get("text_message_id") or message.get("voice_message_id"),
+            }})
+if not candidate_messages:
+    raise Exception(f"No recommendation phone message from {{recommender_first_name}} about {{target_product_type}}.")
+candidate_messages.sort(key=lambda item: item["sent_at"], reverse=True)
+
+searched = []
+selected = None
+for candidate_message in candidate_messages:
+    message_text = candidate_message["message"]
+    quoted_options = [
+        item.strip()
+        for item in re.findall(r"[\\\"']([^\\\"']+)[\\\"']", message_text)
+        if item.strip()
+    ]
+    choose_cheapest = bool(re.search(r"\\bcheaper\\b|\\blowest[- ]price\\b|\\bleast expensive\\b", message_text, flags=re.IGNORECASE))
+    option_products = []
+    if choose_cheapest and len(quoted_options) >= 2:
+        for option in quoted_options:
+            option_trace = []
+            product = find_best_product_for_query(option, option_trace)
+            for trace in option_trace:
+                searched.append({{"message_id": candidate_message["id"], "query": trace["query"], "count": trace["count"], "option": option}})
+            if product is not None:
+                option_products.append((float(product.get("price") or 0), -float(product.get("rating") or 0), int(product["product_id"]), option, product))
+        if option_products:
+            option_products.sort()
+            selected = {{"message": candidate_message, "query": option_products[0][3], "product": option_products[0][4]}}
+    if selected is None:
+        for query in extract_recommendation_queries(message_text):
+            query_trace = []
+            product = find_best_product_for_query(query, query_trace)
+            for trace in query_trace:
+                searched.append({{"message_id": candidate_message["id"], "query": trace["query"], "count": trace["count"]}})
+            if product is not None:
+                selected = {{"message": candidate_message, "query": query, "product": product}}
+                break
+        if selected is not None:
+            break
+    if selected is not None:
+        break
+
+if selected is None:
+    raise Exception(f"No in-stock Amazon product matched {{target_product_type}} recommendation from {{recommender_first_name}}.")
+
+product = selected["product"]
+apis.amazon.add_product_to_cart(
+    access_token=tokens["amazon"],
+    product_id=product["product_id"],
+    quantity=1,
+    clear_cart_first=True,
+)
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+for card in pick_payment_cards():
+    payment_card_id = card["payment_card_id"]
+    result = apis.amazon.place_order(
+        access_token=tokens["amazon"],
+        payment_card_id=payment_card_id,
+        address_id=address["address_id"],
+    )
+    if "order_id" in result:
+        break
+    failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+if "order_id" not in result:
+    raise Exception(f"Unable to place Amazon order: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "recommender_first_name": recommender_first_name,
+    "phone_number": phone_number,
+    "message_id": selected["message"]["id"],
+    "message_kind": selected["message"]["kind"],
+    "selected_query": selected["query"],
+    "product_type": target_product_type,
+    "product_id": product["product_id"],
+    "product_name": product.get("name"),
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "failed_payment_attempts": failed_payment_attempts,
+    "search_trace": searched,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_purchase_phone_recommendation",
     )
 
 
@@ -11499,6 +11798,18 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
+    if intent_type == "appworld_amazon_purchase_phone_recommendation":
+        return {
+            "recommender_first_name": str(
+                slots.get("recommender_first_name")
+                or slots.get("person_first_name")
+                or slots.get("first_name")
+                or ""
+            ).strip(),
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "card_name": str(slots.get("card_name") or "").strip(),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -12067,6 +12378,8 @@ Supported intent types and slots:
    slots: source_container string, one of cart or wish_list; target_container string, one of cart or wish_list; product_type string.
 17. appworld_amazon_order_product_type_from_saved_list
    slots: source_container string, one of cart or wish_list; product_type string; address_name string, default Home; card_name string, optional.
+18. appworld_amazon_purchase_phone_recommendation
+   slots: recommender_first_name string; product_type string; address_name string, default Home; card_name string, optional.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 19. appworld_gmail_thread_cleanup
@@ -12322,6 +12635,9 @@ JSON: {"intent_type":"appworld_amazon_order_product_type_from_saved_list","slots
 
 Task: Place an order for all wrench sets in my amazon wish list.
 JSON: {"intent_type":"appworld_amazon_order_product_type_from_saved_list","slots":{"source_container":"wish_list","product_type":"wrench set","address_name":"Home","card_name":""}}
+
+Task: Buy me a stand mixer as Connor recommended in their phone message.
+JSON: {"intent_type":"appworld_amazon_purchase_phone_recommendation","slots":{"recommender_first_name":"Connor","product_type":"stand mixer","address_name":"Home","card_name":""}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}
@@ -12598,6 +12914,8 @@ Relevant APIs for this slice:
 - apis.phone.delete_voice_message(access_token=..., voice_message_id=...)
 - apis.phone.show_alarms(access_token=..., page_index=0, page_limit=20)
 - apis.phone.update_alarm(access_token=..., alarm_id=..., snooze_minutes=...)
+- apis.amazon.search_products(query=..., product_type=..., page_index=0, page_limit=20)
+- apis.amazon.add_product_to_cart(access_token=..., product_id=..., quantity=1, clear_cart_first=True)
 - apis.amazon.show_cart(access_token=...)
 - apis.amazon.show_wish_list(access_token=...)
 - apis.amazon.show_product(product_id=...)
