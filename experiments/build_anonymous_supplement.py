@@ -54,6 +54,7 @@ EXCLUDED_RESULT_DIRS = {
 
 RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_phone_recommendation_purchase_20260525": {"20260525_011413"},
+    "appworld_gmail_flight_ticket_download_20260525": {"20260525_033611"},
     "appworld_gmail_job_search_attach_send_20260525": {"20260525_023325"},
     "appworld_gmail_label_notification_threads_20260525": {"20260525_021446"},
     "appworld_gmail_star_relationship_20260524": {"20260525_000839"},

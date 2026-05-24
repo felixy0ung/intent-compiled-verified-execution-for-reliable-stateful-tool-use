@@ -1166,6 +1166,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_download_flight_ticket_attachment",
+                (
+                    SlotSpec("destination"),
+                    SlotSpec("directory_path"),
+                ),
+            ),
+            compiler=compile_gmail_download_flight_ticket_attachment,
+            handler=handle_gmail_download_flight_ticket_attachment,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_remove_expired_payment_cards",
                 (),
             ),
@@ -2531,6 +2542,28 @@ def compile_gmail_attach_job_search_files_and_send(
     frame = IntentFrame("appworld_gmail_attach_job_search_files_and_send")
     frame.set_slot("days_back", int(match.group("days_back")), source="regex")
     frame.set_slot("file_name", match.group("file_name"), source="regex")
+    return frame
+
+
+def compile_gmail_download_flight_ticket_attachment(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'Download the ticket for my flight to (?P<destination>[A-Za-z][A-Za-z ]*?) '
+        r'this weekend from gmail into the "(?P<directory>~\/[^"]+)" folder of my file system\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    directory_path = match.group("directory").strip()
+    if not directory_path.endswith("/"):
+        directory_path += "/"
+    frame = IntentFrame("appworld_gmail_download_flight_ticket_attachment")
+    frame.set_slot("destination", match.group("destination").strip(), source="regex")
+    frame.set_slot("directory_path", directory_path, source="regex")
     return frame
 
 
@@ -8826,6 +8859,109 @@ print(json.dumps({{"file_name": file_name, "days_back": days_back, "processed": 
     )
 
 
+def handle_gmail_download_flight_ticket_attachment(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    destination = str(frame.get("destination") or "").strip()
+    directory_path = str(frame.get("directory_path") or "").strip()
+    if not destination or not directory_path:
+        frame.abstain_reason = "missing_gmail_flight_ticket_download_slots"
+        return None
+    if not directory_path.endswith("/"):
+        directory_path += "/"
+    code = common_appworld_prelude(["gmail", "file_system"]) + f"""
+destination = {json.dumps(destination)}
+directory_path = {json.dumps(directory_path)}
+destination_lower = destination.lower()
+
+def text_has_ticket_evidence(text):
+    lower = str(text or "").lower()
+    return destination_lower in lower and "flight" in lower and "ticket" in lower
+
+apis.file_system.create_directory(
+    access_token=tokens["file_system"],
+    directory_path=directory_path,
+    recursive=True,
+    allow_if_exists=True,
+)
+
+queries = [
+    f"{{destination}} flight ticket",
+    f"{{destination}} ticket",
+    "flight ticket",
+]
+candidates = []
+for query in queries:
+    threads = paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        attachment=True,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+    for thread in threads:
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None:
+            continue
+        detail = apis.gmail.show_thread(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+        for email in detail.get("emails", []):
+            subject = str(email.get("subject") or "")
+            body = str(email.get("body") or "")
+            attachments = email.get("attachments", [])
+            for attachment in attachments:
+                file_name = str(attachment.get("file_name") or "")
+                if "ticket" not in file_name.lower():
+                    continue
+                haystack = "\\n".join([subject, body, file_name])
+                if not text_has_ticket_evidence(haystack):
+                    continue
+                candidates.append({{
+                    "created_at": str(email.get("created_at") or thread.get("created_at") or ""),
+                    "email_thread_id": thread_id,
+                    "attachment_id": attachment["id"],
+                    "file_name": file_name,
+                }})
+    if candidates:
+        break
+
+if not candidates:
+    raise Exception(f"No Gmail flight ticket attachment found for {{destination}}.")
+candidates.sort(key=lambda item: (item["created_at"], item["email_thread_id"], item["attachment_id"]), reverse=True)
+selected = candidates[0]
+target_path = directory_path + selected["file_name"]
+download_result = apis.gmail.download_attachment(
+    access_token=tokens["gmail"],
+    attachment_id=selected["attachment_id"],
+    download_to_file_path=target_path,
+    overwrite=True,
+    file_system_access_token=tokens["file_system"],
+)
+file_path = download_result.get("file_path") or target_path
+if not apis.file_system.file_exists(
+    access_token=tokens["file_system"],
+    file_path=file_path,
+):
+    raise Exception(f"Downloaded ticket file does not exist: {{file_path}}")
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "destination": destination,
+    "directory_path": directory_path,
+    "selected": selected,
+    "file_path": file_path,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_download_flight_ticket_attachment",
+    )
+
+
 def handle_remove_expired_payment_cards(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -13356,6 +13492,18 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "days_back": int(slots["days_back"]),
             "file_name": str(slots.get("file_name") or "").strip(),
         }
+    if intent_type == "appworld_gmail_download_flight_ticket_attachment":
+        directory_path = str(
+            slots.get("directory_path")
+            or slots.get("directory")
+            or ""
+        ).strip()
+        if directory_path and not directory_path.endswith("/"):
+            directory_path += "/"
+        return {
+            "destination": str(slots.get("destination") or "").strip(),
+            "directory_path": directory_path,
+        }
     if intent_type == "appworld_bucket_list_status_update":
         done_value = slots.get("done")
         if isinstance(done_value, str):
@@ -13808,6 +13956,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_download_flight_ticket_attachment":
+        required = [
+            "download the ticket for my flight to ",
+            "this weekend from gmail",
+            "folder of my file system",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_remove_expired_payment_cards":
         if raw != "remove expired payment cards from all my app accounts that have payment cards.":
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -14040,6 +14199,8 @@ Supported intent types and slots:
    slots: empty object.
 21. appworld_gmail_attach_job_search_files_and_send
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
+21. appworld_gmail_download_flight_ticket_attachment
+   slots: destination string; directory_path string ending in /.
 21. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
@@ -14337,6 +14498,9 @@ JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":
 
 Task: For my job search, I've drafted emails to all potential employers in the last 3 days. Attach cv.pdf from my file system to each of them. If it's already attached, update it as I just made some changes to it. Then send the emails.
 JSON: {"intent_type":"appworld_gmail_attach_job_search_files_and_send","slots":{"days_back":3,"file_name":"cv.pdf"}}
+
+Task: Download the ticket for my flight to Tokyo this weekend from gmail into the "~/downloads" folder of my file system.
+JSON: {"intent_type":"appworld_gmail_download_flight_ticket_attachment","slots":{"destination":"Tokyo","directory_path":"~/downloads/"}}
 
 Task: Mark "Learning to cook a signature dish from scratch" in my Bucket List Simple Note as done.
 JSON: {"intent_type":"appworld_bucket_list_status_update","slots":{"item":"Learning to cook a signature dish from scratch","done":true}}

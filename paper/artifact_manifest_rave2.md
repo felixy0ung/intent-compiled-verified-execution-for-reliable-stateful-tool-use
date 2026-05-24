@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 60/417 `test_challenge` instructions to complete frames. The same
+  instructions and 63/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -259,6 +259,15 @@ extraction call per task plus the runtime-checked executor.
   Gmail + file-system ICVE machine selects the non-trash, most recently updated matching
   PDF through runtime-visible file metadata, filters recent job-application drafts, adds
   or overwrites the attachment, sends the drafts, and reaches 3/3 success with 0 invalid
+  calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
+  `test_challenge` or leaderboard result.
+- Held-out AppWorld Gmail flight-ticket download slice:
+  `results/appworld_gmail_flight_ticket_download_20260525/20260525_033611` records
+  three local `test_challenge` tasks whose public instructions ask to download the
+  ticket attachment for a weekend flight to a specified destination into a requested
+  local directory. One general Gmail + file-system ICVE machine grounds flight evidence
+  through runtime-visible Gmail threads, selects ticket rather than receipt attachments,
+  writes the file to the requested directory, and reaches 3/3 success with 0 invalid
   calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
   `test_challenge` or leaderboard result.
 - Held-out AppWorld Gmail-receipt Venmo payment slice:

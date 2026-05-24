@@ -407,9 +407,9 @@ test_challenge,998908e_3,998908e,0,0,0,0,unsupported,,,splitwise_vacation_or_exp
 test_challenge,dcbd34b_1,dcbd34b,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,8b97b098ec34e4f3
 test_challenge,dcbd34b_2,dcbd34b,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,2f739fb013a3adc2
 test_challenge,dcbd34b_3,dcbd34b,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,6e6792f1cd4a8fcf
-test_challenge,7bdaf23_1,7bdaf23,0,0,0,0,unsupported,,,gmail_email,a0c56a004a48891e
-test_challenge,7bdaf23_2,7bdaf23,0,0,0,0,unsupported,,,gmail_email,f183d1e94076c4e2
-test_challenge,7bdaf23_3,7bdaf23,0,0,0,0,unsupported,,,gmail_email,7278708d8cdc8f14
+test_challenge,7bdaf23_1,7bdaf23,1,1,0,0,appworld_gmail_download_flight_ticket_attachment,,,,a0c56a004a48891e
+test_challenge,7bdaf23_2,7bdaf23,1,1,0,0,appworld_gmail_download_flight_ticket_attachment,,,,f183d1e94076c4e2
+test_challenge,7bdaf23_3,7bdaf23,1,1,0,0,appworld_gmail_download_flight_ticket_attachment,,,,7278708d8cdc8f14
 test_challenge,a97e35d_1,a97e35d,0,0,0,0,unsupported,,,gmail_email,a7d04617df3ed5a1
 test_challenge,a97e35d_2,a97e35d,0,0,0,0,unsupported,,,gmail_email,c4ccf9f9265dc129
 test_challenge,a97e35d_3,a97e35d,0,0,0,0,unsupported,,,gmail_email,e658c08c7a590153
