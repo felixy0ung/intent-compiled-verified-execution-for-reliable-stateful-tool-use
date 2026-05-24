@@ -1213,6 +1213,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_answer_order_arrival_date",
+                (
+                    SlotSpec("day_offset"),
+                    SlotSpec("date_format"),
+                ),
+            ),
+            compiler=compile_amazon_answer_order_arrival_date,
+            handler=handle_amazon_answer_order_arrival_date,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4284,6 +4295,25 @@ def compile_amazon_answer_returned_product_yes_no(
     frame = IntentFrame("appworld_amazon_answer_returned_product_yes_no")
     frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
     frame.set_slot("period", compact_text(match.group("period")).lower(), source="regex")
+    return frame
+
+
+def compile_amazon_answer_order_arrival_date(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"By when should everything from my (?P<day>today's|yesterday's) amazon order arrive\? "
+        r"Tell me the date in (?P<date_format>DD-MM|MM-DD|DD/MM) format\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_answer_order_arrival_date")
+    frame.set_slot("day_offset", 0 if match.group("day").lower().startswith("today") else 1, source="regex")
+    frame.set_slot("date_format", match.group("date_format").upper(), source="regex")
     return frame
 
 
@@ -9843,6 +9873,72 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_returned_product_yes_no",
+    )
+
+
+def handle_amazon_answer_order_arrival_date(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    day_offset = int(frame.get("day_offset") or 0)
+    date_format = str(frame.get("date_format") or "").strip().upper()
+    if day_offset not in {0, 1} or date_format not in {"DD-MM", "MM-DD", "DD/MM"}:
+        frame.abstain_reason = "missing_amazon_order_arrival_answer_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+day_offset = {day_offset}
+date_format = {json.dumps(date_format)}
+now = DateTime.now()
+target_date = now.subtract(days=day_offset).to_date_string()
+
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+target_orders = [
+    order for order in orders
+    if str(order.get("created_at") or "")[:10] == target_date
+]
+if not target_orders:
+    raise Exception(f"No Amazon order found for {{target_date}}.")
+
+expected_datetimes = []
+order_ids = []
+for order in target_orders:
+    order_ids.append(order["order_id"])
+    for item in order.get("order_items", []):
+        expected = item.get("expected_delivery_at") or item.get("delivered_at")
+        if expected:
+            expected_datetimes.append(str(expected))
+if not expected_datetimes:
+    raise Exception(f"No expected delivery timestamps found for Amazon orders on {{target_date}}.")
+
+latest = max(expected_datetimes)
+latest_dt = DateTime.fromisoformat(latest)
+if date_format == "DD-MM":
+    answer = latest_dt.strftime("%d-%m")
+elif date_format == "MM-DD":
+    answer = latest_dt.strftime("%m-%d")
+elif date_format == "DD/MM":
+    answer = latest_dt.strftime("%d/%m")
+else:
+    raise Exception(f"Unsupported date format: {{date_format}}")
+
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "date_format": date_format,
+    "latest_expected_delivery_at": latest,
+    "order_ids": sorted(order_ids),
+    "target_date": target_date,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_order_arrival_date",
     )
 
 
@@ -15617,6 +15713,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
             "period": compact_text(str(slots.get("period") or "")).lower(),
         }
+    if intent_type == "appworld_amazon_answer_order_arrival_date":
+        return {
+            "day_offset": int(slots.get("day_offset") or 0),
+            "date_format": str(slots.get("date_format") or "").strip().upper(),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -16280,6 +16381,16 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_order_arrival_date":
+        if not re.fullmatch(
+            r"by when should everything from my (today's|yesterday's) amazon order arrive\? "
+            r"tell me the date in (dd-mm|mm-dd|dd/mm) format\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16573,6 +16684,8 @@ Supported intent types and slots:
    slots: product_name string.
 18. appworld_amazon_answer_returned_product_yes_no
    slots: product_type string; period string, one of this month, this year, or this or last month.
+18. appworld_amazon_answer_order_arrival_date
+   slots: day_offset integer, 0 for today's order or 1 for yesterday's order; date_format string, one of DD-MM, MM-DD, or DD/MM.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -16905,6 +17018,9 @@ JSON: {"intent_type":"appworld_amazon_answer_verified_battery_life_hours","slots
 
 Task: Have I returned any office desk on amazon in this month? Say yes or no.
 JSON: {"intent_type":"appworld_amazon_answer_returned_product_yes_no","slots":{"product_type":"office desk","period":"this month"}}
+
+Task: By when should everything from my yesterday's amazon order arrive? Tell me the date in DD-MM format.
+JSON: {"intent_type":"appworld_amazon_answer_order_arrival_date","slots":{"day_offset":1,"date_format":"DD-MM"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}
