@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,6588a51_1,,appworld_amazon_post_question_last_ordered_product,1,1,6,0,6,0,0,0,95,1,0,0,0,258,appworld_rave_amazon_post_question_last_ordered_product,0,,,,
+rave_appworld_slice,deterministic,,6588a51_2,,appworld_amazon_post_question_last_ordered_product,1,1,6,0,6,0,0,0,83,1,0,0,0,261,appworld_rave_amazon_post_question_last_ordered_product,0,,,,
+rave_appworld_slice,deterministic,,6588a51_3,,appworld_amazon_post_question_last_ordered_product,1,1,6,0,6,0,0,0,91,1,0,0,0,264,appworld_rave_amazon_post_question_last_ordered_product,0,,,,

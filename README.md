@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 96/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 102/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -64,6 +64,13 @@ AppWorld leaderboard submission.
 - Held-out AppWorld Amazon saved-collections order slices: one general Amazon machine
   covers wishlist-only and cart+wishlist purchase templates across 6 `test_challenge`
   tasks with 6/6 success, 0 invalid calls, and 0 unsafe changes.
+- Held-out AppWorld Amazon recent-order return slice: one general Amazon machine covers
+  return requests for all items in the last 2/3/4 orders across 3 `test_challenge`
+  tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
+- Held-out AppWorld Amazon last-ordered product question slice: one general Amazon
+  machine posts the requested question on the last ordered product of the requested type
+  across 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe
+  changes.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice: one general
   cross-app machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls,
   and 0 unsafe changes.
@@ -110,7 +117,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 111 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 113 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -158,6 +165,10 @@ AppWorld leaderboard submission.
   `results/appworld_amazon_order_wishlist_all_20260525/20260525_050933/`
 - AppWorld held-out Amazon cart+wishlist-all order slice:
   `results/appworld_amazon_order_cart_wishlist_all_20260525/20260525_050918/`
+- AppWorld held-out Amazon recent-order return slice:
+  `results/appworld_amazon_return_recent_orders_20260525/20260525_052017/`
+- AppWorld held-out Amazon last-ordered product question slice:
+  `results/appworld_amazon_post_last_order_question_20260525/20260525_052247/`
 - AppWorld held-out Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420/`
 - AppWorld held-out Spotify draft recommendation update/send slice:

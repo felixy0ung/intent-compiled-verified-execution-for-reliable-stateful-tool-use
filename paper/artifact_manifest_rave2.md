@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 96/417 `test_challenge` instructions to complete frames. The same
+  instructions and 102/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -247,6 +247,22 @@ extraction call per task plus the runtime-checked executor.
   promo-code state before checkout when needed, and reaches 3/3 success with 0 invalid
   calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
   `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon recent-order return slice:
+  `results/appworld_amazon_return_recent_orders_20260525/20260525_052017` records
+  three local `test_challenge` tasks whose public instructions ask to initiate FedEx
+  returns for every item in the user's last 2/3/4 Amazon orders. One general Amazon
+  ICVE machine sorts runtime-visible orders by creation time, returns the remaining
+  unreturned quantity for each order item, and reaches 3/3 success with 0 invalid calls
+  and 0 unsafe state changes. This is a narrow held-out slice, not a full
+  `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon last-ordered product question slice:
+  `results/appworld_amazon_post_last_order_question_20260525/20260525_052247` records
+  three local `test_challenge` tasks whose public instructions ask to post a quoted
+  question on the last ordered Amazon t-shirt or sweater. One general Amazon ICVE
+  machine scans runtime-visible orders newest-first, resolves the product by requested
+  type through visible product metadata, posts the requested question, and reaches 3/3
+  success with 0 invalid calls and 0 unsafe state changes. This is a narrow held-out
+  slice, not a full `test_challenge` or leaderboard result.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420`
   records three local `test_challenge` tasks whose public instructions ask to reply over

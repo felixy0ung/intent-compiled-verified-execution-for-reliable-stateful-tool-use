@@ -1148,6 +1148,28 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_return_recent_orders",
+                (
+                    SlotSpec("order_count"),
+                    SlotSpec("deliverer_name"),
+                ),
+            ),
+            compiler=compile_amazon_return_recent_orders,
+            handler=handle_amazon_return_recent_orders,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
+                "appworld_amazon_post_question_last_ordered_product",
+                (
+                    SlotSpec("product_type"),
+                    SlotSpec("question"),
+                ),
+            ),
+            compiler=compile_amazon_post_question_last_ordered_product,
+            handler=handle_amazon_post_question_last_ordered_product,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4105,6 +4127,42 @@ def compile_amazon_order_saved_collections(
     frame.set_slot("containers", containers, source="regex")
     frame.set_slot("address_name", match.group("address").title(), source="regex")
     frame.set_slot("card_name", "", source="default")
+    return frame
+
+
+def compile_amazon_return_recent_orders(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Initiate returns via (?P<deliverer>[A-Za-z0-9 .&'-]+?) for everything in my last (?P<count>\d+) amazon order\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_return_recent_orders")
+    frame.set_slot("order_count", int(match.group("count")), source="regex")
+    frame.set_slot("deliverer_name", compact_text(match.group("deliverer")), source="regex")
+    return frame
+
+
+def compile_amazon_post_question_last_ordered_product(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Post a question about the last (?P<product_type>.+?) I ordered on amazon, \"(?P<question>.+)\"\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_post_question_last_ordered_product")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("question", match.group("question").strip(), source="regex")
     return frame
 
 
@@ -9004,6 +9062,170 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_saved_collections",
+    )
+
+
+def handle_amazon_return_recent_orders(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    order_count = int(frame.get("order_count") or 0)
+    deliverer_name = str(frame.get("deliverer_name") or "").strip()
+    if order_count < 1 or not deliverer_name:
+        frame.abstain_reason = "missing_amazon_recent_return_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+order_count = {order_count}
+deliverer_name = {json.dumps(deliverer_name)}
+
+def pick_deliverer():
+    deliverers = apis.amazon.show_return_deliverers()
+    matches = [
+        deliverer for deliverer in deliverers
+        if str(deliverer.get("name") or "").strip().lower() == deliverer_name.strip().lower()
+    ]
+    if len(matches) != 1:
+        raise Exception(f"Could not uniquely resolve Amazon return deliverer {{deliverer_name}}.")
+    return matches[0]
+
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+orders = sorted(orders, key=lambda order: str(order.get("created_at") or ""), reverse=True)
+target_orders = orders[:order_count]
+if len(target_orders) != order_count:
+    raise Exception(f"Expected {{order_count}} Amazon orders, found {{len(target_orders)}}.")
+
+deliverer = pick_deliverer()
+created_returns = []
+skipped_fully_returned = []
+for order in target_orders:
+    order_id = order["order_id"]
+    for item in order.get("order_items", []):
+        ordered_quantity = int(item.get("ordered_quantity") or 0)
+        returned_quantity = int(item.get("returned_quantity") or 0)
+        quantity_to_return = ordered_quantity - returned_quantity
+        if quantity_to_return <= 0:
+            skipped_fully_returned.append({{
+                "order_id": order_id,
+                "product_id": item["product_id"],
+                "ordered_quantity": ordered_quantity,
+                "returned_quantity": returned_quantity,
+            }})
+            continue
+        result = apis.amazon.initiate_return(
+            access_token=tokens["amazon"],
+            order_id=order_id,
+            product_id=item["product_id"],
+            deliverer_id=deliverer["deliverer_id"],
+            quantity=quantity_to_return,
+        )
+        if "return_id" not in result:
+            raise Exception(f"Unable to initiate return for order {{order_id}} product {{item['product_id']}}: {{result}}")
+        created_returns.append({{
+            "order_id": order_id,
+            "product_id": item["product_id"],
+            "quantity": quantity_to_return,
+            "return_id": result["return_id"],
+        }})
+if not created_returns and not skipped_fully_returned:
+    raise Exception("No returnable items found in recent Amazon orders.")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "order_count": order_count,
+    "deliverer_name": deliverer["name"],
+    "deliverer_id": deliverer["deliverer_id"],
+    "target_order_ids": [order["order_id"] for order in target_orders],
+    "created_returns": created_returns,
+    "skipped_fully_returned": skipped_fully_returned,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_return_recent_orders",
+    )
+
+
+def handle_amazon_post_question_last_ordered_product(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_type = frame.get("product_type")
+    question = str(frame.get("question") or "").strip()
+    if not product_type or not question:
+        frame.abstain_reason = "missing_amazon_last_order_question_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+question = {json.dumps(question)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def product_matches(item, product):
+    target_words = word_set(target_product_type)
+    item_text = " ".join([
+        str(item.get("product_name") or ""),
+        str(product.get("name") or ""),
+        str(product.get("product_type") or ""),
+        str(product.get("description") or ""),
+    ])
+    if normalize_text(product.get("product_type")) == normalize_text(target_product_type):
+        return True
+    return bool(target_words) and target_words <= word_set(item_text)
+
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+orders = sorted(orders, key=lambda order: str(order.get("created_at") or ""), reverse=True)
+matches = []
+for order in orders:
+    for item in order.get("order_items", []):
+        product = apis.amazon.show_product(product_id=item["product_id"])
+        if product_matches(item, product):
+            matches.append({{
+                "order_id": order["order_id"],
+                "created_at": order.get("created_at", ""),
+                "product_id": item["product_id"],
+                "product_name": item.get("product_name"),
+            }})
+if not matches:
+    raise Exception(f"No prior Amazon order matched {{target_product_type}}.")
+matches.sort(key=lambda row: (str(row.get("created_at") or ""), int(row["order_id"]), int(row["product_id"])), reverse=True)
+selected = matches[0]
+result = apis.amazon.write_product_question(
+    access_token=tokens["amazon"],
+    product_id=selected["product_id"],
+    question=question,
+)
+if "question_id" not in result:
+    raise Exception(f"Unable to post Amazon product question: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "product_type": target_product_type,
+    "product_id": selected["product_id"],
+    "order_id": selected["order_id"],
+    "question_id": result["question_id"],
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_post_question_last_ordered_product",
     )
 
 
@@ -14749,6 +14971,16 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
+    if intent_type == "appworld_amazon_return_recent_orders":
+        return {
+            "order_count": int(slots.get("order_count") or slots.get("count") or 0),
+            "deliverer_name": str(slots.get("deliverer_name") or slots.get("carrier") or "").strip(),
+        }
+    if intent_type == "appworld_amazon_post_question_last_ordered_product":
+        return {
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "question": str(slots.get("question") or "").strip(),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -15356,6 +15588,24 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_return_recent_orders":
+        if not re.fullmatch(
+            r"initiate returns via [a-z0-9 .&'-]+ for everything in my last \d+ amazon order\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_post_question_last_ordered_product":
+        if not re.fullmatch(
+            r"post a question about the last .+? i ordered on amazon, \".+\"\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -15637,6 +15887,10 @@ Supported intent types and slots:
    slots: empty object.
 18. appworld_amazon_order_saved_collections
    slots: containers list using values from [cart, wish_list]; address_name string, one of Home or Work; card_name string, optional.
+18. appworld_amazon_return_recent_orders
+   slots: order_count integer; deliverer_name string such as FedEx.
+18. appworld_amazon_post_question_last_ordered_product
+   slots: product_type string; question string.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -15951,6 +16205,12 @@ JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"contain
 
 Task: Place an order for everything in my amazon cart and wishlist for my home address.
 JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"containers":["cart","wish_list"],"address_name":"Home","card_name":""}}
+
+Task: Initiate returns via FedEx for everything in my last 3 amazon order.
+JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_count":3,"deliverer_name":"FedEx"}}
+
+Task: Post a question about the last t-shirt I ordered on amazon, "Has anyone experienced the color fade after the first wash?".
+JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots":{"product_type":"t-shirt","question":"Has anyone experienced the color fade after the first wash?"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}
