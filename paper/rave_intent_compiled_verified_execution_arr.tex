@@ -222,6 +222,13 @@ ToolAction  = (tool, args, reason)
 FinalAction = (message, reason)
 \end{verbatim}
 
+For a registered machine, a mutating \texttt{ToolAction} is admissible only when the
+frame is schema-valid, required slots are grounded, preconditions hold or a bounded
+repair is emitted, the postcondition is not already satisfied, and the action belongs to
+the handler's transition set. Otherwise the runtime must stop, abstain, or route to a
+low-risk fallback. This is the measured runtime invariant, not a proof about arbitrary
+unregistered behavior.
+
 For read-only actions, the verifier normalizes arguments and blocks empty or ungrounded
 searches. For state-changing actions, it checks schema conformance, argument grounding,
 state preconditions, and duplicate completion before allowing exactly one transition. If
@@ -706,18 +713,15 @@ agent benchmarks broaden interactive function-calling evaluation
 xie2024osworld,wang2025dialogtool}. ICVE is complementary: it is a runtime method
 intended to reduce invalid and unsafe execution in such environments.
 
-Guardrails, function schemas, and sandboxed risk evaluation validate or constrain
-tool-agent behavior \citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}.
-ICVE checks traces against intent-level state machines, including grounding and
-postcondition status, not only one invocation's syntax. Similarly, semantic parsing and
-task-oriented dialogue use intent/slot structure, but ICVE uses frames as an execution
-substrate: handlers acquire evidence, repair preconditions, and abstain when safe
-execution is unavailable.
-
-Proof-carrying tool use asks the model to make safety obligations explicit. MiniStore
-shows that such checks can suppress unsafe mutations, but still pay for repeated proof
-generation, rejection, and repair. ICVE keeps runtime checking while moving recurring
-obligations into deterministic machines.
+Guardrails, function schemas, proof-carrying prompts, and sandboxed risk evaluation
+validate or constrain tool-agent behavior
+\citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}. ICVE checks traces
+against intent-level state machines, including grounding and postcondition status, not
+only one invocation's syntax; MiniStore shows that model-authored proof obligations can
+suppress unsafe mutations but still pay repeated proof, rejection, and repair cost.
+Similarly, semantic parsing and task-oriented dialogue use intent/slot structure, but
+ICVE uses frames as an execution substrate: handlers acquire evidence, repair
+preconditions, and abstain when safe execution is unavailable.
 
 \section{Conclusion}
 
