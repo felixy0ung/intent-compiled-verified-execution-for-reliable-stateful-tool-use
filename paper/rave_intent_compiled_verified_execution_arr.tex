@@ -642,7 +642,8 @@ machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/73.5/93. 
 public-instruction audit reads only local \texttt{specs.json} instructions and compiles
 165/168 \texttt{test\_normal} and 18/417 \texttt{test\_challenge} instructions to
 complete frames. Unsupported \texttt{test\_challenge} rows cluster in Amazon
-purchase/product-search (206) and Gmail workflows (116). In an executable 24-task
+purchase/product-search (206) and Gmail workflows (116); \texttt{coverage\_roadmap.csv}
+records extension requirements and validation gates. In an executable 24-task
 \texttt{test\_challenge} prefix, two conservative Amazon machines raise success from
 3/24 to 12/24 with zero unsafe changes; the remaining product-search purchase tasks are
 reported as unsupported no-action outcomes rather than forced through a similar machine.
@@ -696,7 +697,6 @@ without model calls. The artifact provides the full per-machine development-cost
 static coverage tables.
 
 \section{Related Work}
-
 ReAct-style agents interleave reasoning and action through text \citep{yao2022react};
 Reflexion adds verbal self-feedback \citep{shinn2023reflexion}, and Toolformer explores
 self-supervised tool use \citep{schick2023toolformer}. Tool-learning systems and
@@ -706,9 +706,9 @@ liu2025toolace,dang2025guidedtemplates}, but still leave evidence search, mutati
 repair, and stopping largely model-owned. ICVE changes that boundary for covered risky
 intents.
 
-Tool-use benchmarks have become more realistic: ToolSandbox covers stateful,
-insufficient-information cases \citep{lu2024toolsandbox}; AppWorld, BFCL, tau-bench, and
-agent benchmarks broaden interactive function-calling evaluation
+Tool-use benchmarks now cover stateful, insufficient-information, and interactive
+function-calling settings: ToolSandbox \citep{lu2024toolsandbox}, AppWorld, BFCL,
+tau-bench, and agent benchmarks
 \citep{appworld2024,bfcl2024,taubench2024,liu2024agentbench,zhou2024webarena,
 xie2024osworld,wang2025dialogtool}. ICVE is complementary: it is a runtime method
 intended to reduce invalid and unsafe execution in such environments.
@@ -716,19 +716,18 @@ intended to reduce invalid and unsafe execution in such environments.
 Guardrails, function schemas, proof-carrying prompts, and sandboxed risk evaluation
 validate or constrain tool-agent behavior
 \citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}. ICVE checks traces
-against intent-level state machines, including grounding and postcondition status, not
-only one invocation's syntax; MiniStore shows that model-authored proof obligations can
-suppress unsafe mutations but still pay repeated proof, rejection, and repair cost.
-Similarly, semantic parsing and task-oriented dialogue use intent/slot structure, but
-ICVE uses frames as an execution substrate: handlers acquire evidence, repair
-preconditions, and abstain when safe execution is unavailable.
+against intent-level state machines, including grounding and postconditions, not only one
+invocation's syntax; MiniStore shows that proof prompts can suppress unsafe mutations but
+still pay proof, rejection, and repair cost. Semantic parsing and task-oriented dialogue
+use intent/slot structure, but ICVE treats frames as executable substrates for evidence,
+repair, and abstention.
 
 \section{Conclusion}
 
 ICVE reframes reliable stateful tool use as runtime-checked execution: the agent supplies
 intent, while a typed runtime owns risky transitions. Across covered ToolSandbox and
 AppWorld slices, this boundary reduces invalid calls, unsafe state changes, and
-model-mediated repair cost. Broader leaderboard and real-LLM coverage remain next steps.
+model-mediated repair; broader leaderboard and real-LLM coverage remain next steps.
 
 \section*{Limitations}
 
@@ -867,7 +866,8 @@ supported tasks; the three unsupported tasks are no-action outcomes with zero un
 state changes. A static public-instruction audit compiles 18/417
 \texttt{test\_challenge} tasks, and the executable prefix leaves 12/24 product-search
 purchase tasks unsupported after two conservative Amazon machines, again with zero unsafe
-changes. &
+changes. The derived coverage roadmap records the required machine capabilities and
+validation gates before these buckets should be claimed as supported. &
 Lower success is expected outside registered coverage. \\
 \addlinespace
 The dynamic path is a bounded coverage extension, not open-ended synthesis. &
@@ -903,7 +903,8 @@ typed DSL, registry runtime, ToolSandbox binding, and AppWorld binding.
 dynamic setting-machine induction, and held-out boolean-affordance induction.
 \item Static AppWorld coverage results live in \texttt{results/appworld\_static\_coverage};
 they audit public-instruction compile coverage for local \texttt{test\_normal.txt} and
-\texttt{test\_challenge.txt} without executing tools or loading ground truth.
+\texttt{test\_challenge.txt} without executing tools or loading ground truth, and include
+\texttt{coverage\_roadmap.csv} for unsupported buckets.
 \item Review-strengthening summaries live in the dated \texttt{icve\_review\_strengthening}
 result directory; it contains \texttt{summary.json} and the per-machine development-cost
 table.

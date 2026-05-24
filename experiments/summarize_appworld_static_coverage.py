@@ -38,6 +38,161 @@ from pctu_pilot.rave_runtime import RaveRuntime  # noqa: E402
 DEFAULT_SPLITS = ("test_normal", "test_challenge")
 
 
+ROADMAP_BY_BUCKET = {
+    "amazon_purchase_or_product_search": {
+        "roadmap_family": "Amazon search-and-purchase machines",
+        "required_machine_capability": (
+            "Rank product candidates from public attributes, ground seller and variant "
+            "constraints, verify cart/order preconditions, and execute bounded purchase "
+            "or save-for-later transitions."
+        ),
+        "why_not_currently_covered": (
+            "Current AppWorld registry covers narrow saved-list and order-state workflows, "
+            "but not open product search, candidate ranking, or multi-item cart planning."
+        ),
+        "validation_gate": (
+            "Pass an Amazon-only held-out slice using public instructions and packaged "
+            "evaluator goals, with zero unsafe purchases on unsupported or ambiguous cases."
+        ),
+    },
+    "gmail_email": {
+        "roadmap_family": "Gmail thread-and-draft machines",
+        "required_machine_capability": (
+            "Resolve threads and recipients, summarize or filter message evidence, build "
+            "draft/send frames, and enforce missing-recipient/content abstention."
+        ),
+        "why_not_currently_covered": (
+            "Current registry does not model email-thread evidence selection, draft state, "
+            "or send/reply/forward transitions."
+        ),
+        "validation_gate": (
+            "Evaluate a Gmail-only held-out slice with thread grounding traces, no sends "
+            "without grounded recipients, and explicit abstentions for underspecified mail."
+        ),
+    },
+    "splitwise_vacation_or_expense": {
+        "roadmap_family": "Splitwise expense-settlement machines",
+        "required_machine_capability": (
+            "Aggregate group-trip expenses, compute per-user balances, select settlement "
+            "actions, and verify no duplicate or wrong-party payments."
+        ),
+        "why_not_currently_covered": (
+            "Current machines avoid multi-party vacation accounting because it requires "
+            "cross-record aggregation beyond the existing compact state transitions."
+        ),
+        "validation_gate": (
+            "Run a vacation/expense held-out slice with independently checked balance "
+            "invariants and no hidden-answer access during machine construction."
+        ),
+    },
+    "spotify_music": {
+        "roadmap_family": "Spotify search-and-library machines",
+        "required_machine_capability": (
+            "Ground artists, albums, tracks, and playlists under ambiguous search results, "
+            "then apply library or playlist mutations with duplicate detection."
+        ),
+        "why_not_currently_covered": (
+            "Current registry covers targeted Spotify navigation cases, but not broad "
+            "music search, ranking, or playlist transformation workflows."
+        ),
+        "validation_gate": (
+            "Pass a Spotify held-out slice with search-result grounding logs and zero "
+            "duplicate playlist/library mutations."
+        ),
+    },
+    "venmo_payment_or_request": {
+        "roadmap_family": "Venmo payment/request machines",
+        "required_machine_capability": (
+            "Ground counterparties, distinguish payment from request intent, reason over "
+            "visible funding evidence, and abstain when balance or recipient evidence is "
+            "unavailable."
+        ),
+        "why_not_currently_covered": (
+            "Current runtime handles a narrow card-repair path but intentionally avoids "
+            "private balance access and broad social/payment workflows."
+        ),
+        "validation_gate": (
+            "Evaluate Venmo tasks with zero wrong-recipient transfers and safe abstention "
+            "when public evidence cannot prove a payable funding source."
+        ),
+    },
+    "phone_message": {
+        "roadmap_family": "Phone messaging machines",
+        "required_machine_capability": (
+            "Disambiguate contacts, ground message content, verify send targets, and "
+            "separate read-only contact lookup from mutating message sends."
+        ),
+        "why_not_currently_covered": (
+            "Current registry does not include phone-message schemas or contact-message "
+            "state transitions."
+        ),
+        "validation_gate": (
+            "Pass a messaging slice with explicit contact disambiguation and zero sends "
+            "to ambiguous or unsupported contacts."
+        ),
+    },
+    "todoist_task": {
+        "roadmap_family": "Todoist task/project machines",
+        "required_machine_capability": (
+            "Ground projects, tasks, due dates, and labels; then apply create/update/close "
+            "transitions with duplicate and missing-date checks."
+        ),
+        "why_not_currently_covered": (
+            "Current AppWorld registry focuses on the observed stateful slices and does "
+            "not register a full Todoist task-state model."
+        ),
+        "validation_gate": (
+            "Run a Todoist held-out slice with task identity traces and no duplicate or "
+            "wrong-project mutations."
+        ),
+    },
+    "file_system": {
+        "roadmap_family": "File-system transformation machines",
+        "required_machine_capability": (
+            "Ground files and directories, verify path preconditions, and perform bounded "
+            "copy/move/rename/export operations."
+        ),
+        "why_not_currently_covered": (
+            "Current file machines cover selected prefix-move/export cases, not arbitrary "
+            "multi-file transformations."
+        ),
+        "validation_gate": (
+            "Evaluate a file-operation slice with path-diff checks and no destructive "
+            "operations outside grounded targets."
+        ),
+    },
+    "simple_note": {
+        "roadmap_family": "Simple Note content machines",
+        "required_machine_capability": (
+            "Ground notes, inspect content, and apply constrained create/update/export "
+            "transitions with idempotent completion checks."
+        ),
+        "why_not_currently_covered": (
+            "Current note coverage is limited to selected markdown export workflows."
+        ),
+        "validation_gate": (
+            "Pass note-editing tasks with before/after content checks and no edits to "
+            "ambiguous notes."
+        ),
+    },
+    "other_or_multi_app": {
+        "roadmap_family": "Cross-application intent machines",
+        "required_machine_capability": (
+            "Decompose requests across apps, make intermediate state explicit, and verify "
+            "each mutating transition against app-local invariants."
+        ),
+        "why_not_currently_covered": (
+            "Current registry is intentionally app-family scoped and does not synthesize "
+            "open-ended cross-app plans."
+        ),
+        "validation_gate": (
+            "Create a held-out multi-app slice with visible intermediate ledgers and "
+            "per-transition invariant checks."
+        ),
+    },
+}
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Audit AppWorld public-instruction compile coverage for ICVE."
@@ -80,6 +235,7 @@ def main() -> None:
     write_csv(output_dir / "episode_metrics.csv", rows)
     write_csv(output_dir / "intent_coverage.csv", intent_rows(rows))
     write_csv(output_dir / "unsupported_bucket_coverage.csv", unsupported_bucket_rows(rows))
+    write_csv(output_dir / "coverage_roadmap.csv", coverage_roadmap_rows(rows))
     write_csv(output_dir / "scenario_coverage.csv", scenario_rows(rows))
     (output_dir / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
     write_markdown(output_dir / "README.md", summary, rows)
@@ -270,6 +426,26 @@ def unsupported_bucket_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(output, key=lambda row: (row["split"], -row["tasks"], row["unsupported_bucket"]))
 
 
+def coverage_roadmap_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    output = []
+    for bucket_row in unsupported_bucket_rows(rows):
+        bucket = str(bucket_row["unsupported_bucket"])
+        roadmap = ROADMAP_BY_BUCKET.get(bucket, ROADMAP_BY_BUCKET["other_or_multi_app"])
+        output.append(
+            {
+                "split": bucket_row["split"],
+                "unsupported_bucket": bucket,
+                "tasks": bucket_row["tasks"],
+                "scenarios": bucket_row["scenarios"],
+                "roadmap_family": roadmap["roadmap_family"],
+                "required_machine_capability": roadmap["required_machine_capability"],
+                "why_not_currently_covered": roadmap["why_not_currently_covered"],
+                "validation_gate": roadmap["validation_gate"],
+            }
+        )
+    return output
+
+
 def scenario_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
     grouped: dict[tuple[str, str], list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
@@ -364,6 +540,28 @@ def write_markdown(path: Path, summary: dict[str, Any], rows: list[dict[str, Any
     )
     for bucket, count in summary["top_unsupported_buckets"]:
         lines.append(f"| {bucket} | {count} |")
+
+    roadmap_rows = coverage_roadmap_rows(rows)
+    if roadmap_rows:
+        lines.extend(
+            [
+                "",
+                "## Coverage Roadmap",
+                "",
+                "The roadmap is derived from unsupported public-instruction buckets. It is",
+                "not a solved-coverage result; it records what new machine capabilities and",
+                "validation gates would be required before claiming support for each bucket.",
+                "Full rows are in `coverage_roadmap.csv`.",
+                "",
+                "| split | bucket | tasks | scenarios | roadmap family |",
+                "| --- | --- | ---: | ---: | --- |",
+            ]
+        )
+        for row in roadmap_rows:
+            lines.append(
+                f"| {row['split']} | {row['unsupported_bucket']} | {row['tasks']} | "
+                f"{row['scenarios']} | {row['roadmap_family']} |"
+            )
 
     full_coverage_scenarios = [
         row

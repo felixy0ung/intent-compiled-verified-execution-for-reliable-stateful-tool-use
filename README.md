@@ -102,7 +102,9 @@ covered/supported tasks, `165/165` supported-task success) and a
 static public-instruction compile audit over local `test_normal.txt` and
 `test_challenge.txt` (`165/168` and `18/417` complete frames, respectively). The static
 audit does not execute tools or load ground truth; it is a coverage-boundary diagnostic,
-not a leaderboard result.
+not a leaderboard result. The same directory includes `coverage_roadmap.csv`, which maps
+unsupported public-instruction buckets to the machine capabilities and validation gates
+required before claiming those families as covered.
 
 Static machines are intended to be developed from API signatures, public task
 instructions, and ordinary runtime error categories, not from private database state,
