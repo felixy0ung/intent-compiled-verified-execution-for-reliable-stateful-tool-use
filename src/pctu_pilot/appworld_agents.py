@@ -1158,6 +1158,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_delete_archived_threads_by_calendar_window",
+                (SlotSpec("window"),),
+            ),
+            compiler=compile_gmail_delete_archived_threads_by_calendar_window,
+            handler=handle_gmail_delete_archived_threads_by_calendar_window,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_star_threads_by_relationship",
                 (SlotSpec("relationship"),),
             ),
@@ -2548,6 +2556,24 @@ def compile_gmail_mark_threads_read_state_by_calendar_window(
         return None
     frame = IntentFrame("appworld_gmail_mark_threads_read_state_by_calendar_window")
     frame.set_slot("target_state", match.group("state").lower(), source="regex")
+    window = match.group("window").lower().replace(" ", "_")
+    frame.set_slot("window", window, source="regex")
+    return frame
+
+
+def compile_gmail_delete_archived_threads_by_calendar_window(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Delete all my archived gmail threads that are from (?P<window>before this calendar month|this calendar month|this or the last calendar month)\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_delete_archived_threads_by_calendar_window")
     window = match.group("window").lower().replace(" ", "_")
     frame.set_slot("window", window, source="regex")
     return frame
@@ -8813,6 +8839,85 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_delete_archived_threads_by_calendar_window(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    window = str(frame.get("window") or "").strip().lower()
+    if window not in {
+        "before_this_calendar_month",
+        "this_calendar_month",
+        "this_or_the_last_calendar_month",
+    }:
+        frame.abstain_reason = "missing_or_unsupported_gmail_archived_delete_window"
+        return None
+    code = common_appworld_prelude(["gmail"]) + f"""
+window = {json.dumps(window)}
+now = DateTime.now()
+if window == "before_this_calendar_month":
+    min_created_at = "1500-01-01"
+    max_created_at = now.start_of("month").subtract(microseconds=1).to_date_string()
+elif window == "this_calendar_month":
+    min_created_at = now.start_of("month").to_date_string()
+    max_created_at = now.end_of("month").to_date_string()
+elif window == "this_or_the_last_calendar_month":
+    min_created_at = now.subtract(months=1).start_of("month").to_date_string()
+    max_created_at = now.end_of("month").to_date_string()
+else:
+    raise Exception(f"Unsupported archived delete window: {{window}}")
+
+candidate_threads = paged(lambda page: apis.gmail.show_archived_threads(
+    access_token=tokens["gmail"],
+    min_created_at=min_created_at,
+    max_created_at=max_created_at,
+    page_index=page,
+    page_limit=20,
+    sort_by="+created_at",
+))
+thread_ids = []
+seen_thread_ids = set()
+for thread in candidate_threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None or thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    thread_ids.append(thread_id)
+
+deleted = []
+for thread_id in thread_ids:
+    apis.gmail.delete_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    deleted.append(thread_id)
+
+remaining = paged(lambda page: apis.gmail.show_archived_threads(
+    access_token=tokens["gmail"],
+    min_created_at=min_created_at,
+    max_created_at=max_created_at,
+    page_index=page,
+    page_limit=20,
+    sort_by="+created_at",
+))
+remaining_ids = [thread.get("email_thread_id") for thread in remaining]
+if remaining_ids:
+    raise Exception(f"Expected no archived Gmail threads in window after deletion, found {{remaining_ids}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "window": window,
+    "min_created_at": min_created_at,
+    "max_created_at": max_created_at,
+    "deleted": deleted,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_delete_archived_threads_by_calendar_window",
+    )
+
+
 def handle_gmail_star_threads_by_relationship(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -13839,6 +13944,9 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         target_state = str(slots.get("target_state") or slots.get("state") or "").strip().lower()
         window = str(slots.get("window") or "").strip().lower().replace(" ", "_")
         return {"target_state": target_state, "window": window}
+    if intent_type == "appworld_gmail_delete_archived_threads_by_calendar_window":
+        window = str(slots.get("window") or "").strip().lower().replace(" ", "_")
+        return {"window": window}
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
@@ -14321,6 +14429,16 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_delete_archived_threads_by_calendar_window":
+        required = [
+            "delete all my archived gmail threads",
+            "calendar month",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -14604,6 +14722,8 @@ Supported intent types and slots:
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
 19. appworld_gmail_mark_threads_read_state_by_calendar_window
    slots: target_state string, one of read or unread; window string, one of before_the_last_calendar_month, in_the_current_calendar_month, or before_the_current_calendar_year.
+20. appworld_gmail_delete_archived_threads_by_calendar_window
+   slots: window string, one of before_this_calendar_month, this_calendar_month, or this_or_the_last_calendar_month.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
@@ -14911,6 +15031,9 @@ JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"delete",
 
 Task: Mark everything in my Gmail inbox and outbox before the last calendar month as read.
 JSON: {"intent_type":"appworld_gmail_mark_threads_read_state_by_calendar_window","slots":{"target_state":"read","window":"before_the_last_calendar_month"}}
+
+Task: Delete all my archived gmail threads that are from before this calendar month.
+JSON: {"intent_type":"appworld_gmail_delete_archived_threads_by_calendar_window","slots":{"window":"before_this_calendar_month"}}
 
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}

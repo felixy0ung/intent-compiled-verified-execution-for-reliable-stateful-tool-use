@@ -9,20 +9,20 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | metric | value |
 | --- | ---: |
-| registered_appworld_machines | 104 |
+| registered_appworld_machines | 105 |
 | total_tasks | 585 |
-| compiled | 240 |
-| dispatchable | 240 |
-| unsupported | 345 |
-| compiled_rate | 0.4103 |
-| dispatchable_rate | 0.4103 |
-| dispatchable_scenarios | 80 / 195 |
+| compiled | 243 |
+| dispatchable | 243 |
+| unsupported | 342 |
+| compiled_rate | 0.4154 |
+| dispatchable_rate | 0.4154 |
+| dispatchable_scenarios | 81 / 195 |
 
 ## By Split
 
 | split | tasks | compiled | dispatchable | unsupported | dispatchable rate | dispatchable scenarios |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| test_challenge | 417 | 72 | 72 | 345 | 0.1727 | 24 / 139 |
+| test_challenge | 417 | 75 | 75 | 342 | 0.1799 | 25 / 139 |
 | test_normal | 168 | 168 | 168 | 0 | 1.0000 | 56 / 56 |
 
 ## Top Dispatchable Intents
@@ -47,7 +47,7 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 | bucket | tasks |
 | --- | ---: |
 | amazon_purchase_or_product_search | 205 |
-| gmail_email | 95 |
+| gmail_email | 92 |
 | splitwise_vacation_or_expense | 28 |
 | spotify_music | 15 |
 | venmo_payment_or_request | 2 |
@@ -62,14 +62,14 @@ Full rows are in `coverage_roadmap.csv`.
 | split | bucket | tasks | scenarios | roadmap family |
 | --- | --- | ---: | ---: | --- |
 | test_challenge | amazon_purchase_or_product_search | 205 | 71 | Amazon search-and-purchase machines |
-| test_challenge | gmail_email | 95 | 32 | Gmail thread-and-draft machines |
+| test_challenge | gmail_email | 92 | 31 | Gmail thread-and-draft machines |
 | test_challenge | splitwise_vacation_or_expense | 28 | 10 | Splitwise expense-settlement machines |
 | test_challenge | spotify_music | 15 | 7 | Spotify search-and-library machines |
 | test_challenge | venmo_payment_or_request | 2 | 2 | Venmo payment/request machines |
 
 ## Scenario Coverage
 
-- Fully dispatchable scenarios: 80
+- Fully dispatchable scenarios: 81
 - Partially dispatchable scenarios: 0
 - Full per-scenario rows are in `scenario_coverage.csv`.
 

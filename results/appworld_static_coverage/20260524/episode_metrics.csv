@@ -503,9 +503,9 @@ test_challenge,ce73d68_3,ce73d68,0,0,0,0,unsupported,,,gmail_email,310b1d0e5f0b0
 test_challenge,d37c235_1,d37c235,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,b1386b14e72244dd
 test_challenge,d37c235_2,d37c235,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,b1386b14e72244dd
 test_challenge,d37c235_3,d37c235,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,b1386b14e72244dd
-test_challenge,4d12842_1,4d12842,0,0,0,0,unsupported,,,gmail_email,818e19a3f41a4c45
-test_challenge,4d12842_2,4d12842,0,0,0,0,unsupported,,,gmail_email,73d85dc062817201
-test_challenge,4d12842_3,4d12842,0,0,0,0,unsupported,,,gmail_email,a9ad16f557b5627e
+test_challenge,4d12842_1,4d12842,1,1,0,0,appworld_gmail_delete_archived_threads_by_calendar_window,,,,818e19a3f41a4c45
+test_challenge,4d12842_2,4d12842,1,1,0,0,appworld_gmail_delete_archived_threads_by_calendar_window,,,,73d85dc062817201
+test_challenge,4d12842_3,4d12842,1,1,0,0,appworld_gmail_delete_archived_threads_by_calendar_window,,,,a9ad16f557b5627e
 test_challenge,69ba40f_1,69ba40f,0,0,0,0,unsupported,,,gmail_email,3fd859a04e9c7203
 test_challenge,69ba40f_2,69ba40f,0,0,0,0,unsupported,,,gmail_email,dbe66dd12dae9931
 test_challenge,69ba40f_3,69ba40f,0,0,0,0,unsupported,,,gmail_email,927e3db33e3e8263

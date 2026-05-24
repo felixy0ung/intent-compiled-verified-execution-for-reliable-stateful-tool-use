@@ -63,6 +63,7 @@ appworld_delete_gmail_empty_drafts,1,condition,16,39,55,0,0,0,0,"gmail,superviso
 appworld_delete_phone_spam_messages,1,phone_number,15,44,59,0,0,0,0,"phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_file_prefix_and_move_old_files,3,"source_directory,prefix_format,old_destination_directory",20,61,81,0,0,0,0,"file_system,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_attach_job_search_files_and_send,2,"days_back,file_name",19,93,112,0,0,0,0,"file_system,gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_gmail_delete_archived_threads_by_calendar_window,1,window,16,73,89,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_download_flight_ticket_attachment,2,"destination,directory_path",20,97,117,0,0,0,0,"file_system,gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_label_notification_threads_by_app,0,none,13,59,72,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_mark_threads_read_state_by_calendar_window,2,"target_state,window",17,77,94,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded

@@ -638,15 +638,15 @@ submission.
 
 \paragraph{Coverage and development cost.}
 The coverage assumption is auditable rather than implicit. ToolSandbox uses 13 static
-machines; AppWorld has 104 registered machines, of which 55 cover all 168
+machines; AppWorld has 105 registered machines, of which 55 cover all 168
 \texttt{test\_normal.txt} tasks (3.05 tasks per used machine). For used AppWorld
 machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/74/94. A static
-public-instruction audit compiles 168/168 \texttt{test\_normal} and 72/417
+public-instruction audit compiles 168/168 \texttt{test\_normal} and 75/417
 \texttt{test\_challenge} instructions without tools, databases, or ground truth; the
-roadmap keeps unsupported Amazon purchase/search (205), Gmail (95), Splitwise (28), Spotify (15), and Venmo (2)
-buckets as coverage gaps. Eighteen held-out \texttt{test\_challenge} slices now cover
-fifty-four additional tasks across phone, Gmail, file-system attachments, payment-card, Venmo, Spotify, Amazon
-recommendation, Gmail-grounded Spotify recommendation, Spotify draft-update, Venmo optional-signup payment, Gmail notification-labeling, Gmail priority relabeling, Gmail scheduled-draft send-now, Gmail read-state calendar-window updates, Gmail job-search attachment/send, Gmail flight-ticket download, Gmail-receipt Venmo payment, coworker Venmo gift/email, and shared-subscription password/text workflows, reaching 54/54
+roadmap keeps unsupported Amazon purchase/search (205), Gmail (92), Splitwise (28), Spotify (15), and Venmo (2)
+buckets as coverage gaps. Nineteen held-out \texttt{test\_challenge} slices now cover
+fifty-seven additional tasks across phone, Gmail, file-system attachments, payment-card, Venmo, Spotify, Amazon
+recommendation, Gmail-grounded Spotify recommendation, Spotify draft-update, Venmo optional-signup payment, Gmail notification-labeling, Gmail priority relabeling, Gmail archived-thread calendar deletion, Gmail scheduled-draft send-now, Gmail read-state calendar-window updates, Gmail job-search attachment/send, Gmail flight-ticket download, Gmail-receipt Venmo payment, coworker Venmo gift/email, and shared-subscription password/text workflows, reaching 57/57
 success with zero invalid or unsafe calls. These numbers are deliberately reported as
 machine-family reuse and coverage accounting, not as a full challenge-set score.
 
@@ -726,8 +726,8 @@ families.
 The added diagnostics make this boundary falsifiable. On ToolSandbox
 insufficient-information tasks, ReAct produces 0.4286 unsafe mutations and 2.1786 invalid
 calls per task; ICVE reduces both to zero, while removing abstention restores the unsafe
-rate. On AppWorld, the 168-task local \texttt{test\_normal.txt} diagnostic, 72/417 static
-\texttt{test\_challenge} compile audit, and 54-task held-out slice collection expose both
+rate. On AppWorld, the 168-task local \texttt{test\_normal.txt} diagnostic, 75/417 static
+\texttt{test\_challenge} compile audit, and 57-task held-out slice collection expose both
 coverage and non-coverage. The dynamic diagnostic also induces five boolean-setting
 machines from unseen API signatures without model calls.
 
@@ -825,7 +825,7 @@ Covered stateful tool-use families, not arbitrary agents. \\
 \addlinespace
 ICVE is more than a per-task script bank. &
 The registry would have near one machine per benchmark task with no cross-task reuse. &
-ToolSandbox uses 13 static machines. AppWorld has 104 registered machines; 55 used
+ToolSandbox uses 13 static machines. AppWorld has 105 registered machines; 55 used
 machines cover 168 \texttt{test\_normal.txt} tasks, or 3.05 tasks per used
 machine. The artifact lists per-machine slots, compiler LOC, handler LOC, total LOC, and
 API namespaces. &
@@ -852,7 +852,7 @@ Coverage gaps become reported no-action outcomes rather than hidden unsafe mutat
 Unsupported or similar-looking tasks would be forced through machines and mutate state
 unsafely. &
 On local \texttt{test\_normal.txt}, ICVE supports and succeeds on 168/168 tasks with
-zero unsafe state changes. A static public-instruction audit compiles only 72/417
+zero unsafe state changes. A static public-instruction audit compiles only 75/417
 \texttt{test\_challenge} tasks, and the executable prefix leaves 12/24 product-search
 purchase tasks unsupported after two conservative Amazon machines, again with zero unsafe
 changes. The derived coverage roadmap records the required machine capabilities and
