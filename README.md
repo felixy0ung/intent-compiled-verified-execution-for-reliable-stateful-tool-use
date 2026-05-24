@@ -37,11 +37,13 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 21/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 24/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 87 registered
+- Held-out AppWorld Gmail relation-star slice: one general machine covers 3
+  `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 88 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -71,6 +73,8 @@ AppWorld leaderboard submission.
   `results/appworld_trip_note_debts_20260524/20260524_225607/`
 - AppWorld held-out phone-message account-verification slice:
   `results/appworld_phone_account_verify_reset_20260524/20260524_233807/`
+- AppWorld held-out Gmail relation-star slice:
+  `results/appworld_gmail_star_relationship_20260524/20260525_000839/`
 - AppWorld static public-instruction coverage:
   `results/appworld_static_coverage/20260524/`
 - Review-strengthening summaries and machine development-cost table:

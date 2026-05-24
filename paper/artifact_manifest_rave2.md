@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 21/417 `test_challenge` instructions to complete frames. The same
+  instructions and 24/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -176,6 +176,14 @@ extraction call per task plus the runtime-checked executor.
   phone-message and Gmail verification/reset evidence, verifies the app account, resets
   its password, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
   This is a narrow held-out slice, not a full `test_challenge` or leaderboard result.
+- Held-out AppWorld Gmail relation-star slice:
+  `results/appworld_gmail_star_relationship_20260524/20260525_000839` records three
+  local `test_challenge` tasks whose public instructions ask to star every non-archived
+  Gmail thread from or to a target contact relationship and unstar the rest. One general
+  ICVE machine grounds the relationship through runtime-visible phone contacts, traverses
+  non-archived Gmail thread categories, and reaches 3/3 success with 0 invalid calls and
+  0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
+  or leaderboard result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication

@@ -12,6 +12,8 @@ from .rave_runtime import AvailableTools, RaveRuntime, RaveRuntimeHooks, RaveRun
 
 
 RELATION_ALIASES = {
+    "managers": "manager",
+    "manager": "manager",
     "parents": "parent",
     "parent": "parent",
     "children": "child",
@@ -1064,6 +1066,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
             ),
             compiler=compile_gmail_thread_cleanup,
             handler=handle_gmail_thread_cleanup,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
+                "appworld_gmail_star_threads_by_relationship",
+                (SlotSpec("relationship"),),
+            ),
+            compiler=compile_gmail_star_threads_by_relationship,
+            handler=handle_gmail_star_threads_by_relationship,
         ),
         IntentMachine(
             schema=IntentSchema(
@@ -2227,6 +2237,28 @@ def compile_gmail_thread_cleanup(
     exception_mode = "and" if match.group("joiner").lower() == "and" else "or"
     frame.set_slot("action", action, source="regex")
     frame.set_slot("exception_mode", exception_mode, source="regex")
+    return frame
+
+
+def compile_gmail_star_threads_by_relationship(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Star all my gmail threads with email/s from or to my (?P<relationship>[a-z]+) "
+        r"and unstar the rest\. Ignore the archived threads\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationship = RELATION_ALIASES.get(
+        match.group("relationship").lower(),
+        match.group("relationship").lower(),
+    )
+    frame = IntentFrame("appworld_gmail_star_threads_by_relationship")
+    frame.set_slot("relationship", relationship, source="regex")
     return frame
 
 
@@ -7066,6 +7098,107 @@ print(json.dumps({{"action": action, "exception_mode": exception_mode, "processe
     )
 
 
+def handle_gmail_star_threads_by_relationship(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    if not relationship:
+        frame.abstain_reason = "missing_or_unsupported_gmail_star_relationship"
+        return None
+    code = common_appworld_prelude(["gmail", "phone"]) + f"""
+relationship = {json.dumps(relationship)}
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+target_emails = {{
+    (contact.get("email") or "").strip().lower()
+    for contact in contacts
+    if (contact.get("email") or "").strip()
+}}
+if not target_emails:
+    raise Exception(f"No contacts with relationship {{relationship}} and email addresses.")
+
+seen_thread_ids = set()
+threads = []
+threads.extend(paged(lambda page: apis.gmail.show_inbox_threads(
+    access_token=tokens["gmail"],
+    archived=False,
+    page_index=page,
+    page_limit=20,
+)))
+threads.extend(paged(lambda page: apis.gmail.show_outbox_threads(
+    access_token=tokens["gmail"],
+    archived=False,
+    page_index=page,
+    page_limit=20,
+)))
+threads.extend(paged(lambda page: apis.gmail.show_spam_threads(
+    access_token=tokens["gmail"],
+    page_index=page,
+    page_limit=20,
+)))
+
+starred = []
+unstarred = []
+unchanged = []
+for thread in threads:
+    thread_id = thread["email_thread_id"]
+    if thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    if detail.get("archived"):
+        continue
+    thread_matches_target = False
+    for email in detail.get("emails", []):
+        sender = email.get("sender") or {{}}
+        sender_email = (sender.get("email") or "").strip().lower()
+        if sender_email in target_emails:
+            thread_matches_target = True
+        for recipient in email.get("recipients", []) or []:
+            recipient_email = (recipient.get("email") or "").strip().lower()
+            if sender_email == user.email.lower() and recipient_email in target_emails:
+                thread_matches_target = True
+    should_star = thread_matches_target
+    is_starred = bool(detail.get("starred"))
+    if should_star and not is_starred:
+        apis.gmail.mark_thread_starred(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+        starred.append(thread_id)
+    elif not should_star and is_starred:
+        apis.gmail.mark_thread_unstarred(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+        unstarred.append(thread_id)
+    else:
+        unchanged.append(thread_id)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "relationship": relationship,
+    "target_emails": sorted(target_emails),
+    "starred": starred,
+    "unstarred": unstarred,
+    "unchanged": unchanged,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_star_threads_by_relationship",
+    )
+
+
 def handle_bucket_list_status_update(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -11010,6 +11143,9 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         if exception_mode in {"and", "both"}:
             exception_mode = "and"
         return {"action": action, "exception_mode": exception_mode}
+    if intent_type == "appworld_gmail_star_threads_by_relationship":
+        relationship = str(slots.get("relationship", "")).strip().lower()
+        return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
     if intent_type == "appworld_bucket_list_status_update":
         done_value = slots.get("done")
         if isinstance(done_value, str):
@@ -11414,6 +11550,12 @@ def verify_or_repair_llm_intent_frame(
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
             if repaired is not None:
                 return repaired
+    if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
+        if not raw.startswith("star all my gmail threads"):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type in {
         "appworld_venmo_process_pending_payment_requests",
         "appworld_venmo_approve_roommate_requests_this_month",
@@ -11534,6 +11676,8 @@ Supported intent types and slots:
    slots: condition string, one of both or either.
 19. appworld_gmail_thread_cleanup
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
+20. appworld_gmail_star_threads_by_relationship
+   slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
 19. appworld_simple_note_count_bucket_list_status
@@ -12078,6 +12222,8 @@ Relevant APIs for this slice:
 - apis.gmail.show_outbox_threads(access_token=..., read=True, archived=False, page_index=0, page_limit=20)
 - apis.gmail.mark_thread_archived(access_token=..., email_thread_id=...)
 - apis.gmail.delete_thread(access_token=..., email_thread_id=...)
+- apis.gmail.mark_thread_starred(access_token=..., email_thread_id=...)
+- apis.gmail.mark_thread_unstarred(access_token=..., email_thread_id=...)
 - apis.simple_note.search_notes(access_token=..., query=..., page_index=0, page_limit=20)
 - apis.simple_note.show_note(access_token=..., note_id=...)
 - apis.simple_note.update_note(access_token=..., note_id=..., content=...)

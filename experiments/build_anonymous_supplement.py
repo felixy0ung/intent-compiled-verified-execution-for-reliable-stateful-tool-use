@@ -47,8 +47,13 @@ EXCLUDED_DIR_PARTS = {
 EXCLUDED_RESULT_DIRS = {
     # Superseded by the v2 schedule-fill runs, which validate all read-side
     # preconditions before writes and remove the unsafe partial-delete failure.
+    "appworld_gmail_star_relationship_debug_20260524",
     "appworld_rave_official_test_normal_todoist_schedule_fill_smoke",
     "appworld_rave_official_test_normal_todoist_schedule_fill_llm_intent_deepseek_chat_smoke",
+}
+
+RESULT_DIR_ALLOWLISTS = {
+    "appworld_gmail_star_relationship_20260524": {"20260525_000839"},
 }
 
 EXCLUDED_RESULT_FILENAMES = {
@@ -163,6 +168,8 @@ def should_skip(path: Path) -> bool:
 def should_skip_result(path_under_results: Path) -> bool:
     if path_under_results.parts and path_under_results.parts[0] in EXCLUDED_RESULT_DIRS:
         return True
+    if len(path_under_results.parts) >= 2 and path_under_results.parts[0] in RESULT_DIR_ALLOWLISTS:
+        return path_under_results.parts[1] not in RESULT_DIR_ALLOWLISTS[path_under_results.parts[0]]
     if path_under_results.parts and path_under_results.parts[0].startswith(EXCLUDED_RESULT_PREFIXES):
         return True
     if path_under_results.name in EXCLUDED_RESULT_FILENAMES:

@@ -638,20 +638,20 @@ submission.
 
 \paragraph{Coverage and development cost.}
 The coverage assumption is auditable rather than implicit. ToolSandbox uses 13 static
-machines; AppWorld has 87 registered machines, of which 55 cover all 168
+machines; AppWorld has 88 registered machines, of which 55 cover all 168
 \texttt{test\_normal.txt} tasks (3.05 tasks per used machine). For used AppWorld
 machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/74/94. A static
 public-instruction audit reads only local \texttt{specs.json} instructions and compiles
-168/168 \texttt{test\_normal} and 21/417 \texttt{test\_challenge} instructions to
+168/168 \texttt{test\_normal} and 24/417 \texttt{test\_challenge} instructions to
 complete frames. Unsupported \texttt{test\_challenge} rows cluster in Amazon
-purchase/product-search (206) and Gmail workflows (116); \texttt{coverage\_roadmap.csv}
+purchase/product-search (206) and Gmail workflows (113); \texttt{coverage\_roadmap.csv}
 records extension requirements and validation gates. In an executable 24-task
 \texttt{test\_challenge} prefix, two conservative Amazon machines raise success from
 3/24 to 12/24 with zero unsafe changes; the remaining product-search purchase tasks are
 reported as unsupported no-action outcomes rather than forced through a similar machine.
-A separate held-out phone-message account-verification slice adds one machine that reads
-runtime-visible phone and Gmail evidence, covers three \texttt{test\_challenge} tasks,
-and reaches 3/3 success with zero invalid or unsafe calls.
+Two separate held-out slices add a phone-message account-verification machine and a
+Gmail relation-star machine; together they cover six additional \texttt{test\_challenge}
+tasks and reach 6/6 success with zero invalid or unsafe calls.
 
 \subsection{Multi-Turn Diagnostic}
 
@@ -697,7 +697,7 @@ calls per task; ICVE reduces both to zero, while removing abstention restores th
 rate. On AppWorld, ICVE supports and solves all 168 local \texttt{test\_normal.txt}
 tasks after one reusable trip-note debt-settlement machine closes the last three-task
 family, while the
-full static \texttt{test\_challenge} audit compiles only 21/417 public instructions; the
+full static \texttt{test\_challenge} audit compiles only 24/417 public instructions; the
 unsupported rows remain reported coverage gaps rather than hidden mutations. The dynamic
 diagnostic induces five additional boolean-setting machines from unseen API signatures
 without model calls. The artifact provides the full per-machine development-cost and
@@ -832,7 +832,7 @@ Covered stateful tool-use families, not arbitrary agents. \\
 \addlinespace
 ICVE is more than a per-task script bank. &
 The registry would have near one machine per benchmark task with no cross-task reuse. &
-ToolSandbox uses 13 static machines. AppWorld has 87 registered machines; 55 used
+ToolSandbox uses 13 static machines. AppWorld has 88 registered machines; 55 used
 machines cover 168 \texttt{test\_normal.txt} tasks, or 3.05 tasks per used
 machine. The artifact lists per-machine slots, compiler LOC, handler LOC, total LOC, and
 API namespaces. &
@@ -859,7 +859,7 @@ Coverage gaps become reported no-action outcomes rather than hidden unsafe mutat
 Unsupported or similar-looking tasks would be forced through machines and mutate state
 unsafely. &
 On local \texttt{test\_normal.txt}, ICVE supports and succeeds on 168/168 tasks with
-zero unsafe state changes. A static public-instruction audit compiles only 21/417
+zero unsafe state changes. A static public-instruction audit compiles only 24/417
 \texttt{test\_challenge} tasks, and the executable prefix leaves 12/24 product-search
 purchase tasks unsupported after two conservative Amazon machines, again with zero unsafe
 changes. The derived coverage roadmap records the required machine capabilities and

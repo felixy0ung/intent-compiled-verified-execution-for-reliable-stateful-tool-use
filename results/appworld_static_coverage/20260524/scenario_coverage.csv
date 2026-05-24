@@ -2,12 +2,12 @@ split,scenario_id,tasks,compiled,dispatchable,compiled_rate,dispatchable_rate,co
 test_challenge,07bb666,3,3,3,1.0,1.0,appworld_amazon_move_rating_filtered_products,
 test_challenge,09ac073,3,3,3,1.0,1.0,appworld_gmail_thread_cleanup,
 test_challenge,0d22252,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
+test_challenge,0de03ad,3,3,3,1.0,1.0,appworld_gmail_star_threads_by_relationship,
 test_challenge,5238afc,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
 test_challenge,9bf2c8a,3,3,3,1.0,1.0,appworld_amazon_move_product_type_between_saved_lists,
 test_challenge,aaa25aa,3,3,3,1.0,1.0,appworld_phone_message_app_account_verify_reset,
 test_challenge,099174d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,0de03ad,3,0,0,0.0,0.0,,gmail_email
 test_challenge,143527e,3,0,0,0.0,0.0,,spotify_music
 test_challenge,16be9ce,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,18670a5,3,0,0,0.0,0.0,,gmail_email
