@@ -560,9 +560,9 @@ test_challenge,1b988ac_3,1b988ac,1,1,0,0,appworld_spotify_update_song_recommenda
 test_challenge,9a16324_1,9a16324,0,0,0,0,unsupported,,,spotify_music,a540aedb9ad6edcf
 test_challenge,9a16324_2,9a16324,0,0,0,0,unsupported,,,spotify_music,a540aedb9ad6edcf
 test_challenge,9a16324_3,9a16324,0,0,0,0,unsupported,,,spotify_music,a540aedb9ad6edcf
-test_challenge,b71318e_1,b71318e,0,0,0,0,unsupported,,,venmo_payment_or_request,40f4de4758f3d7ae
-test_challenge,b71318e_2,b71318e,0,0,0,0,unsupported,,,venmo_payment_or_request,46c562b4b8b2ae0f
-test_challenge,b71318e_3,b71318e,0,0,0,0,unsupported,,,venmo_payment_or_request,319d178f26d01554
+test_challenge,b71318e_1,b71318e,1,1,0,0,appworld_venmo_pay_coworkers_and_email,,,,40f4de4758f3d7ae
+test_challenge,b71318e_2,b71318e,1,1,0,0,appworld_venmo_pay_coworkers_and_email,,,,46c562b4b8b2ae0f
+test_challenge,b71318e_3,b71318e,1,1,0,0,appworld_venmo_pay_coworkers_and_email,,,,319d178f26d01554
 test_challenge,a676f2a_1,a676f2a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,10655e483dffd437
 test_challenge,a676f2a_2,a676f2a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,da535527b4b5a148
 test_challenge,a676f2a_3,a676f2a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ecebc9630700ed2f

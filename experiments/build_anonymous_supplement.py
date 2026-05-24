@@ -62,6 +62,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_spotify_update_song_recommendation_draft_20260525": {"20260525_014643"},
     "appworld_spotify_workout_email_playlist_20260525": {"20260525_005603"},
     "appworld_venmo_change_password_20260525": {"20260525_004717"},
+    "appworld_venmo_coworker_sprint_gifts_20260525": {"20260525_030821"},
     "appworld_venmo_flight_bill_email_20260525": {"20260525_025233"},
     "appworld_venmo_optional_signup_payment_20260525": {"20260525_020403"},
 }
@@ -140,8 +141,8 @@ def sanitize_bytes(data: bytes, path: Path) -> bytes:
 def sanitize_venue_strategy_text(text: str) -> str:
     """Remove venue-strategy phrasing that is irrelevant to anonymous review."""
     replacements = {
-        "STOP_CANDIDATE": "STOP_CANDIDATE",
-        "LaTeX": "LaTeX",
+        "STOP_MAIN_TRACK_CANDIDATE": "STOP_CANDIDATE",
+        "NeurIPS/XeTeX": "LaTeX",
     }
     for old, new in replacements.items():
         text = text.replace(old, new)

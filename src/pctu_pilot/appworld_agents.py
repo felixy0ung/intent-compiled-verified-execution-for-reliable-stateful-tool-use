@@ -877,6 +877,20 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_venmo_pay_coworkers_and_email",
+                (
+                    SlotSpec("relationships"),
+                    SlotSpec("amount"),
+                    SlotSpec("note"),
+                    SlotSpec("email_subject"),
+                    SlotSpec("email_body"),
+                ),
+            ),
+            compiler=compile_venmo_pay_coworkers_and_email,
+            handler=handle_venmo_pay_coworkers_and_email,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_venmo_accept_named_carpool_request_this_month",
                 (SlotSpec("person_first_name"),),
             ),
@@ -2043,6 +2057,33 @@ def compile_venmo_pay_flight_bill_from_email(
     frame = IntentFrame("appworld_venmo_pay_flight_bill_from_email")
     frame.set_slot("person_first_name", match.group("first_name"), source="regex")
     frame.set_slot("note", match.group("note"), source="regex")
+    return frame
+
+
+def compile_venmo_pay_coworkers_and_email(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'Send \$(?P<amount>\d+(?:\.\d+)?) to each of my (?P<relations>coworkers) '
+        r'privately on venmo with a note\s*"(?P<note>[^"]+)"\. '
+        r'Then send an email with all of them in the recipients with\s*'
+        r'the subject, "(?P<subject>[^"]+)", and body "(?P<body>[^"]+)"',
+        raw_request.strip(),
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+    if not match:
+        return None
+    relationships = extract_relationships(match.group("relations"))
+    if not relationships:
+        return None
+    frame = IntentFrame("appworld_venmo_pay_coworkers_and_email")
+    frame.set_slot("relationships", relationships, source="regex")
+    frame.set_slot("amount", float(match.group("amount")), source="regex")
+    frame.set_slot("note", match.group("note"), source="regex")
+    frame.set_slot("email_subject", match.group("subject"), source="regex")
+    frame.set_slot("email_body", match.group("body"), source="regex")
     return frame
 
 
@@ -5894,6 +5935,182 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_venmo_pay_flight_bill_from_email",
+    )
+
+
+def handle_venmo_pay_coworkers_and_email(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationships = frame.get("relationships", [])
+    amount = frame.get("amount")
+    note = str(frame.get("note") or "").strip()
+    email_subject = str(frame.get("email_subject") or "").strip()
+    email_body = str(frame.get("email_body") or "").strip()
+    if not relationships or amount is None or not note or not email_subject or not email_body:
+        frame.abstain_reason = "missing_venmo_coworker_payment_email_slots"
+        return None
+    code = common_appworld_prelude(["phone", "venmo", "gmail"]) + f"""
+relationships = {json.dumps(relationships)}
+amount = {float(amount)}
+note = {json.dumps(note)}
+email_subject = {json.dumps(email_subject)}
+email_body = {json.dumps(email_body)}
+
+def normalize_email(value):
+    return str(value or "").strip().lower()
+
+def exact_venmo_user_email(email):
+    users = apis.venmo.search_users(
+        access_token=tokens["venmo"],
+        query=email,
+        page_limit=20,
+    )
+    matches = [
+        user for user in users
+        if normalize_email(user.get("email")) == email
+    ]
+    if len(matches) != 1:
+        raise Exception(f"Expected exactly one Venmo user for {{email}}, found {{len(matches)}}.")
+    return normalize_email(matches[0]["email"])
+
+target_emails = []
+seen_emails = set()
+for relationship in relationships:
+    contacts = paged(lambda page, relationship=relationship: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship=relationship,
+        page_index=page,
+        page_limit=20,
+    ))
+    for contact in contacts:
+        email = normalize_email(contact.get("email"))
+        if not email or email in seen_emails:
+            continue
+        seen_emails.add(email)
+        target_emails.append(email)
+target_emails = sorted(target_emails)
+if not target_emails:
+    raise Exception(f"No phone contacts found for relationships: {{relationships}}")
+
+venmo_receiver_emails = []
+for email in target_emails:
+    venmo_receiver_emails.append(exact_venmo_user_email(email))
+
+total_needed = round(amount * len(venmo_receiver_emails), 2)
+account = apis.venmo.show_account(access_token=tokens["venmo"])
+starting_balance = float(account.get("venmo_balance") or 0)
+bank_transfer_id = None
+if starting_balance + 1e-9 < total_needed:
+    refill_amount = round(total_needed - starting_balance, 2)
+    cards = [
+        card
+        for card in apis.venmo.show_payment_cards(access_token=tokens["venmo"])
+        if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+    ]
+    cards = sorted(
+        cards,
+        key=lambda card: (
+            float(card.get("balance") or 0),
+            card["expiry_year"],
+            card["expiry_month"],
+            card["payment_card_id"],
+        ),
+        reverse=True,
+    )
+    refill_result = {{"message": "No Venmo payment card could fund the refill."}}
+    for card in cards:
+        refill_result = apis.venmo.add_to_venmo_balance(
+            access_token=tokens["venmo"],
+            amount=refill_amount,
+            payment_card_id=card["payment_card_id"],
+        )
+        if "bank_transfer_id" in refill_result:
+            bank_transfer_id = refill_result["bank_transfer_id"]
+            break
+    if bank_transfer_id is None:
+        existing_card_numbers = {{str(card.get("card_number")) for card in cards}}
+        supervisor_cards = sorted(
+            apis.supervisor.show_payment_cards(),
+            key=lambda card: (
+                float(card.get("balance") or 0),
+                card["expiry_year"],
+                card["expiry_month"],
+                str(card["card_number"]),
+            ),
+            reverse=True,
+        )
+        for supervisor_card in supervisor_cards:
+            if str(supervisor_card.get("card_number")) in existing_card_numbers:
+                continue
+            if DateTime(supervisor_card["expiry_year"], supervisor_card["expiry_month"], 1).start_of("month") <= DateTime.now():
+                continue
+            if "balance" in supervisor_card and float(supervisor_card.get("balance") or 0) < refill_amount:
+                continue
+            add_result = apis.venmo.add_payment_card(
+                access_token=tokens["venmo"],
+                card_name=supervisor_card["card_name"],
+                owner_name=supervisor_card["owner_name"],
+                card_number=supervisor_card["card_number"],
+                expiry_year=supervisor_card["expiry_year"],
+                expiry_month=supervisor_card["expiry_month"],
+                cvv_number=supervisor_card["cvv_number"],
+            )
+            if "payment_card_id" not in add_result:
+                refill_result = add_result
+                continue
+            refill_result = apis.venmo.add_to_venmo_balance(
+                access_token=tokens["venmo"],
+                amount=refill_amount,
+                payment_card_id=add_result["payment_card_id"],
+            )
+            if "bank_transfer_id" in refill_result:
+                bank_transfer_id = refill_result["bank_transfer_id"]
+                break
+    if bank_transfer_id is None:
+        raise Exception(f"Unable to refill Venmo balance: {{refill_result}}")
+
+transactions = []
+for email in venmo_receiver_emails:
+    result = apis.venmo.create_transaction(
+        access_token=tokens["venmo"],
+        receiver_email=email,
+        amount=amount,
+        description=note,
+        private=True,
+    )
+    if "transaction_id" not in result:
+        raise Exception(f"Unable to create Venmo transaction for {{email}}: {{result}}")
+    transactions.append({{
+        "receiver_email": email,
+        "transaction_id": result["transaction_id"],
+    }})
+
+email_result = apis.gmail.send_email(
+    access_token=tokens["gmail"],
+    email_addresses=target_emails,
+    subject=email_subject,
+    body=email_body,
+)
+if "email_id" not in email_result and "email_thread_id" not in email_result:
+    if "sent_email_id" not in email_result and "sent_email_thread_id" not in email_result:
+        raise Exception(f"Unable to send Gmail message: {{email_result}}")
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "relationships": relationships,
+    "amount": amount,
+    "note": note,
+    "target_emails": target_emails,
+    "transaction_count": len(transactions),
+    "transactions": transactions,
+    "bank_transfer_id": bank_transfer_id,
+    "email_result": email_result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_venmo_pay_coworkers_and_email",
     )
 
 
@@ -12683,6 +12900,24 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             ).strip(),
             "note": str(slots.get("note") or slots.get("description") or "").strip(),
         }
+    if intent_type == "appworld_venmo_pay_coworkers_and_email":
+        relationships_value = slots.get("relationships") or slots.get("relationship") or []
+        if isinstance(relationships_value, str):
+            relationships = extract_relationships(relationships_value)
+        else:
+            relationships = []
+            for item in relationships_value if isinstance(relationships_value, list) else []:
+                key = str(item).lower().strip()
+                relationship = RELATION_ALIASES.get(key, key)
+                if relationship and relationship not in relationships:
+                    relationships.append(relationship)
+        return {
+            "relationships": relationships,
+            "amount": float(slots["amount"]),
+            "note": str(slots.get("note") or slots.get("venmo_note") or "").strip(),
+            "email_subject": str(slots.get("email_subject") or slots.get("subject") or "").strip(),
+            "email_body": str(slots.get("email_body") or slots.get("body") or "").strip(),
+        }
     if intent_type == "appworld_venmo_accept_named_carpool_request_this_month":
         return {
             "person_first_name": str(
@@ -13420,6 +13655,20 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_venmo_pay_coworkers_and_email":
+        required = [
+            "to each of my coworkers",
+            "privately on venmo",
+            "then send an email",
+            "all of them in the recipients",
+            "the subject",
+            "and body",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_spotify_playlist_from_workout_email":
         if "workout partner" not in raw or "spotify playlist" not in raw:
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -13541,6 +13790,8 @@ Supported intent types and slots:
    slots: person_first_name string, amount number.
 10. appworld_venmo_pay_flight_bill_from_email
    slots: person_first_name string, note string.
+10. appworld_venmo_pay_coworkers_and_email
+   slots: relationships list using singular value [coworker], amount number, note string, email_subject string, email_body string.
 10. appworld_venmo_accept_named_carpool_request_this_month
    slots: person_first_name string.
 10. appworld_venmo_correct_housing_bill_request
@@ -13787,6 +14038,11 @@ JSON: {"intent_type":"appworld_venmo_send_to_named_user","slots":{"person_first_
 
 Task: Connor booked a flight for me. They have sent me my part of the bill recently over email. Send them the owed amount on venmo with a description note, "For flight ticket.".
 JSON: {"intent_type":"appworld_venmo_pay_flight_bill_from_email","slots":{"person_first_name":"Connor","note":"For flight ticket."}}
+
+Task: Send $100 to each of my coworkers privately on venmo with a note
+"Thank you for the extra hard work during the sprint!". Then send an email with all of them in the recipients with
+the subject, "Successful Sprint Completion", and body "I've sent all of you a small gift on venmo for the hard work you put in our sprint. Great work!"
+JSON: {"intent_type":"appworld_venmo_pay_coworkers_and_email","slots":{"relationships":["coworker"],"amount":100,"note":"Thank you for the extra hard work during the sprint!","email_subject":"Successful Sprint Completion","email_body":"I've sent all of you a small gift on venmo for the hard work you put in our sprint. Great work!"}}
 
 Task: Chelsea and I have been carpooling to work this month. They have requested money for it on venmo. Accept it.
 JSON: {"intent_type":"appworld_venmo_accept_named_carpool_request_this_month","slots":{"person_first_name":"Chelsea"}}

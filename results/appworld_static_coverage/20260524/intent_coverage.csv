@@ -14,6 +14,7 @@ test_challenge,appworld_spotify_playlist_from_workout_email,3,3,0,0,1
 test_challenge,appworld_spotify_reply_liked_song_recommendations_email,3,3,0,0,1
 test_challenge,appworld_spotify_update_song_recommendation_draft_from_library,3,3,0,0,1
 test_challenge,appworld_venmo_change_password,3,3,0,0,1
+test_challenge,appworld_venmo_pay_coworkers_and_email,3,3,0,0,1
 test_challenge,appworld_venmo_pay_flight_bill_from_email,3,3,0,0,1
 test_challenge,appworld_venmo_send_to_named_user_with_optional_signup,3,3,0,0,1
 test_normal,appworld_venmo_friend_transaction_counterparties,6,6,0,0,2

@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 54/417 `test_challenge` instructions to complete frames. The same
+  instructions and 57/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -270,6 +270,15 @@ extraction call per task plus the runtime-checked executor.
   receipt content, resolves the Venmo receiver, and reaches 3/3 success with 0 invalid
   calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
   `test_challenge` or leaderboard result.
+- Held-out AppWorld coworker Venmo gift + email slice:
+  `results/appworld_venmo_coworker_sprint_gifts_20260525/20260525_030821` records three
+  local `test_challenge` tasks whose public instructions ask to privately pay every
+  coworker a sprint gift on Venmo and then send one Gmail message to all of them. One
+  general Venmo + Gmail ICVE machine grounds coworker contacts through runtime-visible
+  phone records, verifies each Venmo receiver, funds the total payment when needed, sends
+  private transactions, and sends the requested group email, reaching 3/3 success with
+  0 invalid calls and 0 unsafe state changes. This is a narrow held-out slice, not a
+  full `test_challenge` or leaderboard result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication
