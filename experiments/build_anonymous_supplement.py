@@ -59,6 +59,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_order_wishlist_all_20260525": {"20260525_050933"},
     "appworld_amazon_post_last_order_question_20260525": {"20260525_052247"},
     "appworld_amazon_return_recent_orders_20260525": {"20260525_052017"},
+    "appworld_amazon_update_last_month_review_20260525": {"20260525_053844"},
     "appworld_amazon_wishlist_itemized_text_20260525": {"20260525_045222"},
     "appworld_gmail_delete_archived_window_20260525": {"20260525_041422"},
     "appworld_gmail_flight_ticket_download_20260525": {"20260525_033611"},

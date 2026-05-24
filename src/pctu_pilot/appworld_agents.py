@@ -1170,6 +1170,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_update_last_month_order_review",
+                (
+                    SlotSpec("product_color"),
+                    SlotSpec("product_type"),
+                    SlotSpec("target_rating"),
+                    SlotSpec("title"),
+                ),
+            ),
+            compiler=compile_amazon_update_last_month_order_review,
+            handler=handle_amazon_update_last_month_order_review,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4163,6 +4176,28 @@ def compile_amazon_post_question_last_ordered_product(
     frame = IntentFrame("appworld_amazon_post_question_last_ordered_product")
     frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
     frame.set_slot("question", match.group("question").strip(), source="regex")
+    return frame
+
+
+def compile_amazon_update_last_month_order_review(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Change my amazon review about the (?P<color>[A-Za-z]+) "
+        r"(?P<product_type>t-shirt|sweater) I ordered last calendar month\. "
+        r"Make it (?P<rating>[1-5]) stars? with the title \"(?P<title>.+)\"\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_update_last_month_order_review")
+    frame.set_slot("product_color", compact_text(match.group("color")).lower(), source="regex")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("target_rating", int(match.group("rating")), source="regex")
+    frame.set_slot("title", match.group("title").strip(), source="regex")
     return frame
 
 
@@ -9176,6 +9211,7 @@ def product_matches(item, product):
     target_words = word_set(target_product_type)
     item_text = " ".join([
         str(item.get("product_name") or ""),
+        str(product.get("color") or ""),
         str(product.get("name") or ""),
         str(product.get("product_type") or ""),
         str(product.get("description") or ""),
@@ -9226,6 +9262,124 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_post_question_last_ordered_product",
+    )
+
+
+def handle_amazon_update_last_month_order_review(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_color = str(frame.get("product_color") or "").strip().lower()
+    product_type = frame.get("product_type")
+    target_rating = int(frame.get("target_rating") or 0)
+    title = str(frame.get("title") or "").strip()
+    if not product_color or not product_type or target_rating not in {1, 2, 3, 4, 5} or not title:
+        frame.abstain_reason = "missing_amazon_review_update_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+product_color = {json.dumps(product_color)}
+product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+target_rating = {target_rating}
+target_title = {json.dumps(title)}
+color_aliases = {{
+    "grey": {{"grey", "gray"}},
+    "gray": {{"grey", "gray"}},
+}}
+product_color_values = color_aliases.get(product_color, {{product_color}})
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def product_matches(item, product):
+    item_text = " ".join([
+        str(item.get("product_name") or ""),
+        str(product.get("color") or ""),
+        str(product.get("name") or ""),
+        str(product.get("product_type") or ""),
+        str(product.get("description") or ""),
+    ])
+    words = word_set(item_text)
+    if not (product_color_values & words):
+        return False
+    if normalize_text(product.get("product_type")) == normalize_text(product_type):
+        return True
+    return word_set(product_type) <= words
+
+now = DateTime.now()
+min_created_at = now.subtract(months=1).start_of("month").to_date_string()
+max_created_at = now.subtract(months=1).end_of("month").to_date_string()
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+
+matches = []
+for order in orders:
+    for item in order.get("order_items", []):
+        product = apis.amazon.show_product(product_id=item["product_id"])
+        if not product_matches(item, product):
+            continue
+        reviews = paged(lambda page, product_id=item["product_id"]: apis.amazon.show_product_reviews(
+            product_id=product_id,
+            user_email=profile["email"],
+            page_index=page,
+            page_limit=20,
+            sort_by="-created_at",
+        ))
+        existing_review_id = item.get("product_review_id")
+        for review in reviews:
+            if existing_review_id and int(review.get("review_id") or -1) != int(existing_review_id):
+                continue
+            if not (min_created_at <= str(review.get("created_at") or "")[:10] <= max_created_at):
+                continue
+            matches.append({{
+                "order_id": order["order_id"],
+                "order_created_at": order.get("created_at", ""),
+                "product_id": item["product_id"],
+                "product_name": item.get("product_name"),
+                "review_id": review["review_id"],
+                "review_created_at": review.get("created_at", ""),
+            }})
+
+unique = {{}}
+for match in matches:
+    unique[int(match["review_id"])] = match
+matches = list(unique.values())
+if len(matches) != 1:
+    raise Exception(f"Expected one last-month {{product_color}} {{product_type}} review target, found {{len(matches)}}: {{matches}}")
+
+selected = matches[0]
+result = apis.amazon.update_product_review(
+    access_token=tokens["amazon"],
+    review_id=selected["review_id"],
+    rating=target_rating,
+    title=target_title,
+)
+if not (isinstance(result, dict) and result.get("message")):
+    raise Exception(f"Unable to update Amazon product review {{selected['review_id']}}: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "product_color": product_color,
+    "product_type": product_type,
+    "order_id": selected["order_id"],
+    "product_id": selected["product_id"],
+    "review_id": selected["review_id"],
+    "target_rating": target_rating,
+    "title": target_title,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_update_last_month_order_review",
     )
 
 
@@ -14981,6 +15135,13 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
             "question": str(slots.get("question") or "").strip(),
         }
+    if intent_type == "appworld_amazon_update_last_month_order_review":
+        return {
+            "product_color": str(slots.get("product_color") or slots.get("color") or "").strip().lower(),
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "target_rating": int(slots.get("target_rating") or slots.get("rating") or 0),
+            "title": str(slots.get("title") or slots.get("review_title") or "").strip(),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -15606,6 +15767,16 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_update_last_month_order_review":
+        if not re.fullmatch(
+            r"change my amazon review about the [a-z]+ (t-shirt|sweater) i ordered last calendar month\. "
+            r"make it [1-5] stars? with the title \".+\"\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -15891,6 +16062,8 @@ Supported intent types and slots:
    slots: order_count integer; deliverer_name string such as FedEx.
 18. appworld_amazon_post_question_last_ordered_product
    slots: product_type string; question string.
+18. appworld_amazon_update_last_month_order_review
+   slots: product_color string; product_type string; target_rating integer from 1 to 5; title string.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -16212,6 +16385,9 @@ JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_coun
 Task: Post a question about the last t-shirt I ordered on amazon, "Has anyone experienced the color fade after the first wash?".
 JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots":{"product_type":"t-shirt","question":"Has anyone experienced the color fade after the first wash?"}}
 
+Task: Change my amazon review about the grey t-shirt I ordered last calendar month. Make it 1 star with the title "Shrunk and Misshaped After First Wash!".
+JSON: {"intent_type":"appworld_amazon_update_last_month_order_review","slots":{"product_color":"grey","product_type":"t-shirt","target_rating":1,"title":"Shrunk and Misshaped After First Wash!"}}
+
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}
 
@@ -16528,6 +16704,9 @@ Relevant APIs for this slice:
 - apis.amazon.move_product_from_wish_list_to_cart(access_token=..., product_id=..., quantity=...)
 - apis.amazon.delete_product_from_cart(access_token=..., product_id=..., quantity=...)
 - apis.amazon.place_order(access_token=..., payment_card_id=..., address_id=...)
+- apis.amazon.show_orders(access_token=..., page_index=0, page_limit=20, sort_by="-created_at")
+- apis.amazon.show_product_reviews(product_id=..., user_email=..., page_index=0, page_limit=20)
+- apis.amazon.update_product_review(access_token=..., review_id=..., rating=..., title=...)
 - apis.venmo.search_users(access_token=..., query=..., page_limit=20)
 - apis.venmo.search_friends(access_token=..., query=..., page_index=0, page_limit=20)
 - apis.venmo.add_friend(access_token=..., user_email=...)
