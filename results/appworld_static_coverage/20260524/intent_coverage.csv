@@ -8,6 +8,7 @@ test_challenge,appworld_amazon_answer_order_arrival_date,3,3,0,0,1
 test_challenge,appworld_amazon_answer_returned_product_yes_no,3,3,0,0,1
 test_challenge,appworld_amazon_answer_spending_total,3,3,0,0,1
 test_challenge,appworld_amazon_answer_verified_battery_life_hours,3,3,0,0,1
+test_challenge,appworld_amazon_buy_last_product_variants,3,3,0,0,1
 test_challenge,appworld_amazon_move_product_type_between_saved_lists,3,3,0,0,1
 test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1
 test_challenge,appworld_amazon_post_question_last_ordered_product,3,3,0,0,1
