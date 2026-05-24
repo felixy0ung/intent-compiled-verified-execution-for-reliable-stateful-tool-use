@@ -6,7 +6,7 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 108
+- Registered AppWorld machines: 110
 - Used by full168 supported tasks: 55
 - Supported tasks: 168
 - Tasks per used machine: 3.05
@@ -69,10 +69,12 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_venmo_sum_month_transactions | 1 | 17 | 41 | 3 | supervisor,venmo | not_recorded |
 | appworld_venmo_sum_recent_received_requests | 1 | 16 | 33 | 3 | supervisor,venmo | not_recorded |
 | appworld_venmo_sum_year_bill_payments | 1 | 16 | 36 | 3 | supervisor,venmo | not_recorded |
+| appworld_amazon_answer_cart_wishlist_total | 0 | 12 | 27 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_product_type_between_saved_lists | 3 | 18 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_rating_filtered_products | 4 | 20 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_product_type_from_saved_list | 4 | 19 | 114 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_purchase_phone_recommendation | 4 | 19 | 250 | 0 | amazon,phone,supervisor | not_recorded |
+| appworld_amazon_text_wishlist_itemized_costs | 1 | 19 | 58 | 0 | amazon,phone,supervisor | not_recorded |
 | appworld_bucket_list_status_update | 2 | 16 | 51 | 0 | simple_note,supervisor | not_recorded |
 | appworld_delete_gmail_empty_drafts | 1 | 16 | 39 | 0 | gmail,supervisor | not_recorded |
 | appworld_delete_phone_spam_messages | 1 | 15 | 44 | 0 | phone,supervisor | not_recorded |

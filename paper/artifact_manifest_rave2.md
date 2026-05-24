@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 84/417 `test_challenge` instructions to complete frames. The same
+  instructions and 90/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -214,6 +214,23 @@ extraction call per task plus the runtime-checked executor.
   product candidates, places the bounded order, and reaches 3/3 success with 0 invalid
   calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
   `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon wishlist itemized-text slice:
+  `results/appworld_amazon_wishlist_itemized_text_20260525/20260525_045222` records
+  three local `test_challenge` tasks whose public instructions ask to text an itemized
+  Amazon wishlist cost list to a husband, wife, or partner. One general Amazon + phone
+  ICVE machine grounds the relationship through runtime-visible phone contacts, reads
+  runtime-visible wishlist names, prices, and quantities, sends the requested
+  newline-separated list, and reaches 3/3 success with 0 invalid calls and 0 unsafe
+  state changes. This is a narrow held-out slice, not a full `test_challenge` or
+  leaderboard result.
+- Held-out AppWorld Amazon cart+wishlist total answer slice:
+  `results/appworld_amazon_cart_wishlist_total_20260525/20260525_045234` records three
+  local `test_challenge` answer-only tasks whose public instructions ask for the total
+  cost of the user's Amazon cart and wishlist while ignoring tax and delivery fees. One
+  general Amazon ICVE machine sums runtime-visible cart and wishlist item prices times
+  quantities and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
+  This is answer-only coverage evidence, not a full `test_challenge` or leaderboard
+  result.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420`
   records three local `test_challenge` tasks whose public instructions ask to reply over

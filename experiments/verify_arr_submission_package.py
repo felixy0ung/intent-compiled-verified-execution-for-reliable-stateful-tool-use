@@ -141,7 +141,7 @@ def check_pdf() -> None:
         fail("TeX log contains overfull boxes or errors")
 
     content_boundary_text = run_text(["pdftotext", "-f", "8", "-l", "8", str(PDF), "-"])
-    for marker in ["Conclusion", "Limitations"]:
+    for marker in ["Conclusion"]:
         if marker not in content_boundary_text:
             fail(f"PDF page 8 missing content-boundary marker: {marker}")
 

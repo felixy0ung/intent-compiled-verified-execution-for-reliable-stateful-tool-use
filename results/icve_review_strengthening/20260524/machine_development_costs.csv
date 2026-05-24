@@ -54,10 +54,12 @@ appworld_venmo_signup_missing_relationship_accounts,3,"relationships,password,me
 appworld_venmo_sum_month_transactions,1,direction,17,41,58,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_recent_received_requests,1,days,16,33,49,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_year_bill_payments,1,bill_type,16,36,52,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_answer_cart_wishlist_total,0,none,12,27,39,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_product_type_between_saved_lists,3,"source_container,target_container,product_type",18,58,76,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_rating_filtered_products,4,"source_container,target_container,comparison,threshold_rating",20,58,78,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_order_product_type_from_saved_list,4,"source_container,product_type,address_name,card_name",19,114,133,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_purchase_phone_recommendation,4,"recommender_first_name,product_type,address_name,card_name",19,250,269,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_text_wishlist_itemized_costs,1,relationship,19,58,77,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_bucket_list_status_update,2,"item,done",16,51,67,0,0,0,0,"simple_note,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_delete_gmail_empty_drafts,1,condition,16,39,55,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_delete_phone_spam_messages,1,phone_number,15,44,59,0,0,0,0,"phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded

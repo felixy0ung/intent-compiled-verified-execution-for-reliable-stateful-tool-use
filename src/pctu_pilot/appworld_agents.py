@@ -1120,6 +1120,22 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_text_wishlist_itemized_costs",
+                (SlotSpec("relationship"),),
+            ),
+            compiler=compile_amazon_text_wishlist_itemized_costs,
+            handler=handle_amazon_text_wishlist_itemized_costs,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
+                "appworld_amazon_answer_cart_wishlist_total",
+                (),
+            ),
+            compiler=compile_amazon_answer_cart_wishlist_total,
+            handler=handle_amazon_answer_cart_wishlist_total,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4015,6 +4031,41 @@ def compile_amazon_purchase_phone_recommendation(
     frame.set_slot("address_name", "Home", source="default")
     frame.set_slot("card_name", "", source="default")
     return frame
+
+
+def compile_amazon_text_wishlist_itemized_costs(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Send an itemized list of my amazon wish list to my (?P<relationship>husband|wife|partner) via a phone text\. "
+        r"The message should be a newline-separated list of '<product_name> => \$<total_price>'\. "
+        r"Replace <total_price> with the price of the product times its quantity in the wish list, rounded to the nearest whole number, "
+        r"and <product_name> with the product name\. Ignore potential tax or delivery fees\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_text_wishlist_itemized_costs")
+    relationship = RELATION_ALIASES.get(match.group("relationship").lower(), match.group("relationship").lower())
+    frame.set_slot("relationship", relationship, source="regex")
+    return frame
+
+
+def compile_amazon_answer_cart_wishlist_total(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    if not re.fullmatch(
+        r"How much does my amazon cart and wishlist cost in total, ignoring potential tax and delivery fees\?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+    return IntentFrame("appworld_amazon_answer_cart_wishlist_total")
 
 
 def handle_phone_message_non_venmo_contacts(
@@ -8685,6 +8736,98 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_purchase_phone_recommendation",
+    )
+
+
+def handle_amazon_text_wishlist_itemized_costs(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    relationship = RELATION_ALIASES.get(relationship, relationship)
+    if relationship not in {"husband", "wife", "partner"}:
+        frame.abstain_reason = "missing_or_unsupported_amazon_wishlist_text_relationship"
+        return None
+    code = common_appworld_prelude(["amazon", "phone"]) + f"""
+relationship = {json.dumps(relationship)}
+
+def rounded_whole(value):
+    return str(int(round(float(value))))
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+phone_numbers = {{
+    str(contact.get("phone_number") or "").strip()
+    for contact in contacts
+    if str(contact.get("phone_number") or "").strip()
+}}
+if len(phone_numbers) != 1:
+    raise Exception(f"Expected exactly one {{relationship}} phone number, found {{sorted(phone_numbers)}}.")
+phone_number = next(iter(phone_numbers))
+
+items = list(apis.amazon.show_wish_list(access_token=tokens["amazon"]))
+if not items:
+    raise Exception("Amazon wish list is empty.")
+lines = []
+for item in items:
+    product_name = str(item.get("product_name") or "").strip()
+    if not product_name:
+        raise Exception(f"Wish-list item {{item.get('product_id')}} is missing a product name.")
+    total_price = float(item.get("price") or 0) * int(item.get("quantity") or 1)
+    lines.append(f"{{product_name}} => ${{rounded_whole(total_price)}}")
+message = "\\n".join(lines)
+result = apis.phone.send_text_message(
+    access_token=tokens["phone"],
+    phone_number=phone_number,
+    message=message,
+)
+if "text_message_id" not in result:
+    raise Exception(f"Unable to send wishlist text message: {{result}}")
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "relationship": relationship,
+    "phone_number": phone_number,
+    "line_count": len(lines),
+    "text_message_id": result.get("text_message_id"),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_text_wishlist_itemized_costs",
+    )
+
+
+def handle_amazon_answer_cart_wishlist_total(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    code = common_appworld_prelude(["amazon"]) + """
+cart = apis.amazon.show_cart(access_token=tokens["amazon"])
+cart_total = 0.0
+for item in cart.get("cart_items", []):
+    cart_total += float(item.get("price") or 0) * int(item.get("quantity") or 1)
+wishlist_total = 0.0
+for item in apis.amazon.show_wish_list(access_token=tokens["amazon"]):
+    wishlist_total += float(item.get("price") or 0) * int(item.get("quantity") or 1)
+total = cart_total + wishlist_total
+answer = str(int(round(total))) if abs(total - round(total)) < 1e-9 else str(round(total, 2))
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({
+    "answer": answer,
+    "cart_total": cart_total,
+    "wishlist_total": wishlist_total,
+    "total": total,
+}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_cart_wishlist_total",
     )
 
 
@@ -14401,6 +14544,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
+    if intent_type == "appworld_amazon_text_wishlist_itemized_costs":
+        relationship = str(slots.get("relationship") or slots.get("partner_relationship") or "").strip().lower()
+        return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
+    if intent_type == "appworld_amazon_answer_cart_wishlist_total":
+        return {}
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -14974,6 +15122,25 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_text_wishlist_itemized_costs":
+        required = [
+            "itemized list of my amazon wish list",
+            "phone text",
+            "newline-separated list",
+            "price of the product times its quantity",
+            "ignore potential tax or delivery fees",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_cart_wishlist_total":
+        if raw != "how much does my amazon cart and wishlist cost in total, ignoring potential tax and delivery fees?":
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -15249,6 +15416,10 @@ Supported intent types and slots:
    slots: source_container string, one of cart or wish_list; product_type string; address_name string, default Home; card_name string, optional.
 18. appworld_amazon_purchase_phone_recommendation
    slots: recommender_first_name string; product_type string; address_name string, default Home; card_name string, optional.
+18. appworld_amazon_text_wishlist_itemized_costs
+   slots: relationship string, one of husband, wife, or partner.
+18. appworld_amazon_answer_cart_wishlist_total
+   slots: empty object.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -15551,6 +15722,12 @@ JSON: {"intent_type":"appworld_amazon_order_product_type_from_saved_list","slots
 
 Task: Buy me a stand mixer as Connor recommended in their phone message.
 JSON: {"intent_type":"appworld_amazon_purchase_phone_recommendation","slots":{"recommender_first_name":"Connor","product_type":"stand mixer","address_name":"Home","card_name":""}}
+
+Task: Send an itemized list of my amazon wish list to my husband via a phone text. The message should be a newline-separated list of '<product_name> => $<total_price>'. Replace <total_price> with the price of the product times its quantity in the wish list, rounded to the nearest whole number, and <product_name> with the product name. Ignore potential tax or delivery fees.
+JSON: {"intent_type":"appworld_amazon_text_wishlist_itemized_costs","slots":{"relationship":"husband"}}
+
+Task: How much does my amazon cart and wishlist cost in total, ignoring potential tax and delivery fees?
+JSON: {"intent_type":"appworld_amazon_answer_cart_wishlist_total","slots":{}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}
