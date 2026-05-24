@@ -1194,6 +1194,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_answer_verified_battery_life_hours",
+                (SlotSpec("product_name"),),
+            ),
+            compiler=compile_amazon_answer_verified_battery_life_hours,
+            handler=handle_amazon_answer_verified_battery_life_hours,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4228,6 +4236,24 @@ def compile_amazon_answer_last_order_question_yes_no(
     frame = IntentFrame("appworld_amazon_answer_last_order_question_yes_no")
     frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
     frame.set_slot("question", compact_text(match.group("question")).rstrip("?"), source="regex")
+    return frame
+
+
+def compile_amazon_answer_verified_battery_life_hours(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"How many hours does the battery of (?P<product_name>.+?) last\? "
+        r"Please answer as per its amazon reviews or questions/answers and and only trust information from its verified purchasers\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_answer_verified_battery_life_hours")
+    frame.set_slot("product_name", compact_text(match.group("product_name")), source="regex")
     return frame
 
 
@@ -9524,6 +9550,180 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_last_order_question_yes_no",
+    )
+
+
+def handle_amazon_answer_verified_battery_life_hours(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_name = str(frame.get("product_name") or "").strip()
+    if not product_name:
+        frame.abstain_reason = "missing_amazon_battery_life_product_name"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_name = {json.dumps(product_name)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def score_product(product):
+    target_words = word_set(target_product_name)
+    name = str(product.get("name") or "")
+    product_text = " ".join([
+        name,
+        str(product.get("product_type") or ""),
+        str(product.get("description") or ""),
+    ])
+    product_words = word_set(product_text)
+    if target_words and not target_words <= product_words:
+        return None
+    exact_name = normalize_text(name) == normalize_text(target_product_name)
+    return (
+        int(exact_name),
+        len(target_words & word_set(name)),
+        float(product.get("rating") or 0),
+        int(product.get("num_product_reviews") or product.get("num_reviews") or 0),
+        -int(product["product_id"]),
+    )
+
+def find_product():
+    candidates = []
+    for query in [target_product_name]:
+        products = paged(lambda page, query=query: apis.amazon.search_products(
+            query=query,
+            page_index=page,
+            page_limit=20,
+        ))
+        for product in products:
+            score = score_product(product)
+            if score is not None:
+                candidates.append((score, product))
+    unique = {{}}
+    for score, product in candidates:
+        product_id = int(product["product_id"])
+        if product_id not in unique or score > unique[product_id][0]:
+            unique[product_id] = (score, product)
+    if not unique:
+        raise Exception(f"No Amazon product matched {{target_product_name}}.")
+    return sorted(unique.values(), key=lambda item: item[0], reverse=True)[0][1]
+
+def extract_hour_values(text):
+    text = str(text or "")
+    lower = text.lower()
+    snippets = []
+    for match in re.finditer(r"battery|charge|lasts?|lasting|runtime|run time", lower):
+        start = max(0, match.start() - 80)
+        end = min(len(text), match.end() + 140)
+        snippets.append(text[start:end])
+    snippets.append(text)
+    values = []
+    seen = set()
+    patterns = [
+        r"(?:battery|charge|runtime|run time|lasts?|lasting)[^\\.\\n]{{0,90}}?(?P<num>\\d+(?:\\.\\d+)?)\\s*(?:hours?|hrs?|hr\\b)",
+        r"(?P<num>\\d+(?:\\.\\d+)?)\\s*(?:hours?|hrs?|hr\\b)[^\\.\\n]{{0,90}}?(?:battery|charge|runtime|run time|lasts?|lasting)",
+        r"(?P<num>\\d+(?:\\.\\d+)?)\\s*(?:hours?|hrs?|hr\\b)",
+    ]
+    for snippet in snippets:
+        for pattern in patterns:
+            for match in re.finditer(pattern, snippet, flags=re.IGNORECASE):
+                value = float(match.group("num"))
+                if value <= 0 or value > 100:
+                    continue
+                key = int(value * 10)
+                if key in seen:
+                    continue
+                seen.add(key)
+                values.append(value)
+    return values
+
+def format_answer(value):
+    if abs(value - round(value)) < 1e-9:
+        return str(int(round(value)))
+    return str(value).rstrip("0").rstrip(".")
+
+product = find_product()
+product_id = int(product["product_id"])
+evidence = []
+reviews = paged(lambda page: apis.amazon.show_product_reviews(
+    product_id=product_id,
+    query="battery hours",
+    is_verified=True,
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+for review in reviews:
+    evidence.append({{
+        "source": "review",
+        "id": review.get("review_id"),
+        "text": " ".join([
+            str(review.get("title") or ""),
+            str(review.get("text") or ""),
+        ]),
+    }})
+
+questions = paged(lambda page: apis.amazon.show_product_questions(
+    product_id=product_id,
+    query="battery hours",
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+for question in questions:
+    answers = paged(lambda page, question_id=question["question_id"]: apis.amazon.show_product_question_answers(
+        question_id=question_id,
+        query="battery hours",
+        is_verified=True,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+    for answer in answers:
+        evidence.append({{
+            "source": "question_answer",
+            "id": answer.get("answer_id") or answer.get("question_answer_id"),
+            "question_id": question["question_id"],
+            "text": " ".join([
+                str(question.get("question") or ""),
+                str(answer.get("answer") or ""),
+            ]),
+        }})
+
+hour_votes = {{}}
+hour_examples = {{}}
+for item in evidence:
+    for value in extract_hour_values(item.get("text", "")):
+        key = format_answer(value)
+        hour_votes[key] = hour_votes.get(key, 0) + 1
+        hour_examples.setdefault(key, []).append(item)
+
+if not hour_votes:
+    raise Exception(f"No verified purchaser battery-hour evidence found for product {{product_id}}.")
+
+ranked = sorted(hour_votes.items(), key=lambda item: (item[1], -float(item[0])), reverse=True)
+answer, count = ranked[0]
+if len(ranked) > 1 and ranked[1][1] == count:
+    raise Exception(f"Ambiguous verified purchaser battery-hour evidence for product {{product_id}}: {{hour_votes}}")
+
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "product_id": product_id,
+    "product_name": product.get("name"),
+    "answer": answer,
+    "hour_votes": hour_votes,
+    "evidence_count": len(evidence),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_verified_battery_life_hours",
     )
 
 
@@ -15291,6 +15491,8 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
             "question": str(slots.get("question") or "").strip().rstrip("?"),
         }
+    if intent_type == "appworld_amazon_answer_verified_battery_life_hours":
+        return {"product_name": compact_text(str(slots.get("product_name") or ""))}
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -15935,6 +16137,16 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_verified_battery_life_hours":
+        if not re.fullmatch(
+            r"how many hours does the battery of .+? last\? "
+            r"please answer as per its amazon reviews or questions/answers and and only trust information from its verified purchasers\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16224,6 +16436,8 @@ Supported intent types and slots:
    slots: product_color string; product_type string; target_rating integer from 1 to 5; title string.
 18. appworld_amazon_answer_last_order_question_yes_no
    slots: product_type string; question string without the trailing "Say yes or no".
+18. appworld_amazon_answer_verified_battery_life_hours
+   slots: product_name string.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -16550,6 +16764,9 @@ JSON: {"intent_type":"appworld_amazon_update_last_month_order_review","slots":{"
 
 Task: Based on the question I posted about my last t-shirt order on amazon, has anyone experienced color fading after the first wash? Say yes or no.
 JSON: {"intent_type":"appworld_amazon_answer_last_order_question_yes_no","slots":{"product_type":"t-shirt","question":"has anyone experienced color fading after the first wash"}}
+
+Task: How many hours does the battery of HP Pavilion 15 Laptop last? Please answer as per its amazon reviews or questions/answers and and only trust information from its verified purchasers.
+JSON: {"intent_type":"appworld_amazon_answer_verified_battery_life_hours","slots":{"product_name":"HP Pavilion 15 Laptop"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

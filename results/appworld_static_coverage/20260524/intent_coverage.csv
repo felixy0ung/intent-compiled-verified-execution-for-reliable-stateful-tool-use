@@ -3,6 +3,7 @@ test_challenge,appworld_amazon_order_product_type_from_saved_list,6,6,0,0,2
 test_challenge,appworld_amazon_order_saved_collections,6,6,0,0,2
 test_challenge,appworld_amazon_answer_cart_wishlist_total,3,3,0,0,1
 test_challenge,appworld_amazon_answer_last_order_question_yes_no,3,3,0,0,1
+test_challenge,appworld_amazon_answer_verified_battery_life_hours,3,3,0,0,1
 test_challenge,appworld_amazon_move_product_type_between_saved_lists,3,3,0,0,1
 test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1
 test_challenge,appworld_amazon_post_question_last_ordered_product,3,3,0,0,1

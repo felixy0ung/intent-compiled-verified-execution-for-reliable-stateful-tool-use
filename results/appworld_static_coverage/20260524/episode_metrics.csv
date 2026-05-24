@@ -221,9 +221,9 @@ test_challenge,1c4bd27_3,1c4bd27,1,1,0,0,appworld_amazon_return_recent_orders,,,
 test_challenge,3650990_1,3650990,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,9850e159ff6857a4
 test_challenge,3650990_2,3650990,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,e74b016e3f64e72c
 test_challenge,3650990_3,3650990,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,1046cae065dcc873
-test_challenge,258796c_1,258796c,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ef0592430dfce4b8
-test_challenge,258796c_2,258796c,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,4887ea35fa0a97c4
-test_challenge,258796c_3,258796c,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,a6b7279b13da0595
+test_challenge,258796c_1,258796c,1,1,0,0,appworld_amazon_answer_verified_battery_life_hours,,,,ef0592430dfce4b8
+test_challenge,258796c_2,258796c,1,1,0,0,appworld_amazon_answer_verified_battery_life_hours,,,,4887ea35fa0a97c4
+test_challenge,258796c_3,258796c,1,1,0,0,appworld_amazon_answer_verified_battery_life_hours,,,,a6b7279b13da0595
 test_challenge,4815c06_1,4815c06,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,2364df506ea27a64
 test_challenge,4815c06_2,4815c06,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,b657944c251b1127
 test_challenge,4815c06_3,4815c06,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,f44ce2004efb47a4

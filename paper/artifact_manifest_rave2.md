@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 108/417 `test_challenge` instructions to complete frames. The same
+  instructions and 111/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -277,6 +277,15 @@ extraction call per task plus the runtime-checked executor.
   whether visible answers to the user's latest matching Amazon product question imply
   yes or no. One general Amazon ICVE machine grounds the latest matching order,
   retrieves the user's visible product question and visible answers, normalizes yes/no
+  evidence, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
+  This is answer-only coverage evidence, not a full `test_challenge` or leaderboard
+  result.
+- Held-out AppWorld Amazon verified-purchaser battery-life answer slice:
+  `results/appworld_amazon_verified_battery_life_20260525/20260525_060235` records
+  three local `test_challenge` answer-only tasks whose public instructions ask for
+  battery-life hours from Amazon reviews or Q&A, restricted to verified-purchaser
+  evidence. One general Amazon ICVE machine searches the named product, reads only
+  runtime-visible verified reviews and verified Q&A answers, extracts unambiguous hour
   evidence, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
   This is answer-only coverage evidence, not a full `test_challenge` or leaderboard
   result.
