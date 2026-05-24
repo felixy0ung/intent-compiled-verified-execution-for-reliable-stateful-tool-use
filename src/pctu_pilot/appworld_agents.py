@@ -1190,6 +1190,20 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_replace_last_product_adjacent_size",
+                (
+                    SlotSpec("product_type"),
+                    SlotSpec("size_direction"),
+                    SlotSpec("preferred_color"),
+                    SlotSpec("address_name"),
+                    SlotSpec("card_name"),
+                ),
+            ),
+            compiler=compile_amazon_replace_last_product_adjacent_size,
+            handler=handle_amazon_replace_last_product_adjacent_size,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_post_question_last_ordered_product",
                 (
                     SlotSpec("product_type"),
@@ -4325,6 +4339,33 @@ def compile_amazon_buy_last_product_variants(
         source="regex",
     )
     frame.set_slot("address_name", match.group("address").title(), source="regex")
+    frame.set_slot("card_name", "", source="default")
+    return frame
+
+
+def compile_amazon_replace_last_product_adjacent_size(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"The last (?P<product_type>.+?) I bought on Amazon is a bit too (?P<fit>small|large) for me\. "
+        r"Initiate a return for it, and buy a replacement of the same in the next (?P<direction>larger|smaller) size\. "
+        r"If it's available now in (?P<preferred_color>[A-Za-z -]+), prefer it, otherwise go with the same color\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    fit = match.group("fit").lower()
+    direction = match.group("direction").lower()
+    if (fit == "small" and direction != "larger") or (fit == "large" and direction != "smaller"):
+        return None
+    frame = IntentFrame("appworld_amazon_replace_last_product_adjacent_size")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("size_direction", direction, source="regex")
+    frame.set_slot("preferred_color", compact_text(match.group("preferred_color")).lower(), source="regex")
+    frame.set_slot("address_name", "Home", source="default")
     frame.set_slot("card_name", "", source="default")
     return frame
 
@@ -9864,6 +9905,241 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_buy_last_product_variants",
+    )
+
+
+def handle_amazon_replace_last_product_adjacent_size(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_type = frame.get("product_type")
+    size_direction = str(frame.get("size_direction") or "").strip().lower()
+    preferred_color = str(frame.get("preferred_color") or "").strip().lower()
+    address_name = frame.get("address_name") or "Home"
+    card_name = frame.get("card_name") or ""
+    if not product_type or size_direction not in {"larger", "smaller"} or not preferred_color:
+        frame.abstain_reason = "missing_amazon_adjacent_size_replacement_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+size_direction = {json.dumps(size_direction)}
+preferred_color = {json.dumps(preferred_color)}
+address_name = {json.dumps(str(address_name))}
+card_name = {json.dumps(str(card_name))}
+size_order = ["extra-small", "small", "medium", "large", "extra-large"]
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    comparable = set()
+    for word in normalize_text(value).split():
+        if len(word) <= 1 or word in {{"and"}}:
+            continue
+        if word.endswith("ies"):
+            word = word[:-3] + "y"
+        elif word.endswith(("ches", "shes", "ses", "xes", "zes")):
+            word = word[:-2]
+        elif word.endswith("s") and not word.endswith("ss"):
+            word = word[:-1]
+        comparable.add(word)
+    return comparable
+
+def product_type_matches(product):
+    target = normalize_text(target_product_type)
+    if normalize_text(product.get("product_type")) == target:
+        return True
+    target_words = word_set(target)
+    text = " ".join([
+        str(product.get("name") or ""),
+        str(product.get("description") or ""),
+        str(product.get("product_type") or ""),
+    ])
+    return bool(target_words) and target_words <= word_set(text)
+
+def product_signature(product):
+    text = normalize_text(str(product.get("name") or "") + " " + str(product.get("description") or ""))
+    for value in [
+        normalize_text(product.get("color")),
+        normalize_text(product.get("relative_size")),
+        normalize_text(product.get("product_type")),
+    ]:
+        if value:
+            text = re.sub(rf"\\b{{re.escape(value)}}\\b", " ", text)
+    return " ".join(text.split())
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if normalize_text(address.get("name")) == normalize_text(address_name):
+            return address
+    if normalize_text(address_name) == "home" and len(addresses) == 1:
+        return addresses[0]
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+    candidates = []
+    for card in cards:
+        if card_name and normalize_text(card_name) not in normalize_text(card.get("card_name")):
+            continue
+        candidates.append(card)
+    if not candidates:
+        raise Exception(f"No Amazon payment card matched {{card_name or 'any card'}}.")
+    return sorted(
+        candidates,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+def pick_return_deliverer():
+    deliverers = apis.amazon.show_return_deliverers()
+    if not deliverers:
+        raise Exception("No Amazon return deliverers available.")
+    return sorted(deliverers, key=lambda row: int(row.get("deliverer_id") or 0))[0]
+
+def adjacent_size(current_size):
+    normalized = normalize_text(current_size)
+    if normalized not in size_order:
+        raise Exception(f"Unsupported size for replacement: {{current_size}}")
+    index = size_order.index(normalized)
+    target_index = index + 1 if size_direction == "larger" else index - 1
+    if target_index < 0 or target_index >= len(size_order):
+        raise Exception(f"No {{size_direction}} replacement size from {{current_size}}.")
+    return size_order[target_index]
+
+def find_last_ordered_product():
+    orders = paged(lambda page: apis.amazon.show_orders(
+        access_token=tokens["amazon"],
+        query=target_product_type,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+    candidates = []
+    for order in orders:
+        for item in order.get("order_items", []):
+            product = apis.amazon.show_product(product_id=item["product_id"])
+            if not product_type_matches(product):
+                continue
+            remaining_quantity = int(item.get("ordered_quantity") or 0) - int(item.get("returned_quantity") or 0)
+            if remaining_quantity <= 0:
+                continue
+            candidates.append((str(order.get("created_at") or ""), int(order["order_id"]), int(item["product_id"]), order, item, product, remaining_quantity))
+    if not candidates:
+        raise Exception(f"No returnable prior Amazon order matched {{target_product_type}}.")
+    candidates.sort(reverse=True)
+    return candidates[0][3], candidates[0][4], candidates[0][5], candidates[0][6]
+
+def choose_replacement(original_product, target_size):
+    original_signature = product_signature(original_product)
+    original_color = normalize_text(original_product.get("color"))
+    variation_ids = [int(variation["product_id"]) for variation in original_product.get("variations", [])]
+    if int(original_product["product_id"]) not in variation_ids:
+        variation_ids.append(int(original_product["product_id"]))
+    candidates = []
+    for product_id in variation_ids:
+        product = apis.amazon.show_product(product_id=product_id)
+        if not product_type_matches(product):
+            continue
+        if normalize_text(product.get("relative_size")) != normalize_text(target_size):
+            continue
+        if int(product.get("inventory_quantity") or 0) < 1:
+            continue
+        color = normalize_text(product.get("color"))
+        preferred = int(color == normalize_text(preferred_color))
+        same_color = int(color == original_color)
+        if not preferred and not same_color:
+            continue
+        same_signature = int(product_signature(product) == original_signature)
+        candidates.append((
+            preferred,
+            same_color,
+            same_signature,
+            float(product.get("rating") or 0),
+            -float(product.get("price") or 0),
+            -int(product["product_id"]),
+            product,
+        ))
+    if not candidates:
+        raise Exception(
+            f"No in-stock replacement matched product={{original_product['product_id']}}, "
+            f"target_size={{target_size}}, preferred_color={{preferred_color}}, or original_color={{original_color}}."
+        )
+    candidates.sort(reverse=True)
+    return candidates[0][-1]
+
+order, original_item, original_product, quantity_to_return = find_last_ordered_product()
+target_size = adjacent_size(original_product.get("relative_size"))
+replacement = choose_replacement(original_product, target_size)
+
+deliverer = pick_return_deliverer()
+return_result = apis.amazon.initiate_return(
+    access_token=tokens["amazon"],
+    order_id=order["order_id"],
+    product_id=original_item["product_id"],
+    deliverer_id=deliverer["deliverer_id"],
+    quantity=quantity_to_return,
+)
+if "return_id" not in return_result:
+    raise Exception(f"Unable to initiate return for order {{order['order_id']}} product {{original_item['product_id']}}: {{return_result}}")
+
+apis.amazon.clear_cart(access_token=tokens["amazon"])
+add_result = apis.amazon.add_product_to_cart(
+    access_token=tokens["amazon"],
+    product_id=replacement["product_id"],
+    quantity=1,
+    clear_cart_first=False,
+)
+if "not" in str(add_result.get("message", "")).lower() and "success" not in str(add_result.get("message", "")).lower():
+    raise Exception(f"Unable to add replacement product {{replacement['product_id']}} to cart: {{add_result}}")
+
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+for card in pick_payment_cards():
+    payment_card_id = card["payment_card_id"]
+    result = apis.amazon.place_order(
+        access_token=tokens["amazon"],
+        payment_card_id=payment_card_id,
+        address_id=address["address_id"],
+    )
+    if "order_id" in result:
+        break
+    failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+if "order_id" not in result:
+    raise Exception(f"Unable to place Amazon replacement order: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "product_type": target_product_type,
+    "last_order_id": order["order_id"],
+    "returned_product_id": original_item["product_id"],
+    "return_id": return_result["return_id"],
+    "return_quantity": quantity_to_return,
+    "source_size": original_product.get("relative_size"),
+    "target_size": target_size,
+    "preferred_color": preferred_color,
+    "replacement_product_id": replacement["product_id"],
+    "replacement_color": replacement.get("color"),
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_replace_last_product_adjacent_size",
     )
 
 
@@ -16695,6 +16971,24 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
+    if intent_type == "appworld_amazon_replace_last_product_adjacent_size":
+        size_direction = str(
+            slots.get("size_direction")
+            or slots.get("direction")
+            or slots.get("replacement_size_direction")
+            or ""
+        ).strip().lower()
+        if size_direction in {"bigger", "larger", "up", "increase"}:
+            size_direction = "larger"
+        if size_direction in {"smaller", "down", "decrease"}:
+            size_direction = "smaller"
+        return {
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "size_direction": size_direction,
+            "preferred_color": compact_text(str(slots.get("preferred_color") or slots.get("color") or "")).lower(),
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "card_name": str(slots.get("card_name") or "").strip(),
+        }
     if intent_type == "appworld_amazon_post_question_last_ordered_product":
         return {
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
@@ -17398,6 +17692,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_replace_last_product_adjacent_size":
+        if not re.fullmatch(
+            r"the last .+? i bought on amazon is a bit too (small|large) for me\. "
+            r"initiate a return for it, and buy a replacement of the same in the next (larger|smaller) size\. "
+            r"if it's available now in [a-z -]+, prefer it, otherwise go with the same color\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_post_question_last_ordered_product":
         if not re.fullmatch(
             r"post a question about the last .+? i ordered on amazon, \".+\"\.?",
@@ -17788,6 +18093,8 @@ Supported intent types and slots:
    slots: product_name string; keep_size string, one of extra-small, small, medium, large, or extra-large; deliverer_name string such as UPS, USPS, or FedEx.
 18. appworld_amazon_buy_last_product_variants
    slots: product_type string, one of t-shirt or sweater; colors list of exactly two color strings; address_name string, default Home; card_name string, optional.
+18. appworld_amazon_replace_last_product_adjacent_size
+   slots: product_type string; size_direction string, one of larger or smaller; preferred_color string; address_name string, default Home; card_name string, optional.
 18. appworld_amazon_post_question_last_ordered_product
    slots: product_type string; question string.
 18. appworld_amazon_update_last_month_order_review
@@ -18133,6 +18440,9 @@ JSON: {"intent_type":"appworld_amazon_return_same_product_except_size_this_week"
 
 Task: I liked that last t-shirt I bought on amazon. Place a new order for the same in navy blue and black, one each. Make sure to get the size as per that order, and have them delivered home.
 JSON: {"intent_type":"appworld_amazon_buy_last_product_variants","slots":{"product_type":"t-shirt","colors":["navy blue","black"],"address_name":"Home","card_name":""}}
+
+Task: The last t-shirt I bought on Amazon is a bit too small for me. Initiate a return for it, and buy a replacement of the same in the next larger size. If it's available now in white, prefer it, otherwise go with the same color.
+JSON: {"intent_type":"appworld_amazon_replace_last_product_adjacent_size","slots":{"product_type":"t-shirt","size_direction":"larger","preferred_color":"white","address_name":"Home","card_name":""}}
 
 Task: Post a question about the last t-shirt I ordered on amazon, "Has anyone experienced the color fade after the first wash?".
 JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots":{"product_type":"t-shirt","question":"Has anyone experienced the color fade after the first wash?"}}
