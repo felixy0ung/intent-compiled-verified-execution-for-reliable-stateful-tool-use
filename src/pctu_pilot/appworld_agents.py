@@ -1077,6 +1077,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_remove_expired_payment_cards",
+                (),
+            ),
+            compiler=compile_remove_expired_payment_cards,
+            handler=handle_remove_expired_payment_cards,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_bucket_list_status_update",
                 (
                     SlotSpec("item"),
@@ -2260,6 +2268,20 @@ def compile_gmail_star_threads_by_relationship(
     frame = IntentFrame("appworld_gmail_star_threads_by_relationship")
     frame.set_slot("relationship", relationship, source="regex")
     return frame
+
+
+def compile_remove_expired_payment_cards(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    if not re.fullmatch(
+        r"Remove expired payment cards from all my app accounts that have payment cards\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+    return IntentFrame("appworld_remove_expired_payment_cards")
 
 
 def compile_bucket_list_status_update(
@@ -7199,6 +7221,55 @@ print(json.dumps({{
     )
 
 
+def handle_remove_expired_payment_cards(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    code = common_appworld_prelude(["amazon", "spotify", "venmo"]) + """
+target_apps = ["amazon", "spotify", "venmo"]
+now_month = DateTime.now().start_of("month")
+deleted = {}
+kept = {}
+missing_accounts = []
+for app_name in target_apps:
+    app_api = getattr(apis, app_name)
+    token = tokens[app_name]
+    try:
+        cards = app_api.show_payment_cards(access_token=token)
+    except Exception as exc:
+        missing_accounts.append({"app": app_name, "message": str(exc)})
+        continue
+    deleted[app_name] = []
+    kept[app_name] = []
+    for card in cards:
+        expiry_month = DateTime(
+            int(card["expiry_year"]),
+            int(card["expiry_month"]),
+            1,
+        ).start_of("month")
+        if expiry_month <= now_month:
+            app_api.delete_payment_card(
+                access_token=token,
+                payment_card_id=card["payment_card_id"],
+            )
+            deleted[app_name].append(card["payment_card_id"])
+        else:
+            kept[app_name].append(card["payment_card_id"])
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({
+    "deleted": deleted,
+    "kept": kept,
+    "missing_accounts": missing_accounts,
+}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_remove_expired_payment_cards",
+    )
+
+
 def handle_bucket_list_status_update(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -11556,6 +11627,12 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_remove_expired_payment_cards":
+        if raw != "remove expired payment cards from all my app accounts that have payment cards.":
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type in {
         "appworld_venmo_process_pending_payment_requests",
         "appworld_venmo_approve_roommate_requests_this_month",
@@ -11678,6 +11755,8 @@ Supported intent types and slots:
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
+21. appworld_remove_expired_payment_cards
+   slots: empty object.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
 19. appworld_simple_note_count_bucket_list_status
@@ -12224,6 +12303,12 @@ Relevant APIs for this slice:
 - apis.gmail.delete_thread(access_token=..., email_thread_id=...)
 - apis.gmail.mark_thread_starred(access_token=..., email_thread_id=...)
 - apis.gmail.mark_thread_unstarred(access_token=..., email_thread_id=...)
+- apis.amazon.show_payment_cards(access_token=...)
+- apis.amazon.delete_payment_card(access_token=..., payment_card_id=...)
+- apis.spotify.show_payment_cards(access_token=...)
+- apis.spotify.delete_payment_card(access_token=..., payment_card_id=...)
+- apis.venmo.show_payment_cards(access_token=...)
+- apis.venmo.delete_payment_card(access_token=..., payment_card_id=...)
 - apis.simple_note.search_notes(access_token=..., query=..., page_index=0, page_limit=20)
 - apis.simple_note.show_note(access_token=..., note_id=...)
 - apis.simple_note.update_note(access_token=..., note_id=..., content=...)

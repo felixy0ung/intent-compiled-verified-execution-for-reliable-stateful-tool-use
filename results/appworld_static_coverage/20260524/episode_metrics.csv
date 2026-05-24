@@ -392,9 +392,9 @@ test_challenge,476b213_3,476b213,0,0,0,0,unsupported,,,amazon_purchase_or_produc
 test_challenge,ba46d91_1,ba46d91,0,0,0,0,unsupported,,,spotify_music,f59842db13868e60
 test_challenge,ba46d91_2,ba46d91,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,41156d893626bcce
 test_challenge,ba46d91_3,ba46d91,0,0,0,0,unsupported,,,spotify_music,ebc2a65cbf7899b2
-test_challenge,3f3c139_1,3f3c139,0,0,0,0,unsupported,,,venmo_payment_or_request,a4930a03153c2943
-test_challenge,3f3c139_2,3f3c139,0,0,0,0,unsupported,,,venmo_payment_or_request,a4930a03153c2943
-test_challenge,3f3c139_3,3f3c139,0,0,0,0,unsupported,,,venmo_payment_or_request,a4930a03153c2943
+test_challenge,3f3c139_1,3f3c139,1,1,0,0,appworld_remove_expired_payment_cards,,,,a4930a03153c2943
+test_challenge,3f3c139_2,3f3c139,1,1,0,0,appworld_remove_expired_payment_cards,,,,a4930a03153c2943
+test_challenge,3f3c139_3,3f3c139,1,1,0,0,appworld_remove_expired_payment_cards,,,,a4930a03153c2943
 test_challenge,6d59d90_1,6d59d90,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,c6ffc3bba5957257
 test_challenge,6d59d90_2,6d59d90,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,2d32895c9229690f
 test_challenge,6d59d90_3,6d59d90,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,1358917df1176781
