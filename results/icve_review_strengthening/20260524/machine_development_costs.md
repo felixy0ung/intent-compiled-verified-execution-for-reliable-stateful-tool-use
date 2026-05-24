@@ -6,7 +6,7 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 90
+- Registered AppWorld machines: 91
 - Used by full168 supported tasks: 55
 - Supported tasks: 168
 - Tasks per used machine: 3.05
@@ -93,6 +93,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_spotify_like_songs_from_followed_artists | 0 | 12 | 42 | 0 | spotify,supervisor | not_recorded |
 | appworld_spotify_navigate_until_artist | 2 | 17 | 46 | 0 | spotify,supervisor | not_recorded |
 | appworld_spotify_playlist_best_song_per_collection | 3 | 22 | 67 | 0 | spotify,supervisor | not_recorded |
+| appworld_spotify_playlist_from_workout_email | 1 | 16 | 154 | 0 | gmail,spotify,supervisor | not_recorded |
 | appworld_spotify_rate_library_songs_by_liked_status | 3 | 29 | 82 | 0 | spotify,supervisor | not_recorded |
 | appworld_spotify_sync_following_by_liked_song_artists | 1 | 24 | 49 | 0 | spotify,supervisor | not_recorded |
 | appworld_spotify_top_played_genre_titles | 2 | 18 | 50 | 0 | spotify,supervisor | not_recorded |

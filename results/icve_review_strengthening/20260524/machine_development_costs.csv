@@ -78,6 +78,7 @@ appworld_spotify_follow_playlist_song_artists_by_genre,1,genre,15,40,55,0,0,0,0,
 appworld_spotify_like_songs_from_followed_artists,0,none,12,42,54,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_navigate_until_artist,2,"direction,artist_name",17,46,63,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_playlist_best_song_per_collection,3,"playlist_title,song_metric,collection_type",22,67,89,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_spotify_playlist_from_workout_email,1,playlist_title,16,154,170,0,0,0,0,"gmail,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_rate_library_songs_by_liked_status,3,"collection_type,liked_filter,target_rating",29,82,111,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_sync_following_by_liked_song_artists,1,operation,24,49,73,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_top_played_genre_titles,2,"genre,limit",18,50,68,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded

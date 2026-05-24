@@ -1364,6 +1364,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_spotify_playlist_from_workout_email",
+                (SlotSpec("playlist_title"),),
+            ),
+            compiler=compile_spotify_playlist_from_workout_email,
+            handler=handle_spotify_playlist_from_workout_email,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_simple_note_import_markdown_files",
                 (SlotSpec("source_directory"),),
             ),
@@ -2310,6 +2318,24 @@ def compile_remove_expired_payment_cards(
     ):
         return None
     return IntentFrame("appworld_remove_expired_payment_cards")
+
+
+def compile_spotify_playlist_from_workout_email(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'My workout partner has sent me some songs over email\. Make a new Spotify '
+        r'playlist titled "(?P<title>[^"]+)" with those songs in it\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_spotify_playlist_from_workout_email")
+    frame.set_slot("playlist_title", match.group("title").strip(), source="regex")
+    return frame
 
 
 def compile_bucket_list_status_update(
@@ -8080,6 +8106,175 @@ print(json.dumps({{
     )
 
 
+def handle_spotify_playlist_from_workout_email(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    playlist_title = str(frame.get("playlist_title") or "").strip()
+    if not playlist_title:
+        frame.abstain_reason = "missing_spotify_workout_email_playlist_title"
+        return None
+    code = common_appworld_prelude(["gmail", "spotify"]) + f"""
+playlist_title = {json.dumps(playlist_title)}
+
+def normalize_key(value):
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+def song_identity(song):
+    artists = song.get("artists") or []
+    return (
+        normalize_key(song.get("title")),
+        tuple(sorted(normalize_key(artist.get("name")) for artist in artists)),
+    )
+
+def wanted_identity(item):
+    return (
+        normalize_key(item["title"]),
+        tuple(sorted(normalize_key(artist) for artist in item["artists"])),
+    )
+
+def parse_song_line(line):
+    text = re.sub(r"^\\s*[-*\\d.)]+\\s*", "", str(line or "")).strip()
+    if not text:
+        return None
+    text = text.strip('"').strip("'").strip()
+    for pattern in [
+        r"(?P<title>.+?)\\s+by\\s+(?P<artists>.+)",
+        r"(?P<title>.+?)\\s+-\\s+(?P<artists>.+)",
+    ]:
+        match = re.fullmatch(pattern, text, flags=re.IGNORECASE)
+        if match:
+            artists = [part.strip() for part in re.split(r"\\s*(?:,|&| and )\\s*", match.group("artists")) if part.strip()]
+            if artists:
+                return {{"title": match.group("title").strip(), "artists": artists, "raw": text}}
+    return None
+
+def extract_song_items(text):
+    items = []
+    for line in str(text or "").splitlines():
+        parsed = parse_song_line(line)
+        if parsed:
+            items.append(parsed)
+    if items:
+        return items
+    # Some emails use semicolon-separated inline lists.
+    for part in re.split(r"\\s*;\\s*", str(text or "")):
+        parsed = parse_song_line(part)
+        if parsed:
+            items.append(parsed)
+    return items
+
+def exact_song_search(item):
+    candidates = paged(lambda page: apis.spotify.search_songs(
+        query=item["title"],
+        page_index=page,
+        page_limit=20,
+    ))
+    target = wanted_identity(item)
+    exact = []
+    seen = set()
+    for song in candidates:
+        song_id = int(song.get("song_id") or song.get("id"))
+        if song_id in seen:
+            continue
+        if song_identity(song) == target:
+            exact.append(song)
+            seen.add(song_id)
+    if len(exact) != 1:
+        raise Exception(f"Expected exactly one Spotify match for {{item}}, found {{len(exact)}}.")
+    return exact[0]
+
+threads = []
+for query in ["workout songs", "workout partner songs", "songs workout"]:
+    threads.extend(paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )))
+
+unique_threads = {{}}
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is not None:
+        unique_threads[int(thread_id)] = thread
+if not unique_threads:
+    unique_threads = {{
+        int(thread["email_thread_id"]): thread
+        for thread in paged(lambda page: apis.gmail.show_inbox_threads(
+            access_token=tokens["gmail"],
+            page_index=page,
+            page_limit=20,
+            sort_by="-created_at",
+        ))
+        if thread.get("email_thread_id") is not None
+    }}
+
+candidate_emails = []
+for thread_id in sorted(unique_threads):
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    for email in detail.get("emails", []):
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        combined = subject + "\\n" + body
+        lower = combined.lower()
+        if "workout" not in lower or "song" not in lower:
+            continue
+        items = extract_song_items(body)
+        if items:
+            candidate_emails.append((str(email.get("created_at") or ""), thread_id, email, items))
+
+if len(candidate_emails) != 1:
+    raise Exception(f"Expected one workout song email, found {{len(candidate_emails)}}.")
+_, thread_id, email, items = candidate_emails[0]
+matched_songs = []
+seen_song_ids = set()
+for item in items:
+    song = exact_song_search(item)
+    song_id = int(song.get("song_id") or song.get("id"))
+    if song_id in seen_song_ids:
+        continue
+    seen_song_ids.add(song_id)
+    matched_songs.append(song)
+if not matched_songs:
+    raise Exception("No songs matched from workout email.")
+
+playlist = apis.spotify.create_playlist(
+    access_token=tokens["spotify"],
+    title=playlist_title,
+    is_public=False,
+)
+playlist_id = int(playlist["playlist_id"])
+added_song_ids = []
+for song in matched_songs:
+    song_id = int(song.get("song_id") or song.get("id"))
+    apis.spotify.add_song_to_playlist(
+        access_token=tokens["spotify"],
+        playlist_id=playlist_id,
+        song_id=song_id,
+    )
+    added_song_ids.append(song_id)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "playlist_title": playlist_title,
+    "playlist_id": playlist_id,
+    "email_thread_id": thread_id,
+    "parsed_count": len(items),
+    "added_song_ids": added_song_ids,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_spotify_playlist_from_workout_email",
+    )
+
+
 def handle_spotify_append_most_common_playlist_genre(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -11748,6 +11943,12 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_spotify_playlist_from_workout_email":
+        if "workout partner" not in raw or "spotify playlist" not in raw:
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type in {
         "appworld_venmo_process_pending_payment_requests",
         "appworld_venmo_approve_roommate_requests_this_month",
@@ -11932,6 +12133,8 @@ Supported intent types and slots:
    slots: empty object.
 42. appworld_spotify_archive_playlist_songs_from_file
    slots: source_file_path string, playlist_title string.
+42. appworld_spotify_playlist_from_workout_email
+   slots: playlist_title string.
 43. appworld_simple_note_import_markdown_files
    slots: source_directory string.
 44. appworld_simple_note_workout_duration
@@ -12038,6 +12241,9 @@ JSON: {"intent_type":"appworld_spotify_apply_phone_playlist_suggestions","slots"
 
 Task: My siblings and I are preparing a playlist for a roadtrip together. I prepared the initial playlist on Spotify and shared it with them on phone messages. They have replied with suggested changes. Please update this playlist accordingly.
 JSON: {"intent_type":"appworld_spotify_apply_phone_playlist_suggestions","slots":{"relationship_type":"siblings"}}
+
+Task: My workout partner has sent me some songs over email. Make a new Spotify playlist titled "Workout Playlist" with those songs in it.
+JSON: {"intent_type":"appworld_spotify_playlist_from_workout_email","slots":{"playlist_title":"Workout Playlist"}}
 
 Task: I have a list of people I owe money to, including amounts and descriptions, in owe_list.csv. For each person, (1) If they have a Venmo account, send the money privately with the specified amount and description. (2) If not, create an individual (non-grouped) Splitwise expense with the same details so I remember to pay them later. For Splitwise expenses, attach the PDF receipt as well. They are in the same folder as the CSV file.
 JSON: {"intent_type":"appworld_pay_csv_debts_via_venmo_or_splitwise","slots":{"csv_file_name":"owe_list.csv","private":true}}
@@ -12447,6 +12653,8 @@ Relevant APIs for this slice:
 - apis.spotify.show_playlist_library(access_token=..., page_index=0, page_limit=20)
 - apis.spotify.show_album(album_id=...)
 - apis.spotify.show_playlist(access_token=..., playlist_id=...)
+- apis.spotify.create_playlist(access_token=..., title=..., is_public=False)
+- apis.spotify.add_song_to_playlist(access_token=..., playlist_id=..., song_id=...)
 - apis.spotify.show_song(song_id=...)
 - apis.spotify.show_song_privates(access_token=..., song_id=...)
 - apis.spotify.show_album_privates(access_token=..., album_id=...)

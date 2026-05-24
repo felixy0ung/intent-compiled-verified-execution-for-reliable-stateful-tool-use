@@ -569,9 +569,9 @@ test_challenge,a676f2a_3,a676f2a,0,0,0,0,unsupported,,,amazon_purchase_or_produc
 test_challenge,7238049_1,7238049,0,0,0,0,unsupported,,,venmo_payment_or_request,5e903c96db9a245a
 test_challenge,7238049_2,7238049,0,0,0,0,unsupported,,,venmo_payment_or_request,5af6753d0d64be68
 test_challenge,7238049_3,7238049,0,0,0,0,unsupported,,,venmo_payment_or_request,70cf77e652986b5a
-test_challenge,8a13317_1,8a13317,0,0,0,0,unsupported,,,spotify_music,243e50d0efa5dabf
-test_challenge,8a13317_2,8a13317,0,0,0,0,unsupported,,,spotify_music,13cfd3acef6e1272
-test_challenge,8a13317_3,8a13317,0,0,0,0,unsupported,,,spotify_music,b49d5c7831ee5aa0
+test_challenge,8a13317_1,8a13317,1,1,0,0,appworld_spotify_playlist_from_workout_email,,,,243e50d0efa5dabf
+test_challenge,8a13317_2,8a13317,1,1,0,0,appworld_spotify_playlist_from_workout_email,,,,13cfd3acef6e1272
+test_challenge,8a13317_3,8a13317,1,1,0,0,appworld_spotify_playlist_from_workout_email,,,,b49d5c7831ee5aa0
 test_challenge,7574325_1,7574325,1,1,0,0,appworld_venmo_change_password,,,,7b62fe6798c7aa27
 test_challenge,7574325_2,7574325,1,1,0,0,appworld_venmo_change_password,,,,30d47cd4c009f4f9
 test_challenge,7574325_3,7574325,1,1,0,0,appworld_venmo_change_password,,,,5469f3ff35be2eb4
