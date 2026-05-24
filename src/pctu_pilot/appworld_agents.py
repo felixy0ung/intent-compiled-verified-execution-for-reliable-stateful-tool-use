@@ -1165,6 +1165,18 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_return_same_product_except_size_this_week",
+                (
+                    SlotSpec("product_name"),
+                    SlotSpec("keep_size"),
+                    SlotSpec("deliverer_name"),
+                ),
+            ),
+            compiler=compile_amazon_return_same_product_except_size_this_week,
+            handler=handle_amazon_return_same_product_except_size_this_week,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_post_question_last_ordered_product",
                 (
                     SlotSpec("product_type"),
@@ -4250,6 +4262,27 @@ def compile_amazon_return_recent_orders(
         return None
     frame = IntentFrame("appworld_amazon_return_recent_orders")
     frame.set_slot("order_count", int(match.group("count")), source="regex")
+    frame.set_slot("deliverer_name", compact_text(match.group("deliverer")), source="regex")
+    return frame
+
+
+def compile_amazon_return_same_product_except_size_this_week(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"I bought a few (?P<product_name>.+?) on amazon this week\. "
+        r"But only the one in (?P<keep_size>extra-large|extra-small|large|small|medium) size fits me well\. "
+        r"Initiate a return for the rest\. Prefer (?P<deliverer>UPS|USPS|FedEx) as a deliverer, if available\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_return_same_product_except_size_this_week")
+    frame.set_slot("product_name", compact_text(match.group("product_name")), source="regex")
+    frame.set_slot("keep_size", compact_text(match.group("keep_size")).lower(), source="regex")
     frame.set_slot("deliverer_name", compact_text(match.group("deliverer")), source="regex")
     return frame
 
@@ -9458,6 +9491,147 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_return_recent_orders",
+    )
+
+
+def handle_amazon_return_same_product_except_size_this_week(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_name = str(frame.get("product_name") or "").strip()
+    keep_size = str(frame.get("keep_size") or "").strip().lower()
+    deliverer_name = str(frame.get("deliverer_name") or "").strip()
+    if not product_name or not keep_size or not deliverer_name:
+        frame.abstain_reason = "missing_amazon_size_filtered_return_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_name = {json.dumps(product_name)}
+keep_size = {json.dumps(keep_size)}
+preferred_deliverer_name = {json.dumps(deliverer_name)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    comparable = set()
+    for word in normalize_text(value).split():
+        if len(word) <= 1 or word in {{"and"}}:
+            continue
+        if word.endswith("ies"):
+            word = word[:-3] + "y"
+        elif word.endswith(("ches", "shes", "ses", "xes", "zes")):
+            word = word[:-2]
+        elif word.endswith("s") and not word.endswith("ss"):
+            word = word[:-1]
+        comparable.add(word)
+    return comparable
+
+def product_matches(item, product):
+    target_words = word_set(target_product_name)
+    text = " ".join([
+        str(item.get("product_name") or ""),
+        str(product.get("name") or ""),
+        str(product.get("description") or ""),
+        str(product.get("product_type") or ""),
+    ])
+    words = word_set(text)
+    return bool(target_words) and target_words <= words
+
+def pick_deliverer():
+    deliverers = apis.amazon.show_return_deliverers()
+    exact = [
+        deliverer for deliverer in deliverers
+        if normalize_text(deliverer.get("name")) == normalize_text(preferred_deliverer_name)
+    ]
+    if exact:
+        return exact[0]
+    if deliverers:
+        return sorted(deliverers, key=lambda row: int(row.get("deliverer_id") or 0))[0]
+    raise Exception("No Amazon return deliverers available.")
+
+now = DateTime.now()
+min_created_at = now.start_of("week").to_date_string()
+max_created_at = now.end_of("week").to_date_string()
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+
+return_targets = []
+kept_items = []
+matched_items = []
+for order in orders:
+    created_date = str(order.get("created_at") or "")[:10]
+    if not (min_created_at <= created_date <= max_created_at):
+        continue
+    for item in order.get("order_items", []):
+        product = apis.amazon.show_product(product_id=item["product_id"])
+        if not product_matches(item, product):
+            continue
+        size = normalize_text(product.get("relative_size"))
+        ordered_quantity = int(item.get("ordered_quantity") or 0)
+        returned_quantity = int(item.get("returned_quantity") or 0)
+        remaining_quantity = max(0, ordered_quantity - returned_quantity)
+        matched_item = {{
+            "order_id": order["order_id"],
+            "product_id": item["product_id"],
+            "product_name": item.get("product_name") or product.get("name"),
+            "relative_size": product.get("relative_size"),
+            "ordered_quantity": ordered_quantity,
+            "returned_quantity": returned_quantity,
+            "remaining_quantity": remaining_quantity,
+            "created_at": order.get("created_at"),
+        }}
+        matched_items.append(matched_item)
+        if size == normalize_text(keep_size):
+            kept_items.append(matched_item)
+            continue
+        if remaining_quantity > 0:
+            return_targets.append((order, item, product, remaining_quantity, matched_item))
+
+if not kept_items:
+    raise Exception(f"No this-week {{target_product_name}} item in keep size {{keep_size}} found.")
+if not return_targets:
+    raise Exception(f"No this-week {{target_product_name}} items outside keep size {{keep_size}} remain returnable. Matched: {{matched_items}}")
+
+deliverer = pick_deliverer()
+created_returns = []
+for order, item, product, quantity_to_return, matched_item in return_targets:
+    result = apis.amazon.initiate_return(
+        access_token=tokens["amazon"],
+        order_id=order["order_id"],
+        product_id=item["product_id"],
+        deliverer_id=deliverer["deliverer_id"],
+        quantity=quantity_to_return,
+    )
+    if "return_id" not in result:
+        raise Exception(f"Unable to initiate return for order {{order['order_id']}} product {{item['product_id']}}: {{result}}")
+    created_returns.append({{
+        **matched_item,
+        "quantity": quantity_to_return,
+        "return_id": result["return_id"],
+    }})
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "product_name": target_product_name,
+    "keep_size": keep_size,
+    "date_window": [min_created_at, max_created_at],
+    "deliverer_name": deliverer.get("name"),
+    "deliverer_id": deliverer.get("deliverer_id"),
+    "kept_items": kept_items,
+    "created_returns": created_returns,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_return_same_product_except_size_this_week",
     )
 
 
@@ -16263,6 +16437,12 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "order_count": int(slots.get("order_count") or slots.get("count") or 0),
             "deliverer_name": str(slots.get("deliverer_name") or slots.get("carrier") or "").strip(),
         }
+    if intent_type == "appworld_amazon_return_same_product_except_size_this_week":
+        return {
+            "product_name": compact_text(str(slots.get("product_name") or "")),
+            "keep_size": compact_text(str(slots.get("keep_size") or slots.get("relative_size") or "")).lower(),
+            "deliverer_name": str(slots.get("deliverer_name") or slots.get("carrier") or "").strip(),
+        }
     if intent_type == "appworld_amazon_post_question_last_ordered_product":
         return {
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
@@ -16944,6 +17124,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_return_same_product_except_size_this_week":
+        if not re.fullmatch(
+            r"i bought a few .+? on amazon this week\. but only the one in "
+            r"(extra-large|extra-small|large|small|medium) size fits me well\. "
+            r"initiate a return for the rest\. prefer (ups|usps|fedex) as a deliverer, if available\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_post_question_last_ordered_product":
         if not re.fullmatch(
             r"post a question about the last .+? i ordered on amazon, \".+\"\.?",
@@ -17330,6 +17521,8 @@ Supported intent types and slots:
    slots: containers list using values from [cart, wish_list]; address_name string, one of Home or Work; card_name string, optional.
 18. appworld_amazon_return_recent_orders
    slots: order_count integer; deliverer_name string such as FedEx.
+18. appworld_amazon_return_same_product_except_size_this_week
+   slots: product_name string; keep_size string, one of extra-small, small, medium, large, or extra-large; deliverer_name string such as UPS, USPS, or FedEx.
 18. appworld_amazon_post_question_last_ordered_product
    slots: product_type string; question string.
 18. appworld_amazon_update_last_month_order_review
@@ -17669,6 +17862,9 @@ JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"contain
 
 Task: Initiate returns via FedEx for everything in my last 3 amazon order.
 JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_count":3,"deliverer_name":"FedEx"}}
+
+Task: I bought a few Hanes Men's Tagless Crewneck Undershirts on amazon this week. But only the one in extra-large size fits me well. Initiate a return for the rest. Prefer UPS as a deliverer, if available.
+JSON: {"intent_type":"appworld_amazon_return_same_product_except_size_this_week","slots":{"product_name":"Hanes Men's Tagless Crewneck Undershirts","keep_size":"extra-large","deliverer_name":"UPS"}}
 
 Task: Post a question about the last t-shirt I ordered on amazon, "Has anyone experienced the color fade after the first wash?".
 JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots":{"product_type":"t-shirt","question":"Has anyone experienced the color fade after the first wash?"}}

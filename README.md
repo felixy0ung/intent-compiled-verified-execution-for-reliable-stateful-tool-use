@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 132/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 135/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -84,6 +84,9 @@ AppWorld leaderboard submission.
 - Held-out AppWorld Amazon birthday-order current-price answer slice: one general
   Amazon + phone answer-only machine covers 3 `test_challenge` answer-only tasks with
   3/3 success, 0 invalid calls, and 0 unsafe changes.
+- Held-out AppWorld Amazon size-filtered return slice: one general Amazon return-only
+  machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and
+  0 unsafe changes.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice: one general
   subscription-history machine covers 3 `test_challenge` answer-only tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
@@ -139,7 +142,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 123 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 124 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -205,6 +208,8 @@ AppWorld leaderboard submission.
   `results/appworld_amazon_spending_total_answer_20260525/20260525_062720/`
 - AppWorld held-out Amazon birthday-order current-price answer slice:
   `results/appworld_amazon_birthday_current_price_answer_20260525/20260525_070341/`
+- AppWorld held-out Amazon size-filtered return slice:
+  `results/appworld_amazon_return_except_size_20260525/20260525_071908/`
 - AppWorld held-out Amazon/Spotify membership paid-total answer slice:
   `results/appworld_membership_paid_total_answer_20260525/20260525_063804/`
 - AppWorld held-out Amazon/Spotify membership payment-card answer slice:
