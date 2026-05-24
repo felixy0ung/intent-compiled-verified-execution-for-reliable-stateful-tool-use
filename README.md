@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 51/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 54/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -69,7 +69,10 @@ AppWorld leaderboard submission.
 - Held-out AppWorld Gmail job-search attachment/send slice: one general Gmail +
   file-system machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls,
   and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 97 registered
+- Held-out AppWorld Gmail-receipt Venmo payment slice: one general Gmail + file-system +
+  Venmo machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and
+  0 unsafe changes.
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 98 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -119,6 +122,8 @@ AppWorld leaderboard submission.
   `results/appworld_gmail_label_notification_threads_20260525/20260525_021446/`
 - AppWorld held-out Gmail job-search attachment/send slice:
   `results/appworld_gmail_job_search_attach_send_20260525/20260525_023325/`
+- AppWorld held-out Gmail-receipt Venmo payment slice:
+  `results/appworld_venmo_flight_bill_email_20260525/20260525_025233/`
 - AppWorld static public-instruction coverage:
   `results/appworld_static_coverage/20260524/`
 - Review-strengthening summaries and machine development-cost table:

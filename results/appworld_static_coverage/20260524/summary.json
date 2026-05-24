@@ -1,38 +1,38 @@
 {
   "audit_type": "static_public_instruction_compile_coverage",
   "not_a_success_or_leaderboard_metric": true,
-  "registered_appworld_machines": 97,
+  "registered_appworld_machines": 98,
   "total_tasks": 585,
   "overall": {
     "tasks": 585,
-    "compiled": 219,
-    "dispatchable": 219,
+    "compiled": 222,
+    "dispatchable": 222,
     "abstained": 0,
     "incomplete": 0,
-    "unsupported": 366,
-    "compiled_rate": 0.3744,
-    "dispatchable_rate": 0.3744,
-    "unsupported_rate": 0.6256,
+    "unsupported": 363,
+    "compiled_rate": 0.3795,
+    "dispatchable_rate": 0.3795,
+    "unsupported_rate": 0.6205,
     "scenarios": 195,
-    "compiled_scenarios": 73,
-    "dispatchable_scenarios": 73,
-    "dispatchable_scenario_rate": 0.3744
+    "compiled_scenarios": 74,
+    "dispatchable_scenarios": 74,
+    "dispatchable_scenario_rate": 0.3795
   },
   "by_split": {
     "test_challenge": {
       "tasks": 417,
-      "compiled": 51,
-      "dispatchable": 51,
+      "compiled": 54,
+      "dispatchable": 54,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 366,
-      "compiled_rate": 0.1223,
-      "dispatchable_rate": 0.1223,
-      "unsupported_rate": 0.8777,
+      "unsupported": 363,
+      "compiled_rate": 0.1295,
+      "dispatchable_rate": 0.1295,
+      "unsupported_rate": 0.8705,
       "scenarios": 139,
-      "compiled_scenarios": 17,
-      "dispatchable_scenarios": 17,
-      "dispatchable_scenario_rate": 0.1223
+      "compiled_scenarios": 18,
+      "dispatchable_scenarios": 18,
+      "dispatchable_scenario_rate": 0.1295
     },
     "test_normal": {
       "tasks": 168,
@@ -119,7 +119,7 @@
     ],
     [
       "venmo_payment_or_request",
-      8
+      5
     ]
   ]
 }

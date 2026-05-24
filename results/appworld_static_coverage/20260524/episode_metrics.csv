@@ -461,9 +461,9 @@ test_challenge,3fcc458_3,3fcc458,0,0,0,0,unsupported,,,splitwise_vacation_or_exp
 test_challenge,a1d3dfd_1,a1d3dfd,0,0,0,0,unsupported,,,spotify_music,dfd5d642e43da969
 test_challenge,a1d3dfd_2,a1d3dfd,0,0,0,0,unsupported,,,spotify_music,2f772c7d6f7f7284
 test_challenge,a1d3dfd_3,a1d3dfd,0,0,0,0,unsupported,,,spotify_music,dfd5d642e43da969
-test_challenge,82d2e01_1,82d2e01,0,0,0,0,unsupported,,,venmo_payment_or_request,f4d3f4ab7c95523c
-test_challenge,82d2e01_2,82d2e01,0,0,0,0,unsupported,,,venmo_payment_or_request,2588ed5bc85d8f42
-test_challenge,82d2e01_3,82d2e01,0,0,0,0,unsupported,,,venmo_payment_or_request,493d157d76e79d7b
+test_challenge,82d2e01_1,82d2e01,1,1,0,0,appworld_venmo_pay_flight_bill_from_email,,,,f4d3f4ab7c95523c
+test_challenge,82d2e01_2,82d2e01,1,1,0,0,appworld_venmo_pay_flight_bill_from_email,,,,2588ed5bc85d8f42
+test_challenge,82d2e01_3,82d2e01,1,1,0,0,appworld_venmo_pay_flight_bill_from_email,,,,493d157d76e79d7b
 test_challenge,a7179fa_1,a7179fa,0,0,0,0,unsupported,,,gmail_email,6e1e0c15b856f017
 test_challenge,a7179fa_2,a7179fa,0,0,0,0,unsupported,,,gmail_email,eed60aa139df35b1
 test_challenge,a7179fa_3,a7179fa,0,0,0,0,unsupported,,,gmail_email,1da5e2f7884a7de2
