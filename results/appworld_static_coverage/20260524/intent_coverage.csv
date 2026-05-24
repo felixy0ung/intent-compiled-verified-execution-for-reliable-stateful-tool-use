@@ -12,6 +12,7 @@ test_challenge,appworld_gmail_forward_caterer_bill_to_manager_with_note,3,3,0,0,
 test_challenge,appworld_gmail_label_notification_threads_by_app,3,3,0,0,1
 test_challenge,appworld_gmail_mark_threads_read_state_by_calendar_window,3,3,0,0,1
 test_challenge,appworld_gmail_relabel_priority_threads,3,3,0,0,1
+test_challenge,appworld_gmail_reply_weekly_manager_tasks_by_star_state,3,3,0,0,1
 test_challenge,appworld_gmail_send_future_scheduled_drafts_now,3,3,0,0,1
 test_challenge,appworld_gmail_star_threads_by_relationship,3,3,0,0,1
 test_challenge,appworld_gmail_thread_cleanup,3,3,0,0,1

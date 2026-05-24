@@ -64,6 +64,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_gmail_relabel_priority_20260525": {"20260525_040633"},
     "appworld_gmail_send_scheduled_now_20260525": {"20260525_034758"},
     "appworld_gmail_star_relationship_20260524": {"20260525_000839"},
+    "appworld_gmail_weekly_manager_tasks_20260525": {"20260525_044411"},
     "appworld_remove_expired_cards_20260525": {"20260525_002233"},
     "appworld_shared_subscription_password_text_20260525": {"20260525_032327"},
     "appworld_spotify_liked_song_email_recommendations_20260525": {"20260525_013420"},

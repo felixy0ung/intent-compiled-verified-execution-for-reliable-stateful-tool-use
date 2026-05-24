@@ -1182,6 +1182,18 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_reply_weekly_manager_tasks_by_star_state",
+                (
+                    SlotSpec("subject_prefix"),
+                    SlotSpec("done_reply"),
+                    SlotSpec("not_done_reply"),
+                ),
+            ),
+            compiler=compile_gmail_reply_weekly_manager_tasks_by_star_state,
+            handler=handle_gmail_reply_weekly_manager_tasks_by_star_state,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_star_threads_by_relationship",
                 (SlotSpec("relationship"),),
             ),
@@ -2627,6 +2639,29 @@ def compile_gmail_forward_caterer_bill_to_manager_with_note(
         return None
     frame = IntentFrame("appworld_gmail_forward_caterer_bill_to_manager_with_note")
     frame.set_slot("note_prefix", match.group("note").strip(), source="regex")
+    return frame
+
+
+def compile_gmail_reply_weekly_manager_tasks_by_star_state(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'My manager assigns me tasks at the beginning of every week with a subject starting with "(?P<prefix>[^"]+)"\. '
+        r'At the end of each week, I reply to them "(?P<done>[^"]+)" or "(?P<not_done>[^"]+)"\. '
+        r'For this week, I have starred the emails/tasks which I finished working on, and left the others unstarred\. '
+        r'I am closing off this week now, please reply accordingly, and unstar those threads\. '
+        r'I may have non-todo emails starred, please keep them as is\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_reply_weekly_manager_tasks_by_star_state")
+    frame.set_slot("subject_prefix", match.group("prefix").strip(), source="regex")
+    frame.set_slot("done_reply", match.group("done").strip(), source="regex")
+    frame.set_slot("not_done_reply", match.group("not_done").strip(), source="regex")
     return frame
 
 
@@ -9235,6 +9270,136 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_reply_weekly_manager_tasks_by_star_state(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    subject_prefix = str(frame.get("subject_prefix") or "").strip()
+    done_reply = str(frame.get("done_reply") or "").strip()
+    not_done_reply = str(frame.get("not_done_reply") or "").strip()
+    if not subject_prefix or not done_reply or not not_done_reply:
+        frame.abstain_reason = "missing_gmail_weekly_task_reply_slots"
+        return None
+    code = common_appworld_prelude(["gmail", "phone"]) + f"""
+subject_prefix = {json.dumps(subject_prefix)}
+done_reply = {json.dumps(done_reply)}
+not_done_reply = {json.dumps(not_done_reply)}
+
+def normalize_subject(value):
+    return re.sub(r"\\s+", " ", str(value or "").strip()).lower()
+
+manager_contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship="manager",
+    page_index=page,
+    page_limit=20,
+))
+manager_emails = {{
+    str(contact.get("email") or "").strip().lower()
+    for contact in manager_contacts
+    if str(contact.get("email") or "").strip()
+}}
+if len(manager_emails) != 1:
+    raise Exception(f"Expected exactly one manager email, found {{sorted(manager_emails)}}.")
+manager_email = next(iter(manager_emails))
+
+now = DateTime.now()
+min_created_at = now.start_of("week").to_date_string()
+max_created_at = now.end_of("week").to_date_string()
+prefix_key = normalize_subject(subject_prefix)
+
+threads = paged(lambda page: apis.gmail.show_inbox_threads(
+    access_token=tokens["gmail"],
+    from_email=manager_email,
+    min_created_at=min_created_at,
+    max_created_at=max_created_at,
+    page_index=page,
+    page_limit=20,
+    sort_by="+created_at",
+))
+
+targets = []
+seen_thread_ids = set()
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None or thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    subject = str(thread.get("subject") or "")
+    if not normalize_subject(subject).startswith(prefix_key):
+        continue
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    source_email = None
+    for email in detail.get("emails", []):
+        sender_email = str((email.get("sender") or {{}}).get("email") or "").strip().lower()
+        if sender_email != manager_email:
+            continue
+        if not normalize_subject(email.get("subject")).startswith(prefix_key):
+            continue
+        source_email = email
+        break
+    if source_email is None:
+        continue
+    targets.append({{
+        "email_thread_id": thread_id,
+        "email_id": source_email["email_id"],
+        "subject": subject,
+        "was_starred": bool(thread.get("starred")),
+        "created_at": thread.get("created_at") or "",
+    }})
+
+if not targets:
+    raise Exception(f"Could not find this week's manager task threads starting with {{subject_prefix!r}}.")
+
+replied = []
+unstarred = []
+for target in targets:
+    body = done_reply if target["was_starred"] else not_done_reply
+    reply = apis.gmail.reply_to_email(
+        access_token=tokens["gmail"],
+        email_thread_id=target["email_thread_id"],
+        email_id=target["email_id"],
+        body=body,
+        email_addresses=None,
+        attachment_file_paths=[],
+    )
+    if "sent_email_id" not in reply:
+        raise Exception(f"Unable to reply to task thread {{target['email_thread_id']}}: {{reply}}")
+    replied.append({{
+        "email_thread_id": target["email_thread_id"],
+        "email_id": target["email_id"],
+        "sent_email_id": reply.get("sent_email_id"),
+        "body": body,
+        "was_starred": target["was_starred"],
+    }})
+    if target["was_starred"]:
+        apis.gmail.mark_thread_unstarred(
+            access_token=tokens["gmail"],
+            email_thread_id=target["email_thread_id"],
+        )
+        unstarred.append(target["email_thread_id"])
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "manager_email": manager_email,
+    "subject_prefix": subject_prefix,
+    "min_created_at": min_created_at,
+    "max_created_at": max_created_at,
+    "target_count": len(targets),
+    "replied": replied,
+    "unstarred": unstarred,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_reply_weekly_manager_tasks_by_star_state",
+    )
+
+
 def handle_gmail_star_threads_by_relationship(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -14272,6 +14437,14 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
                 slots.get("note_prefix") or slots.get("note") or slots.get("message") or ""
             ).strip()
         }
+    if intent_type == "appworld_gmail_reply_weekly_manager_tasks_by_star_state":
+        return {
+            "subject_prefix": str(slots.get("subject_prefix") or slots.get("prefix") or "").strip(),
+            "done_reply": str(slots.get("done_reply") or slots.get("done") or "").strip(),
+            "not_done_reply": str(
+                slots.get("not_done_reply") or slots.get("not_done") or slots.get("unfinished_reply") or ""
+            ).strip(),
+        }
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
@@ -14787,6 +14960,20 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_reply_weekly_manager_tasks_by_star_state":
+        required = [
+            "my manager assigns me tasks",
+            "subject starting with",
+            "for this week",
+            "starred the emails/tasks",
+            "reply accordingly",
+            "unstar those threads",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -15076,6 +15263,8 @@ Supported intent types and slots:
    slots: recipient_email string.
 21. appworld_gmail_forward_caterer_bill_to_manager_with_note
    slots: note_prefix string.
+22. appworld_gmail_reply_weekly_manager_tasks_by_star_state
+   slots: subject_prefix string; done_reply string; not_done_reply string.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
@@ -15392,6 +15581,9 @@ JSON: {"intent_type":"appworld_gmail_forward_anniversary_announcement_email","sl
 
 Task: I helped organize my company celebration recently. The caterers have emailed me the bill. Forward it to my manager with a note prefixed to its body, "Bill for our last celebration.".
 JSON: {"intent_type":"appworld_gmail_forward_caterer_bill_to_manager_with_note","slots":{"note_prefix":"Bill for our last celebration."}}
+
+Task: My manager assigns me tasks at the beginning of every week with a subject starting with "TODO". At the end of each week, I reply to them "Done." or "Not Done.". For this week, I have starred the emails/tasks which I finished working on, and left the others unstarred. I am closing off this week now, please reply accordingly, and unstar those threads. I may have non-todo emails starred, please keep them as is.
+JSON: {"intent_type":"appworld_gmail_reply_weekly_manager_tasks_by_star_state","slots":{"subject_prefix":"TODO","done_reply":"Done.","not_done_reply":"Not Done."}}
 
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}

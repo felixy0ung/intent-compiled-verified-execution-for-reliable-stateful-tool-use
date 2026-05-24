@@ -533,9 +533,9 @@ test_challenge,0de03ad_3,0de03ad,1,1,0,0,appworld_gmail_star_threads_by_relation
 test_challenge,ac62177_1,ac62177,0,0,0,0,unsupported,,,gmail_email,b5118dd8b463fab9
 test_challenge,ac62177_2,ac62177,0,0,0,0,unsupported,,,gmail_email,6b2366b5e3e96797
 test_challenge,ac62177_3,ac62177,0,0,0,0,unsupported,,,gmail_email,507e8d0f7b051999
-test_challenge,4441ee9_1,4441ee9,0,0,0,0,unsupported,,,gmail_email,64073ba73a457736
-test_challenge,4441ee9_2,4441ee9,0,0,0,0,unsupported,,,gmail_email,cb56480952fc42fe
-test_challenge,4441ee9_3,4441ee9,0,0,0,0,unsupported,,,gmail_email,71e966c18d3d46f9
+test_challenge,4441ee9_1,4441ee9,1,1,0,0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,,,,64073ba73a457736
+test_challenge,4441ee9_2,4441ee9,1,1,0,0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,,,,cb56480952fc42fe
+test_challenge,4441ee9_3,4441ee9,1,1,0,0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,,,,71e966c18d3d46f9
 test_challenge,96bf160_1,96bf160,0,0,0,0,unsupported,,,gmail_email,03828b1a5a13c9fe
 test_challenge,96bf160_2,96bf160,0,0,0,0,unsupported,,,gmail_email,3e5dbdeca13a350d
 test_challenge,96bf160_3,96bf160,0,0,0,0,unsupported,,,gmail_email,70083f96bdf3d96e
