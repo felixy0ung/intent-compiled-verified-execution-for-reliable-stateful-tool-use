@@ -49,6 +49,7 @@ appworld_venmo_reset_friends_to_phone_friends,0,none,13,42,55,3,3,0,0,"phone,sup
 appworld_venmo_send_to_each_relationship_with_refill,3,"relationships,amount,note",21,110,131,3,3,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_send_to_named_user,2,"person_first_name,amount",16,139,155,3,3,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_settle_roommate_dinner,5,"taxi_total,food_total,food_payer_first_name,taxi_note,food_note",24,172,196,3,3,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
+appworld_venmo_settle_trip_note_debts,3,"relationship,trip_name,note",20,246,266,3,3,0,0,"phone,simple_note,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_signup_missing_relationship_accounts,3,"relationships,password,message",23,75,98,3,3,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_month_transactions,1,direction,17,41,58,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_recent_received_requests,1,days,16,33,49,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded

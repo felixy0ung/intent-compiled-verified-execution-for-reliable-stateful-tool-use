@@ -94,14 +94,14 @@
   "coverage_risk": {
     "benchmark": "AppWorld local test_normal.txt file-level diagnostic",
     "tasks": 168,
-    "supported": 165,
-    "unsupported_safe_no_action": 3,
-    "overall_success": 165,
-    "supported_success": 165,
+    "supported": 168,
+    "unsupported_safe_no_action": 0,
+    "overall_success": 168,
+    "supported_success": 168,
     "unsafe_state_changes": 0,
-    "invalid_tool_calls": 3,
-    "supported_rate": 0.9821428571428571,
-    "overall_success_rate": 0.9821428571428571,
+    "invalid_tool_calls": 0,
+    "supported_rate": 1.0,
+    "overall_success_rate": 1.0,
     "supported_success_rate": 1.0,
     "top_supported_intents": [
       [
@@ -148,37 +148,37 @@
   "static_instruction_coverage": {
     "benchmark": "AppWorld public-instruction static compile audit",
     "not_a_success_or_leaderboard_metric": true,
-    "registered_appworld_machines": 85,
+    "registered_appworld_machines": 86,
     "total_tasks": 585,
     "overall": {
       "tasks": 585,
-      "compiled": 183,
-      "dispatchable": 183,
+      "compiled": 186,
+      "dispatchable": 186,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 402,
-      "compiled_rate": 0.3128,
-      "dispatchable_rate": 0.3128,
-      "unsupported_rate": 0.6872,
+      "unsupported": 399,
+      "compiled_rate": 0.3179,
+      "dispatchable_rate": 0.3179,
+      "unsupported_rate": 0.6821,
       "scenarios": 195,
-      "compiled_scenarios": 61,
-      "dispatchable_scenarios": 61,
-      "dispatchable_scenario_rate": 0.3128
+      "compiled_scenarios": 62,
+      "dispatchable_scenarios": 62,
+      "dispatchable_scenario_rate": 0.3179
     },
     "test_normal": {
       "tasks": 168,
-      "compiled": 165,
-      "dispatchable": 165,
+      "compiled": 168,
+      "dispatchable": 168,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 3,
-      "compiled_rate": 0.9821,
-      "dispatchable_rate": 0.9821,
-      "unsupported_rate": 0.0179,
+      "unsupported": 0,
+      "compiled_rate": 1.0,
+      "dispatchable_rate": 1.0,
+      "unsupported_rate": 0.0,
       "scenarios": 56,
-      "compiled_scenarios": 55,
-      "dispatchable_scenarios": 55,
-      "dispatchable_scenario_rate": 0.9821
+      "compiled_scenarios": 56,
+      "dispatchable_scenarios": 56,
+      "dispatchable_scenario_rate": 1.0
     },
     "test_challenge": {
       "tasks": 417,
@@ -206,7 +206,7 @@
       ],
       [
         "splitwise_vacation_or_expense",
-        31
+        28
       ],
       [
         "spotify_music",
@@ -224,16 +224,16 @@
   },
   "machine_coverage_cost": {
     "toolsandbox_static_machines": 13,
-    "appworld_static_machines": 85,
-    "appworld_machines_used_in_full168": 54,
-    "appworld_supported_tasks": 165,
-    "appworld_tasks_per_used_machine": 3.0555555555555554,
-    "appworld_handler_loc_median": 73.5,
-    "appworld_handler_loc_mean": 86.77777777777777,
+    "appworld_static_machines": 86,
+    "appworld_machines_used_in_full168": 55,
+    "appworld_supported_tasks": 168,
+    "appworld_tasks_per_used_machine": 3.0545454545454547,
+    "appworld_handler_loc_median": 74.0,
+    "appworld_handler_loc_mean": 89.67272727272727,
     "appworld_compiler_loc_median": 18.0,
-    "appworld_total_loc_median": 93.0,
+    "appworld_total_loc_median": 94.0,
     "appworld_slots_median": 1.0,
-    "appworld_slots_mean": 1.5740740740740742,
+    "appworld_slots_mean": 1.6,
     "adaptation_time_status": "not_recorded_for_historical_machines",
     "top_tasks_per_machine": [
       [

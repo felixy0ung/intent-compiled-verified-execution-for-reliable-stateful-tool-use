@@ -54,6 +54,7 @@ test_normal,appworld_venmo_reset_friends_to_phone_friends,3,3,0,0,1
 test_normal,appworld_venmo_send_to_each_relationship_with_refill,3,3,0,0,1
 test_normal,appworld_venmo_send_to_named_user,3,3,0,0,1
 test_normal,appworld_venmo_settle_roommate_dinner,3,3,0,0,1
+test_normal,appworld_venmo_settle_trip_note_debts,3,3,0,0,1
 test_normal,appworld_venmo_signup_missing_relationship_accounts,3,3,0,0,1
 test_normal,appworld_venmo_sum_month_transactions,3,3,0,0,1
 test_normal,appworld_venmo_sum_recent_received_requests,3,3,0,0,1

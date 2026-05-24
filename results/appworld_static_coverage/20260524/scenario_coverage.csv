@@ -156,6 +156,7 @@ test_normal,31dc501,3,3,3,1.0,1.0,appworld_phone_update_wake_alarm_snooze,
 test_normal,325d6ec,3,3,3,1.0,1.0,appworld_spotify_navigate_until_private_status,
 test_normal,32616b5,3,3,3,1.0,1.0,appworld_splitwise_record_trip_expenses_from_simple_note,
 test_normal,3aa1a22,3,3,3,1.0,1.0,appworld_splitwise_accept_known_phone_invitations,
+test_normal,3b8fb7a,3,3,3,1.0,1.0,appworld_venmo_settle_trip_note_debts,
 test_normal,3d9a636,3,3,3,1.0,1.0,appworld_venmo_reset_friends_to_phone_friends,
 test_normal,425a494,3,3,3,1.0,1.0,appworld_spotify_liked_genre_extreme,
 test_normal,522e5e5,3,3,3,1.0,1.0,appworld_venmo_friend_transaction_counterparties,
@@ -193,4 +194,3 @@ test_normal,f861c32,3,3,3,1.0,1.0,appworld_venmo_send_to_each_relationship_with_
 test_normal,fd1f8fa,3,3,3,1.0,1.0,appworld_spotify_filter_queue_by_liked_status,
 test_normal,ff58e36,3,3,3,1.0,1.0,appworld_venmo_add_friends_by_relationships,
 test_normal,ffe6d5e,3,3,3,1.0,1.0,appworld_phone_reply_favorite_recipe_to_relationship,
-test_normal,3b8fb7a,3,0,0,0.0,0.0,,splitwise_vacation_or_expense

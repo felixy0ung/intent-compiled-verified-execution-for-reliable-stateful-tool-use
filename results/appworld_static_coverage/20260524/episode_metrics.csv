@@ -47,9 +47,9 @@ test_normal,042a9fc_3,042a9fc,1,1,0,0,appworld_spotify_apply_phone_playlist_sugg
 test_normal,cef9191_1,cef9191,1,1,0,0,appworld_spotify_followed_artist_follower_extreme,,,,167a355d60355dd1
 test_normal,cef9191_2,cef9191,1,1,0,0,appworld_spotify_followed_artist_follower_extreme,,,,ba9c1683d191c54e
 test_normal,cef9191_3,cef9191,1,1,0,0,appworld_spotify_followed_artist_follower_extreme,,,,167a355d60355dd1
-test_normal,3b8fb7a_1,3b8fb7a,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,212596d85f7a0f6b
-test_normal,3b8fb7a_2,3b8fb7a,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,75e1901487ebb51f
-test_normal,3b8fb7a_3,3b8fb7a,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,a6e8e47aaed27ce5
+test_normal,3b8fb7a_1,3b8fb7a,1,1,0,0,appworld_venmo_settle_trip_note_debts,,,,212596d85f7a0f6b
+test_normal,3b8fb7a_2,3b8fb7a,1,1,0,0,appworld_venmo_settle_trip_note_debts,,,,75e1901487ebb51f
+test_normal,3b8fb7a_3,3b8fb7a,1,1,0,0,appworld_venmo_settle_trip_note_debts,,,,a6e8e47aaed27ce5
 test_normal,afc4005_1,afc4005,1,1,0,0,appworld_simple_note_workout_duration,,,,b795db813b4598f8
 test_normal,afc4005_2,afc4005,1,1,0,0,appworld_simple_note_workout_duration,,,,f688e6203d2322bc
 test_normal,afc4005_3,afc4005,1,1,0,0,appworld_simple_note_workout_duration,,,,278740e865eb842c

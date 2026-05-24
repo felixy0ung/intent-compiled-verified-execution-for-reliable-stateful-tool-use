@@ -164,7 +164,7 @@ extraction call per task plus the runtime-checked executor.
   `results/appworld_static_coverage/20260524` reads only local AppWorld public
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
-  inspecting databases, or loading ground truth. It compiles 165/168 `test_normal`
+  inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
   instructions and 18/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
@@ -343,11 +343,18 @@ extraction call per task plus the runtime-checked executor.
   reaches 47/47 for deterministic and DeepSeek-chat intent rows with 0 invalid and
   0 unsafe state changes. The final local no-newline task ID is recorded under
   `results/appworld_rave_official_test_normal_missing_bde252e3_20260524/20260524_215549`.
-  The deterministic combined local file-level summary under
+  The superseded deterministic combined local file-level summary under
   `results/appworld_rave_official_test_normal_full168_d18139b_card_path_20260524/`
-  reports 165/168 overall success, 165/168 covered/supported tasks, 165/165
-  supported-task success, 0 unsafe state changes, and 0.0179 invalid/tool per task. This is local AppWorld 0.2.0
-  file-level evidence, not a public leaderboard submission.
+  reports 165/168 overall success and left the three `3b8fb7a` trip-note debt tasks as
+  unsupported no-action outcomes. The follow-up general machine for Simple Note trip-debt
+  ledgers to private Venmo payments/requests is validated on
+  `results/appworld_trip_note_debts_20260524/20260524_225607` with 3/3 success, 0
+  invalid calls, and 0 unsafe state changes. The current deterministic combined local
+  file-level summary under
+  `results/appworld_rave_official_test_normal_full168_trip_note_debts_20260524/20260524_225648`
+  reports 168/168 overall success, 168/168 supported-task success, 0 unsafe state
+  changes, and 0 invalid/tool per task. This is local AppWorld 0.2.0 file-level evidence,
+  not a public leaderboard submission.
 - Held-out AppWorld test-challenge Amazon-prefix diagnostic:
   `results/20260507_035124` records the first 24 `test_challenge` ids before the latest
   saved-list Amazon machines at 3/24 success, 3/24 supported, 0 unsafe state changes,
@@ -641,7 +648,7 @@ Current claims should **not** include:
 - full AppWorld held-out test or leaderboard coverage,
 - public leaderboard-agent comparisons beyond the local official dev57 split,
 - safety for arbitrary tools outside the registered intent machines.
-- automatic synthesis of AppWorld purchase, vacation-settlement, or other multi-entity
+- automatic synthesis of AppWorld purchase, Gmail, vacation-expense, or other multi-entity
   state machines.
 
 The current frontier/OpenAI-compatible replication template is:

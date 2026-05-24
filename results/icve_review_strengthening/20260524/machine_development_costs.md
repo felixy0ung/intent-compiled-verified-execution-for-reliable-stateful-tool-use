@@ -6,11 +6,11 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 85
-- Used by full168 supported tasks: 54
-- Supported tasks: 165
-- Tasks per used machine: 3.06
-- Median slots / compiler LOC / handler LOC / total LOC: 1.0 / 18.0 / 73.5 / 93.0
+- Registered AppWorld machines: 86
+- Used by full168 supported tasks: 55
+- Supported tasks: 168
+- Tasks per used machine: 3.05
+- Median slots / compiler LOC / handler LOC / total LOC: 1.0 / 18.0 / 74.0 / 94.0
 
 | intent_type | slots | compiler LOC | handler LOC | covered tasks | shared APIs | adaptation time |
 | --- | ---: | ---: | ---: | ---: | --- | --- |
@@ -64,6 +64,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_venmo_send_to_each_relationship_with_refill | 3 | 21 | 110 | 3 | phone,supervisor,venmo | not_recorded |
 | appworld_venmo_send_to_named_user | 2 | 16 | 139 | 3 | phone,supervisor,venmo | not_recorded |
 | appworld_venmo_settle_roommate_dinner | 5 | 24 | 172 | 3 | phone,supervisor,venmo | not_recorded |
+| appworld_venmo_settle_trip_note_debts | 3 | 20 | 246 | 3 | phone,simple_note,supervisor,venmo | not_recorded |
 | appworld_venmo_signup_missing_relationship_accounts | 3 | 23 | 75 | 3 | phone,supervisor,venmo | not_recorded |
 | appworld_venmo_sum_month_transactions | 1 | 17 | 41 | 3 | supervisor,venmo | not_recorded |
 | appworld_venmo_sum_recent_received_requests | 1 | 16 | 33 | 3 | supervisor,venmo | not_recorded |

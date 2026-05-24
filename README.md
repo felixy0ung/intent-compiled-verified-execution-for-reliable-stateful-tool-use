@@ -1,131 +1,214 @@
-# Intent-Compiled Verified Execution for Reliable Stateful Tool Use
+# Intent-Compiled Verified Execution
 
-This repository contains the code and summary-level artifacts for the paper
-**"Intent-Compiled Verified Execution for Reliable Stateful Tool Use"**.
+This repository contains the code and summary artifacts for **Intent-Compiled Verified
+Execution (ICVE)**, a runtime-checked approach for reliable stateful tool use.
 
-The method is **Intent-Compiled Verified Execution (ICVE)**. Some module names,
-class names, and historical result paths still use `RAVE`; those names refer to
-the same runtime lineage used during development.
+Some package names and historical paths still use `pctu_pilot`, `RAVE`, or `RAVE-2`.
+The method name used in the paper is ICVE.
 
-## What Is Included
+## Overview
 
-- `src/pctu_pilot/`: ICVE runtime, typed intent DSL, ToolSandbox binding, AppWorld
-  binding, MiniStore diagnostic environment, and LLM client utilities.
-- `experiments/`: runners for MiniStore, ToolSandbox, AppWorld slices, hosted
-  OpenAI-compatible replications, static AppWorld coverage audits, and result
-  summarization.
-- `results/`: summary CSV/Markdown outputs and evaluator summaries used to support
-  the paper tables.
-- `paper/`: paper source, references, compiled PDF, and artifact manifest.
-- `docs/`: setup notes for local/hosted LLM runs and ToolSandbox diagnostics.
+Stateful tool agents often fail because one free-form model loop is asked to perform
+intent recognition, evidence search, argument grounding, precondition repair, mutation,
+and stopping. ICVE moves covered high-risk intents into typed `IntentMachine`s. Each
+machine has a schema, compiler, and handler; the runtime owns evidence acquisition,
+precondition checks, repair, abstention, execution, and postcondition stopping.
 
-## What Is Not Included
+The current claim is intentionally bounded: ICVE improves safety and efficiency for
+registered stateful task families and for a small class of signature-identifiable boolean
+setting APIs. It is not an open-domain tool-use safety guarantee and it is not a public
+AppWorld leaderboard submission.
 
-This public repository intentionally excludes:
+## Main Results Snapshot
 
-- real API keys and private `.env` files;
-- raw AppWorld task logs, database snapshots, access tokens, downloaded bundles, and
-  protected AppWorld data;
-- model weights, local conda environments, and machine-specific caches;
-- internal submission/checklist files and local upload manifests.
+- ToolSandbox single-turn and insufficient-information suites: ICVE reduces invalid and
+  unsafe calls to zero on covered mutating tasks while using far fewer model calls/tokens
+  than ReAct.
+- Model checks: local Qwen2.5-0.5B, Qwen2.5-3B, Qwen2.5-7B-4bit, a Phi-3-mini
+  diagnostic, and hosted DeepSeek-chat / DeepSeek-reasoner replications.
+- Guardrail diagnostic: ReAct+schema/proof/verifier improves safety but still leaves
+  model-owned proof/action retry loops; ICVE removes the mutating loop for covered
+  intents.
+- AppWorld targeted 72-task slice: deterministic ICVE and real-LLM intent extraction
+  rows reach 72/72, while direct-code and typed-intent-code baselines remain much lower.
+- AppWorld local official dev57: deterministic ICVE and ICVE + DeepSeek-chat intent
+  extraction reach 100.0 task-goal / 100.0 scenario-goal with AppWorld's packaged
+  evaluator on the same local dev split.
+- AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
+  solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
+- Static public-instruction coverage audit: the registry compiles 168/168 local
+  `test_normal.txt` instructions and 18/417 local `test_challenge.txt` instructions.
+  The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 86 registered
+  machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
+  machine; median used-machine total LOC is 94).
 
-To reproduce AppWorld experiments, obtain AppWorld through its official release channel
-and follow its license and redistribution terms. To reproduce ToolSandbox experiments,
-install ToolSandbox separately; this repository contains the ICVE binding and runner, not
-a vendored ToolSandbox checkout.
+## Key Artifacts
 
-## Quick Local Smoke Test
+- Paper source and PDF:
+  `paper/rave_intent_compiled_verified_execution_arr.tex`,
+  `paper/rave_intent_compiled_verified_execution_arr.pdf`
+- Artifact manifest:
+  `paper/artifact_manifest_rave2.md`
+- ToolSandbox primary Qwen2.5-3B runs:
+  `results/toolsandbox_qwen25_3b_rave2_single_turn_compare_fixed/20260501_144845/`,
+  `results/toolsandbox_qwen25_3b_rave2_insufficient_compare_fixed2/20260501_153424/`
+- ToolSandbox guardrail diagnostic:
+  `results/toolsandbox_pctu_insufficient_deepseek/20260524_211028/`
+- Dynamic boolean-setting induction:
+  `results/dynamic_synthesis_probe/20260524_172425/`,
+  `results/dynamic_affordance_generalization/20260524_172229/`
+- AppWorld targeted 72-task slice:
+  `results/appworld_rave_slice_expanded72/20260506_000919/`
+- AppWorld local dev57:
+  `results/appworld_rave_official_dev57_final/20260506_021705/`,
+  `results/appworld_rave_official_dev57_final_llm_intent_deepseek_chat/20260506_021940/`
+- AppWorld full local `test_normal.txt` diagnostic:
+  `results/appworld_rave_official_test_normal_full168_trip_note_debts_20260524/20260524_225648/`
+- AppWorld trip-note debt family check:
+  `results/appworld_trip_note_debts_20260524/20260524_225607/`
+- AppWorld static public-instruction coverage:
+  `results/appworld_static_coverage/20260524/`
+- Review-strengthening summaries and machine development-cost table:
+  `results/icve_review_strengthening/20260524/`
 
-The MiniStore diagnostic has no external benchmark dependency:
+## Reproducing ToolSandbox Runs
+
+Start a local OpenAI-compatible model server, then run the benchmark scripts. For example,
+Qwen2.5-3B single-turn:
 
 ```bash
-python -m venv .venv
-source .venv/bin/activate
-python experiments/run_pilot.py
-```
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/local_openai_transformers_server.py \
+  --model Qwen/Qwen2.5-3B-Instruct \
+  --host 127.0.0.1 \
+  --port 8000 \
+  --device cuda
 
-This writes summary files under `results/`.
-
-## ToolSandbox Runs
-
-Install ToolSandbox and place or symlink it at `third_party/ToolSandbox-main`, then run
-against a local OpenAI-compatible model server:
-
-```bash
-PYTHONPATH=src python experiments/run_toolsandbox_kill_criteria.py \
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/run_toolsandbox_kill_criteria.py \
   --base-url http://127.0.0.1:8000/v1 \
   --model Qwen/Qwen2.5-3B-Instruct \
-  --methods react rave \
-  --max-scenarios 30
+  --methods rave rave_no_rave2_dsl react \
+  --scenario-suite single_turn_no_distraction \
+  --max-scenarios 0 \
+  --output-dir results/reproduce_qwen25_3b_single_turn
 ```
 
-For hosted OpenAI-compatible endpoints, copy one of the example environment files,
-fill in credentials privately, and do not commit the copied file:
+Qwen2.5-3B insufficient-information:
 
 ```bash
-cp experiments/frontier_replication.env.example experiments/frontier_replication.env
-source experiments/frontier_replication.env
-./experiments/run_frontier_toolsandbox_replication.sh
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/run_toolsandbox_kill_criteria.py \
+  --base-url http://127.0.0.1:8000/v1 \
+  --model Qwen/Qwen2.5-3B-Instruct \
+  --methods rave rave_no_abstention react \
+  --scenario-suite insufficient_no_distraction \
+  --max-scenarios 0 \
+  --output-dir results/reproduce_qwen25_3b_insufficient
 ```
 
-## AppWorld Runs
-
-Install AppWorld and download its data through the official tooling. Then run the
-deterministic public stateful slice:
+Regenerate summary statistics:
 
 ```bash
-PYTHONPATH=src python experiments/run_appworld_rave_slice.py \
-  --appworld-root /path/to/appworld/root \
-  --agent deterministic
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/summarize_rave2_statistics.py
 ```
 
-Hosted LLM intent extraction uses the same runner with `--agent llm-intent` plus
-`FRONTIER_BASE_URL`, `FRONTIER_MODEL`, and `FRONTIER_API_KEY` supplied through your
-private shell environment.
-
-## Reproducing Paper Tables
-
-The high-level artifact map is in `paper/artifact_manifest_rave2.md`. The summary
-statistics used by the paper can be regenerated from the packaged summary files with:
+Run the no-LLM dynamic boolean-setting probes:
 
 ```bash
-PYTHONPATH=src python experiments/summarize_rave2_statistics.py
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/run_dynamic_synthesis_probe.py
+
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/run_dynamic_affordance_generalization.py
 ```
 
-Some full benchmark rows require external packages and data that are not redistributed
-here. The repository keeps summary outputs for auditability and provides the runner code
-needed to regenerate them in a properly licensed local setup.
+## Reproducing AppWorld Diagnostics
 
-The packaged AppWorld summaries include the deterministic local `test_normal.txt`
-full-file execution diagnostic (`165/168` overall success, `165/168`
-covered/supported tasks, `165/165` supported-task success) and a
-static public-instruction compile audit over local `test_normal.txt` and
-`test_challenge.txt` (`165/168` and `18/417` complete frames, respectively). The static
-audit does not execute tools or load ground truth; it is a coverage-boundary diagnostic,
-not a leaderboard result. The same directory includes `coverage_roadmap.csv`, which maps
-unsupported public-instruction buckets to the machine capabilities and validation gates
-required before claiming those families as covered.
+AppWorld experiments require a local AppWorld installation and dataset root. The runners
+expect public task instructions and live `apis` access; they do not require ground-truth
+answers or compiled solution files.
 
-Static machines are intended to be developed from API signatures, public task
-instructions, and ordinary runtime error categories, not from private database state,
-ground-truth answers, compiled solutions, or successful trajectories. The paper and
-artifact manifest map this protocol to the packaged coverage and development-cost
-tables.
-
-The paper PDF also includes Appendix A, a claim-to-evidence matrix, and Appendix B, a
-compact artifact map. These appendices spell out which claims are supported by which
-results and which claims are intentionally out of scope. In particular, this artifact does
-not claim full AppWorld leaderboard coverage or open-ended state-machine synthesis.
-
-## Privacy and Security
-
-Before publishing, this repository was built from a whitelist and scanned for common
-secret formats, local absolute paths, private `.env` files, raw logs, and protected data
-bundles. You can rerun the lightweight scanner with:
+Targeted AppWorld slice:
 
 ```bash
-python scripts/scan_for_sensitive_info.py .
+APPWORLD_ROOT=<PROJECT_ROOT>/appworld_020_root \
+PYTHONPATH=<PROJECT_ROOT>/src \
+PATH=<CONDA_ROOT>/envs/pctu-appworld-agents/bin:$PATH \
+python experiments/run_appworld_rave_slice.py \
+  --appworld-root appworld_020_root \
+  --agent deterministic \
+  --experiment-name reproduce_appworld_slice \
+  --output-root results/reproduce_appworld_slice
 ```
 
-The scanner is not a substitute for manual review, but it catches the most common
-accidental leaks.
+Full local `test_normal.txt` diagnostic:
+
+```bash
+APPWORLD_ROOT=<PROJECT_ROOT>/appworld_020_root \
+PYTHONPATH=<PROJECT_ROOT>/src \
+PATH=<CONDA_ROOT>/envs/pctu-appworld-agents/bin:$PATH \
+python experiments/run_appworld_rave_slice.py \
+  --appworld-root appworld_020_root \
+  --agent deterministic \
+  --task-ids $(python3 - <<'PY'
+from pathlib import Path
+ids = []
+for line in Path("appworld_020_root/data/datasets/test_normal.txt").read_text().splitlines():
+    if line.strip():
+        ids.append(line.strip().split(":")[0])
+print(" ".join(ids))
+PY
+) \
+  --experiment-name reproduce_appworld_test_normal_full168 \
+  --output-root results/reproduce_appworld_test_normal_full168
+```
+
+Static public-instruction coverage audit:
+
+```bash
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/summarize_appworld_static_coverage.py \
+  --output-dir results/appworld_static_coverage/reproduce
+```
+
+Review-strengthening analysis:
+
+```bash
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/summarize_icve_review_strengthening.py
+```
+
+## Main Files
+
+- `src/pctu_pilot/rave_dsl.py`: typed intent frames, schemas, machines, and runtime
+  action types.
+- `src/pctu_pilot/rave_runtime.py`: benchmark-agnostic registry runtime, state ledger,
+  and policy interfaces.
+- `src/pctu_pilot/toolsandbox_agents.py`: ToolSandbox ReAct/PCTU/ICVE binding,
+  registered machines, and restricted dynamic setting-machine synthesis.
+- `src/pctu_pilot/appworld_agents.py`: AppWorld intent machines and real-LLM
+  intent/code baselines.
+- `experiments/run_toolsandbox_kill_criteria.py`: ToolSandbox runner.
+- `experiments/run_appworld_rave_slice.py`: AppWorld deterministic, intent-extraction,
+  direct-code, repair, typed-intent-code, and ReAct-code runner.
+- `experiments/summarize_appworld_static_coverage.py`: public-instruction compile
+  coverage audit.
+- `experiments/summarize_icve_review_strengthening.py`: guardrail, coverage-risk, and
+  machine-cost summary generator.
+- `experiments/build_anonymous_supplement.py`: whitelist-based anonymous supplement
+  builder.
+- `scripts/scan_for_sensitive_info.py`: repository hygiene scan used before public
+  pushes.
+
+## Data and Safety Notes
+
+The repository is intended to contain source code, public task-id lists, paper files, and
+summary-level result artifacts. It should not contain real API keys, raw AppWorld
+databases, access tokens, downloaded protected bundles, local conda environments, model
+caches, or private task logs.
+
+For hosted model replications, use the `.env.example` templates and keep real credentials
+outside version control.

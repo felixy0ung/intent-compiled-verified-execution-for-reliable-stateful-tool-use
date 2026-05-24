@@ -9,21 +9,21 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | metric | value |
 | --- | ---: |
-| registered_appworld_machines | 85 |
+| registered_appworld_machines | 86 |
 | total_tasks | 585 |
-| compiled | 183 |
-| dispatchable | 183 |
-| unsupported | 402 |
-| compiled_rate | 0.3128 |
-| dispatchable_rate | 0.3128 |
-| dispatchable_scenarios | 61 / 195 |
+| compiled | 186 |
+| dispatchable | 186 |
+| unsupported | 399 |
+| compiled_rate | 0.3179 |
+| dispatchable_rate | 0.3179 |
+| dispatchable_scenarios | 62 / 195 |
 
 ## By Split
 
 | split | tasks | compiled | dispatchable | unsupported | dispatchable rate | dispatchable scenarios |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | test_challenge | 417 | 18 | 18 | 399 | 0.0432 | 6 / 139 |
-| test_normal | 168 | 165 | 165 | 3 | 0.9821 | 55 / 56 |
+| test_normal | 168 | 168 | 168 | 0 | 1.0000 | 56 / 56 |
 
 ## Top Dispatchable Intents
 
@@ -48,7 +48,7 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 | --- | ---: |
 | amazon_purchase_or_product_search | 206 |
 | gmail_email | 116 |
-| splitwise_vacation_or_expense | 31 |
+| splitwise_vacation_or_expense | 28 |
 | spotify_music | 26 |
 | venmo_payment_or_request | 17 |
 | phone_message | 6 |
@@ -68,11 +68,10 @@ Full rows are in `coverage_roadmap.csv`.
 | test_challenge | spotify_music | 26 | 11 | Spotify search-and-library machines |
 | test_challenge | venmo_payment_or_request | 17 | 7 | Venmo payment/request machines |
 | test_challenge | phone_message | 6 | 2 | Phone messaging machines |
-| test_normal | splitwise_vacation_or_expense | 3 | 1 | Splitwise expense-settlement machines |
 
 ## Scenario Coverage
 
-- Fully dispatchable scenarios: 61
+- Fully dispatchable scenarios: 62
 - Partially dispatchable scenarios: 0
 - Full per-scenario rows are in `scenario_coverage.csv`.
 

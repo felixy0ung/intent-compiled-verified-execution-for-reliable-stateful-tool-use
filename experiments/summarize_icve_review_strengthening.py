@@ -27,7 +27,7 @@ TOOL_SANDBOX_INSUFFICIENT = (
 )
 APPWORLD_FULL168 = (
     ROOT
-    / "results/appworld_rave_official_test_normal_full168_d18139b_card_path_20260524/deterministic/episode_metrics.csv"
+    / "results/appworld_rave_official_test_normal_full168_trip_note_debts_20260524/20260524_225648/episode_metrics.csv"
 )
 APPWORLD_STATIC_COVERAGE = ROOT / "results/appworld_static_coverage/20260524/summary.json"
 MINISTORE_PCTU = ROOT / "results/real_llm_ministore_qwen25_3b_rave_tpc2_v2.csv"

@@ -878,6 +878,18 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_venmo_settle_trip_note_debts",
+                (
+                    SlotSpec("relationship"),
+                    SlotSpec("trip_name"),
+                    SlotSpec("note"),
+                ),
+            ),
+            compiler=compile_venmo_settle_trip_note_debts,
+            handler=handle_venmo_settle_trip_note_debts,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_venmo_settle_roommate_dinner",
                 (
                     SlotSpec("taxi_total"),
@@ -1916,6 +1928,28 @@ def compile_venmo_request_money_from_contact(
     frame.set_slot("person_first_name", match.group("first_name"), source="regex")
     frame.set_slot("amount", float(match.group("amount")), source="regex")
     frame.set_slot("private", match.group("privacy").lower() == "privately", source="regex")
+    frame.set_slot("note", match.group("note"), source="regex")
+    return frame
+
+
+def compile_venmo_settle_trip_note_debts(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'I went on a trip with (?P<relationship>friends) to (?P<trip_name>[A-Za-z][A-Za-z ]*?) '
+        r'recently\. I have maintained a note of money I owe to others and others owe me '
+        r'from the trip in simple note\. Make private venmo payments or requests accordingly\. '
+        r'In the payments/requests, add a note, "(?P<note>[^"]+)"\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_venmo_settle_trip_note_debts")
+    frame.set_slot("relationship", RELATION_ALIASES[match.group("relationship").lower()], source="regex")
+    frame.set_slot("trip_name", match.group("trip_name").strip(), source="regex")
     frame.set_slot("note", match.group("note"), source="regex")
     return frame
 
@@ -5168,6 +5202,266 @@ print(json.dumps({{"receiver_email": matching_users[0]["email"], "amount": amoun
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_venmo_request_money_from_contact",
+    )
+
+
+def handle_venmo_settle_trip_note_debts(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    trip_name = str(frame.get("trip_name") or "").strip()
+    note = str(frame.get("note") or "").strip()
+    if relationship != "friend" or not trip_name or not note:
+        frame.abstain_reason = "missing_venmo_trip_note_debt_slots"
+        return None
+    code = common_appworld_prelude(["phone", "simple_note", "venmo"]) + f"""
+relationship = {json.dumps(relationship)}
+trip_name = {json.dumps(trip_name)}
+note = {json.dumps(note)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def name_key(value):
+    return normalize_text(value)
+
+def parse_money(value):
+    cleaned = re.sub(r"[^0-9.]", "", str(value or ""))
+    if not cleaned:
+        raise Exception(f"Missing money amount in {{value!r}}")
+    return round(float(cleaned), 2)
+
+def add_debt(rows, direction, person_name, amount, source_line):
+    person_name = str(person_name or "").strip(" .:-")
+    if not person_name or person_name.lower() in {{"i", "me", "my"}}:
+        return
+    rows.append({{
+        "direction": direction,
+        "person_name": person_name,
+        "amount": parse_money(amount),
+        "source_line": source_line,
+    }})
+
+def parse_debt_rows(content):
+    rows = []
+    for raw_line in str(content or "").splitlines():
+        line = raw_line.strip()
+        if not line:
+            continue
+        line = re.sub(r"^[#*\\-\\s]+", "", line).strip()
+        sep = r"(?:=>|:|,|-)?"
+        patterns = [
+            ("pay", rf"^I\\s+owe\\s+(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s*{{sep}}\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+            ("request", rf"^(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s+owes\\s+me\\s*{{sep}}\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+            ("request", rf"^(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s*{{sep}}\\s*owes\\s+me\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+            ("pay", rf"^(?:pay|send)\\s+(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s*{{sep}}\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+            ("request", rf"^(?:request|collect)\\s+(?:from\\s+)?(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s*{{sep}}\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+            ("pay", rf"^(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s*{{sep}}\\s*(?:I\\s+owe|owed by me)\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+            ("request", rf"^(?P<name>[A-Za-z][A-Za-z .'-]*?)\\s*{{sep}}\\s*(?:owes me|owed to me)\\s*\\$?(?P<amount>\\d+(?:\\.\\d+)?)\\b"),
+        ]
+        for direction, pattern in patterns:
+            match = re.search(pattern, line, flags=re.IGNORECASE)
+            if match:
+                add_debt(rows, direction, match.group("name"), match.group("amount"), raw_line)
+                break
+    return rows
+
+def exact_venmo_email(email):
+    users = paged(lambda page: apis.venmo.search_users(
+        access_token=tokens["venmo"],
+        query=email,
+        page_index=page,
+        page_limit=20,
+    ))
+    matches = [user for user in users if str(user.get("email") or "").strip().lower() == email]
+    if len(matches) != 1:
+        raise Exception(f"Expected exactly one Venmo user for {{email}}, found {{len(matches)}}")
+    return str(matches[0]["email"]).strip().lower()
+
+def create_transaction_with_refill(receiver_email, amount, description):
+    transaction_args = {{
+        "access_token": tokens["venmo"],
+        "receiver_email": receiver_email,
+        "amount": amount,
+        "description": description,
+        "private": True,
+    }}
+    account = apis.venmo.show_account(access_token=tokens["venmo"])
+    failed_attempts = 0
+    if float(account.get("venmo_balance") or 0) >= amount:
+        result = apis.venmo.create_transaction(**transaction_args)
+    else:
+        result = {{"message": "No non-expired payment card available."}}
+        cards = [
+            card
+            for card in apis.venmo.show_payment_cards(access_token=tokens["venmo"])
+            if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+        ]
+        cards = sorted(
+            cards,
+            key=lambda card: (
+                float(card.get("balance") or 0),
+                card["expiry_year"],
+                card["expiry_month"],
+                card["payment_card_id"],
+            ),
+            reverse=True,
+        )
+        for card in cards:
+            transaction_args["payment_card_id"] = card["payment_card_id"]
+            result = apis.venmo.create_transaction(**transaction_args)
+            if "transaction_id" in result:
+                break
+            failed_attempts += 1
+        if "transaction_id" not in result:
+            existing_card_numbers = {{str(card.get("card_number")) for card in cards}}
+            supervisor_cards = sorted(
+                apis.supervisor.show_payment_cards(),
+                key=lambda card: (
+                    float(card.get("balance") or 0),
+                    card["expiry_year"],
+                    card["expiry_month"],
+                    str(card["card_number"]),
+                ),
+                reverse=True,
+            )
+            for supervisor_card in supervisor_cards:
+                if str(supervisor_card.get("card_number")) in existing_card_numbers:
+                    continue
+                add_result = apis.venmo.add_payment_card(
+                    access_token=tokens["venmo"],
+                    card_name=supervisor_card["card_name"],
+                    owner_name=supervisor_card["owner_name"],
+                    card_number=supervisor_card["card_number"],
+                    expiry_year=supervisor_card["expiry_year"],
+                    expiry_month=supervisor_card["expiry_month"],
+                    cvv_number=supervisor_card["cvv_number"],
+                )
+                if "payment_card_id" not in add_result:
+                    result = add_result
+                    failed_attempts += 1
+                    continue
+                transaction_args["payment_card_id"] = add_result["payment_card_id"]
+                result = apis.venmo.create_transaction(**transaction_args)
+                if "transaction_id" in result:
+                    break
+                failed_attempts += 1
+    if "transaction_id" not in result:
+        raise Exception(f"Unable to create Venmo transaction to {{receiver_email}}: {{result}}")
+    return result, failed_attempts
+
+trip_key = normalize_text(trip_name)
+notes = paged(lambda page: apis.simple_note.search_notes(
+    access_token=tokens["simple_note"],
+    page_index=page,
+    page_limit=20,
+    dont_reorder_pinned=True,
+))
+candidate_notes = []
+for short_note in notes:
+    full_note = apis.simple_note.show_note(
+        access_token=tokens["simple_note"],
+        note_id=short_note["note_id"],
+    )
+    haystack = normalize_text(str(full_note.get("title") or "") + " " + str(full_note.get("content") or ""))
+    if trip_key in haystack and ("owe" in haystack or "owed" in haystack):
+        parsed_rows = parse_debt_rows(full_note.get("content"))
+        if parsed_rows:
+            candidate_notes.append({{"note": full_note, "rows": parsed_rows}})
+if len(candidate_notes) != 1:
+    raise Exception(f"Expected one Simple Note debt note for trip {{trip_name}}, found {{len(candidate_notes)}}")
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+contacts_by_name = {{}}
+for contact in contacts:
+    names = [
+        contact.get("first_name"),
+        contact.get("last_name"),
+        " ".join(
+            part for part in [contact.get("first_name"), contact.get("last_name")]
+            if part
+        ),
+    ]
+    for name in names:
+        key = name_key(name)
+        if key:
+            contacts_by_name.setdefault(key, []).append(contact)
+
+def contact_email_for(display_name):
+    key = name_key(display_name)
+    matches = contacts_by_name.get(key, [])
+    if not matches and key:
+        first = key.split()[0]
+        matches = contacts_by_name.get(first, [])
+    unique = []
+    seen = set()
+    for contact in matches:
+        email = str(contact.get("email") or "").strip().lower()
+        if email and email not in seen:
+            unique.append(contact)
+            seen.add(email)
+    if len(unique) != 1:
+        raise Exception(f"Could not uniquely resolve friend {{display_name!r}}; found {{len(unique)}}")
+    return str(unique[0]["email"]).strip().lower()
+
+payments = []
+requests = []
+failed_api_attempts = 0
+seen_actions = set()
+for row in candidate_notes[0]["rows"]:
+    email = contact_email_for(row["person_name"])
+    venmo_email = exact_venmo_email(email)
+    key = (row["direction"], venmo_email, row["amount"])
+    if key in seen_actions:
+        continue
+    seen_actions.add(key)
+    if row["direction"] == "pay":
+        result, failures = create_transaction_with_refill(venmo_email, row["amount"], note)
+        failed_api_attempts += failures
+        payments.append({{
+            "receiver_email": venmo_email,
+            "amount": row["amount"],
+            "transaction_id": result["transaction_id"],
+        }})
+    else:
+        result = apis.venmo.create_payment_request(
+            access_token=tokens["venmo"],
+            user_email=venmo_email,
+            amount=row["amount"],
+            description=note,
+            private=True,
+        )
+        if "payment_request_id" not in result:
+            raise Exception(f"Unable to create Venmo request for {{venmo_email}}: {{result}}")
+        requests.append({{
+            "user_email": venmo_email,
+            "amount": row["amount"],
+            "payment_request_id": result["payment_request_id"],
+        }})
+
+if not payments and not requests:
+    raise Exception(f"No Venmo actions produced for trip {{trip_name}}")
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "trip_name": trip_name,
+    "note": note,
+    "payments": payments,
+    "requests": requests,
+    "failed_api_attempts": failed_api_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_venmo_settle_trip_note_debts",
     )
 
 
@@ -10291,6 +10585,18 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "private": private,
             "note": slots.get("note"),
         }
+    if intent_type == "appworld_venmo_settle_trip_note_debts":
+        relationship = str(
+            slots.get("relationship")
+            or slots.get("relationship_type")
+            or ""
+        ).strip().lower()
+        relationship = RELATION_ALIASES.get(relationship, relationship)
+        return {
+            "relationship": relationship,
+            "trip_name": str(slots.get("trip_name") or slots.get("vacation_spot") or "").strip(),
+            "note": str(slots.get("note") or "").strip(),
+        }
     if intent_type == "appworld_venmo_settle_roommate_dinner":
         return {
             "taxi_total": float(slots["taxi_total"]),
@@ -11170,6 +11476,9 @@ JSON: {"intent_type":"appworld_venmo_approve_requests_and_withdraw_balance","slo
 
 Task: Request $28 privately on Venmo from my roommate, Melissa, with a note, "For the movie tickets".
 JSON: {"intent_type":"appworld_venmo_request_money_from_contact","slots":{"relationships":["roommate"],"person_first_name":"Melissa","amount":28,"private":true,"note":"For the movie tickets"}}
+
+Task: I went on a trip with friends to Maui recently. I have maintained a note of money I owe to others and others owe me from the trip in simple note. Make private venmo payments or requests accordingly. In the payments/requests, add a note, "For Maui trip".
+JSON: {"intent_type":"appworld_venmo_settle_trip_note_debts","slots":{"relationship":"friend","trip_name":"Maui","note":"For Maui trip"}}
 
 Task: My roommates and I went for a dinner yesterday. I paid for the taxi back and forth (total $60) and Nancy paid for everyone's food (total $128). Both food and commute are supposed to be shared equally among all. Make necessary payment requests with a note "For Taxi", and a payment to Nancy with a note "For Food", on venmo.
 JSON: {"intent_type":"appworld_venmo_settle_roommate_dinner","slots":{"taxi_total":60,"food_total":128,"food_payer_first_name":"Nancy","taxi_note":"For Taxi","food_note":"For Food"}}

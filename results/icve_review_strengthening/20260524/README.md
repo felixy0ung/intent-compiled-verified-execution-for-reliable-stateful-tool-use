@@ -37,25 +37,37 @@ invalid/tool=0.0000. Removing abstention keeps success at
 
 ## Coverage-Risk Tradeoff
 
-On the local AppWorld `test_normal.txt` diagnostic, ICVE supports 164
-of 167 tasks and succeeds on 164 overall
-(164 of 164 supported). The remaining
-3 tasks are unsupported safe no-action outcomes;
+On the local AppWorld `test_normal.txt` execution diagnostic, deterministic ICVE supports 168
+of 168 tasks and succeeds on 168 overall
+(168 of 168 supported). The remaining
+0 tasks are unsupported safe no-action outcomes;
 unsafe state changes are 0 and invalid tool calls are
-3. The `test_challenge` prefix is a negative-control
+0. The `test_challenge` prefix is a negative-control
 diagnostic: after adding two conservative saved-list machines, 12/24 solve, 12/24 remain
 unsupported no-action, and unsafe state changes remain 0.
+
+The static public-instruction audit covers all local AppWorld `test_normal.txt` and
+`test_challenge.txt` IDs without executing tools or loading ground truth. It compiles
+168/168
+`test_normal` instructions and
+18/417
+`test_challenge` instructions to complete intent frames. Unsupported `test_challenge`
+rows cluster mainly in amazon_purchase_or_product_search
+(206 tasks) and
+gmail_email
+(116 tasks), making the coverage boundary
+auditable rather than implicit.
 
 ## Machine Coverage and Development Cost
 
 The ToolSandbox binding has 13 static intent machines.
-The AppWorld binding has 85 static intent machines; the
-full167 diagnostic uses 54 machine types for
-164 supported tasks, or
-3.04 tasks per used machine. For used AppWorld
+The AppWorld binding has 86 static intent machines; the
+full168 diagnostic uses 55 machine types for
+168 supported tasks, or
+3.05 tasks per used machine. For used AppWorld
 machines, median compiler LOC is 18.0, median
-handler LOC is 73.5, median total LOC is
-93.0, and median slot count is
+handler LOC is 74.0, median total LOC is
+94.0, and median slot count is
 1.0. Historical adaptation time was not recorded, so the
 per-machine table marks `adaptation_time=not_recorded` and uses LOC/coverage as auditable
 cost proxies.
