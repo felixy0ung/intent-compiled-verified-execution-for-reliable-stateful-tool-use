@@ -1,6 +1,6 @@
 split,unsupported_bucket,tasks,scenarios
 test_challenge,amazon_purchase_or_product_search,205,71
-test_challenge,gmail_email,104,35
+test_challenge,gmail_email,101,34
 test_challenge,splitwise_vacation_or_expense,28,10
 test_challenge,spotify_music,15,7
 test_challenge,venmo_payment_or_request,2,2

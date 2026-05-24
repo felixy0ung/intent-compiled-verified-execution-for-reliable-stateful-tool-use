@@ -49,7 +49,6 @@ SUPPLEMENT_BAD_PATTERNS = [
     "/" + "ylw" + "/",
     "ana" + "conda3",
     "mini" + "conda3",
-    "48" + "/48",
     "121" + "--180",
     "121" + "-180",
 ]

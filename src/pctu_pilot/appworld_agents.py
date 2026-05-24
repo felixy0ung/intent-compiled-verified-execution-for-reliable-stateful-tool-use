@@ -1128,6 +1128,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_send_future_scheduled_drafts_now",
+                (),
+            ),
+            compiler=compile_gmail_send_future_scheduled_drafts_now,
+            handler=handle_gmail_send_future_scheduled_drafts_now,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_thread_cleanup",
                 (
                     SlotSpec("action"),
@@ -2465,6 +2473,20 @@ def compile_delete_gmail_empty_drafts(
     condition = "both" if match.group("joiner").lower() == "and" else "either"
     frame.set_slot("condition", condition, source="regex")
     return frame
+
+
+def compile_gmail_send_future_scheduled_drafts_now(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    if not re.fullmatch(
+        r"Send all my future-scheduled emails on Gmail right away\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+    return IntentFrame("appworld_gmail_send_future_scheduled_drafts_now")
 
 
 def compile_gmail_thread_cleanup(
@@ -8528,6 +8550,55 @@ print(json.dumps({{"condition": condition, "deleted": deleted, "kept": kept}}, s
     )
 
 
+def handle_gmail_send_future_scheduled_drafts_now(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    code = common_appworld_prelude(["gmail", "file_system"]) + """
+scheduled_drafts = paged(lambda page: apis.gmail.show_drafts(
+    access_token=tokens["gmail"],
+    scheduled=True,
+    page_index=page,
+    page_limit=20,
+    sort_by="+created_at",
+))
+
+sent = []
+for draft in scheduled_drafts:
+    scheduled_send_at = draft.get("scheduled_send_at")
+    if not scheduled_send_at:
+        continue
+    result = apis.gmail.send_email_from_draft(
+        access_token=tokens["gmail"],
+        draft_id=draft["draft_id"],
+        file_system_access_token=tokens.get("file_system"),
+    )
+    sent.append({
+        "draft_id": draft["draft_id"],
+        "scheduled_send_at": scheduled_send_at,
+        "sent_email_thread_id": result.get("sent_email_thread_id"),
+        "sent_email_id": result.get("sent_email_id"),
+    })
+
+remaining = paged(lambda page: apis.gmail.show_drafts(
+    access_token=tokens["gmail"],
+    scheduled=True,
+    page_index=page,
+    page_limit=20,
+))
+if remaining:
+    raise Exception(f"Expected no scheduled drafts after sending, found {[draft.get('draft_id') for draft in remaining]}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({"sent": sent}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_send_future_scheduled_drafts_now",
+    )
+
+
 def handle_gmail_thread_cleanup(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -13472,6 +13543,8 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         if condition in {"or", "either", "any"}:
             condition = "either"
         return {"condition": condition}
+    if intent_type == "appworld_gmail_send_future_scheduled_drafts_now":
+        return {}
     if intent_type == "appworld_gmail_thread_cleanup":
         action = str(slots.get("action", "")).strip().lower()
         if action in {"archive_threads", "archive"}:
@@ -13915,6 +13988,12 @@ def verify_or_repair_llm_intent_frame(
         if repaired is not None and repaired.intent_type == frame.intent_type:
             return repaired
         return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_send_future_scheduled_drafts_now":
+        if raw != "send all my future-scheduled emails on gmail right away.":
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_thread_cleanup":
         action = str(frame.get("action", "")).strip().lower()
         instruction_action = ""
@@ -14191,6 +14270,8 @@ Supported intent types and slots:
    slots: recommender_first_name string; product_type string; address_name string, default Home; card_name string, optional.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
+18. appworld_gmail_send_future_scheduled_drafts_now
+   slots: empty object.
 19. appworld_gmail_thread_cleanup
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
 20. appworld_gmail_star_threads_by_relationship
@@ -14483,6 +14564,9 @@ JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"
 
 Task: Delete all my Gmail drafts that have empty subject or body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"either"}}
+
+Task: Send all my future-scheduled emails on Gmail right away.
+JSON: {"intent_type":"appworld_gmail_send_future_scheduled_drafts_now","slots":{}}
 
 Task: Archive all my read Gmail threads from inbox/outbox, except the ones that have some priority label or are starred.
 JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"archive","exception_mode":"or"}}
