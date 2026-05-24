@@ -25,10 +25,11 @@ TOOL_SANDBOX_INSUFFICIENT = (
     ROOT
     / "results/toolsandbox_qwen25_3b_rave2_insufficient_compare_fixed2/20260501_153424/summary.csv"
 )
-APPWORLD_FULL167 = (
+APPWORLD_FULL168 = (
     ROOT
-    / "results/appworld_rave_official_test_normal_full167_d18139b_card_path_20260507/deterministic/episode_metrics.csv"
+    / "results/appworld_rave_official_test_normal_full168_d18139b_card_path_20260524/deterministic/episode_metrics.csv"
 )
+APPWORLD_STATIC_COVERAGE = ROOT / "results/appworld_static_coverage/20260524/summary.json"
 MINISTORE_PCTU = ROOT / "results/real_llm_ministore_qwen25_3b_rave_tpc2_v2.csv"
 TOOLSANDBOX_GUARDRAIL = (
     ROOT
@@ -44,13 +45,14 @@ OUTPUT_DIR = ROOT / "results/icve_review_strengthening/20260524"
 
 def main() -> None:
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-    appworld_rows = read_csv_dicts(APPWORLD_FULL167)
+    appworld_rows = read_csv_dicts(APPWORLD_FULL168)
     machine_rows = machine_development_rows(appworld_rows)
     summary = {
         "guardrail_baseline": guardrail_baseline(),
         "toolsandbox_guardrail_representative": toolsandbox_guardrail_representative(),
         "failure_mode_shift": failure_mode_shift(),
         "coverage_risk": coverage_risk(appworld_rows),
+        "static_instruction_coverage": static_instruction_coverage(),
         "machine_coverage_cost": machine_coverage_cost(appworld_rows, machine_rows),
     }
     (OUTPUT_DIR / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
@@ -188,6 +190,22 @@ def coverage_risk(rows: list[dict[str, str]]) -> dict[str, Any]:
     }
 
 
+def static_instruction_coverage() -> dict[str, Any]:
+    summary = json.loads(APPWORLD_STATIC_COVERAGE.read_text(encoding="utf-8"))
+    return {
+        "benchmark": "AppWorld public-instruction static compile audit",
+        "not_a_success_or_leaderboard_metric": bool(
+            summary["not_a_success_or_leaderboard_metric"]
+        ),
+        "registered_appworld_machines": int(summary["registered_appworld_machines"]),
+        "total_tasks": int(summary["total_tasks"]),
+        "overall": summary["overall"],
+        "test_normal": summary["by_split"]["test_normal"],
+        "test_challenge": summary["by_split"]["test_challenge"],
+        "top_unsupported_buckets": summary["top_unsupported_buckets"],
+    }
+
+
 def machine_coverage_cost(
     appworld_rows: list[dict[str, str]],
     machine_rows: list[dict[str, Any]],
@@ -201,7 +219,7 @@ def machine_coverage_cost(
     return {
         "toolsandbox_static_machines": len(toolsandbox_machines),
         "appworld_static_machines": len(appworld_machines),
-        "appworld_machines_used_in_full167": len(appworld_intents),
+        "appworld_machines_used_in_full168": len(appworld_intents),
         "appworld_supported_tasks": sum(int(row["supported"]) for row in appworld_rows),
         "appworld_tasks_per_used_machine": (
             sum(int(row["supported"]) for row in appworld_rows) / len(appworld_intents)
@@ -335,6 +353,7 @@ def write_markdown(path: Path, summary: dict[str, Any]) -> None:
     ts_guardrail = summary["toolsandbox_guardrail_representative"]
     failure = summary["failure_mode_shift"]
     coverage = summary["coverage_risk"]
+    static_coverage = summary["static_instruction_coverage"]
     cost = summary["machine_coverage_cost"]
     text = f"""# ICVE Review-Strengthening Analysis
 
@@ -375,7 +394,7 @@ invalid/tool={failure['icve']['invalid']:.4f}. Removing abstention keeps success
 
 ## Coverage-Risk Tradeoff
 
-On the local AppWorld `test_normal.txt` diagnostic, ICVE supports {coverage['supported']}
+On the local AppWorld `test_normal.txt` execution diagnostic, deterministic ICVE supports {coverage['supported']}
 of {coverage['tasks']} tasks and succeeds on {coverage['overall_success']} overall
 ({coverage['supported_success']} of {coverage['supported']} supported). The remaining
 {coverage['unsupported_safe_no_action']} tasks are unsupported safe no-action outcomes;
@@ -384,11 +403,23 @@ unsafe state changes are {coverage['unsafe_state_changes']} and invalid tool cal
 diagnostic: after adding two conservative saved-list machines, 12/24 solve, 12/24 remain
 unsupported no-action, and unsafe state changes remain 0.
 
+The static public-instruction audit covers all local AppWorld `test_normal.txt` and
+`test_challenge.txt` IDs without executing tools or loading ground truth. It compiles
+{static_coverage['test_normal']['dispatchable']}/{static_coverage['test_normal']['tasks']}
+`test_normal` instructions and
+{static_coverage['test_challenge']['dispatchable']}/{static_coverage['test_challenge']['tasks']}
+`test_challenge` instructions to complete intent frames. Unsupported `test_challenge`
+rows cluster mainly in {static_coverage['top_unsupported_buckets'][0][0]}
+({static_coverage['top_unsupported_buckets'][0][1]} tasks) and
+{static_coverage['top_unsupported_buckets'][1][0]}
+({static_coverage['top_unsupported_buckets'][1][1]} tasks), making the coverage boundary
+auditable rather than implicit.
+
 ## Machine Coverage and Development Cost
 
 The ToolSandbox binding has {cost['toolsandbox_static_machines']} static intent machines.
 The AppWorld binding has {cost['appworld_static_machines']} static intent machines; the
-full167 diagnostic uses {cost['appworld_machines_used_in_full167']} machine types for
+full168 diagnostic uses {cost['appworld_machines_used_in_full168']} machine types for
 {cost['appworld_supported_tasks']} supported tasks, or
 {cost['appworld_tasks_per_used_machine']:.2f} tasks per used machine. For used AppWorld
 machines, median compiler LOC is {cost['appworld_compiler_loc_median']:.1f}, median
@@ -417,7 +448,7 @@ def write_machine_markdown(
         "counts are reproducible proxies for development cost and reuse.",
         "",
         f"- Registered AppWorld machines: {cost['appworld_static_machines']}",
-        f"- Used by full167 supported tasks: {cost['appworld_machines_used_in_full167']}",
+        f"- Used by full168 supported tasks: {cost['appworld_machines_used_in_full168']}",
         f"- Supported tasks: {cost['appworld_supported_tasks']}",
         f"- Tasks per used machine: {cost['appworld_tasks_per_used_machine']:.2f}",
         f"- Median slots / compiler LOC / handler LOC / total LOC: "

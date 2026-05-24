@@ -1,0 +1,129 @@
+{
+  "audit_type": "static_public_instruction_compile_coverage",
+  "not_a_success_or_leaderboard_metric": true,
+  "registered_appworld_machines": 85,
+  "total_tasks": 585,
+  "overall": {
+    "tasks": 585,
+    "compiled": 183,
+    "dispatchable": 183,
+    "abstained": 0,
+    "incomplete": 0,
+    "unsupported": 402,
+    "compiled_rate": 0.3128,
+    "dispatchable_rate": 0.3128,
+    "unsupported_rate": 0.6872,
+    "scenarios": 195,
+    "compiled_scenarios": 61,
+    "dispatchable_scenarios": 61,
+    "dispatchable_scenario_rate": 0.3128
+  },
+  "by_split": {
+    "test_challenge": {
+      "tasks": 417,
+      "compiled": 18,
+      "dispatchable": 18,
+      "abstained": 0,
+      "incomplete": 0,
+      "unsupported": 399,
+      "compiled_rate": 0.0432,
+      "dispatchable_rate": 0.0432,
+      "unsupported_rate": 0.9568,
+      "scenarios": 139,
+      "compiled_scenarios": 6,
+      "dispatchable_scenarios": 6,
+      "dispatchable_scenario_rate": 0.0432
+    },
+    "test_normal": {
+      "tasks": 168,
+      "compiled": 165,
+      "dispatchable": 165,
+      "abstained": 0,
+      "incomplete": 0,
+      "unsupported": 3,
+      "compiled_rate": 0.9821,
+      "dispatchable_rate": 0.9821,
+      "unsupported_rate": 0.0179,
+      "scenarios": 56,
+      "compiled_scenarios": 55,
+      "dispatchable_scenarios": 55,
+      "dispatchable_scenario_rate": 0.9821
+    }
+  },
+  "top_dispatchable_intents": [
+    [
+      "appworld_venmo_friend_transaction_counterparties",
+      6
+    ],
+    [
+      "appworld_amazon_order_product_type_from_saved_list",
+      6
+    ],
+    [
+      "appworld_venmo_reset_friends_to_phone_friends",
+      3
+    ],
+    [
+      "appworld_spotify_filter_queue_by_liked_status",
+      3
+    ],
+    [
+      "appworld_spotify_navigate_until_private_status",
+      3
+    ],
+    [
+      "appworld_file_reorganize_dated_meeting_files",
+      3
+    ],
+    [
+      "appworld_venmo_sum_month_transactions",
+      3
+    ],
+    [
+      "appworld_spotify_archive_playlist_songs_from_file",
+      3
+    ],
+    [
+      "appworld_spotify_reset_queue_with_recommendations",
+      3
+    ],
+    [
+      "appworld_venmo_settle_roommate_dinner",
+      3
+    ],
+    [
+      "appworld_simple_note_fill_liked_song_release_months",
+      3
+    ],
+    [
+      "appworld_simple_note_add_today_habit_log",
+      3
+    ]
+  ],
+  "top_unsupported_buckets": [
+    [
+      "amazon_purchase_or_product_search",
+      206
+    ],
+    [
+      "gmail_email",
+      116
+    ],
+    [
+      "splitwise_vacation_or_expense",
+      31
+    ],
+    [
+      "spotify_music",
+      26
+    ],
+    [
+      "venmo_payment_or_request",
+      17
+    ],
+    [
+      "phone_message",
+      6
+    ]
+  ]
+}

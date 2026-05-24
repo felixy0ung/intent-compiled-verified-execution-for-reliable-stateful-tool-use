@@ -34,6 +34,7 @@ appworld_spotify_playlist_artist_song_count_extreme,2,"extreme,limit",18,41,59,3
 appworld_spotify_playlist_from_recent_simple_note,1,playlist_title,16,122,138,3,3,0,0,"simple_note,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_public_liked_library_playlist_share,1,partner_relationship,17,77,94,3,3,0,0,"phone,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_reset_queue_with_recommendations,0,none,12,26,38,3,3,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_todoist_fill_today_from_schedule,1,target_project_name,21,191,212,3,3,0,0,"simple_note,supervisor,todoist","schema,compiler,handler,ledger,policy",not_recorded
 appworld_todoist_reassign_accepted_takeover_tasks,1,comment_template,20,101,121,3,3,0,0,"supervisor,todoist","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_accept_named_carpool_request_this_month,1,person_first_name,16,130,146,3,3,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_add_friends_by_relationships,1,relationships,18,54,72,3,3,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
@@ -52,7 +53,6 @@ appworld_venmo_signup_missing_relationship_accounts,3,"relationships,password,me
 appworld_venmo_sum_month_transactions,1,direction,17,41,58,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_recent_received_requests,1,days,16,33,49,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_year_bill_payments,1,bill_type,16,36,52,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
-appworld_todoist_fill_today_from_schedule,1,target_project_name,21,191,212,2,2,0,0,"simple_note,supervisor,todoist","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_product_type_between_saved_lists,3,"source_container,target_container,product_type",18,58,76,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_rating_filtered_products,4,"source_container,target_container,comparison,threshold_rating",20,58,78,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_order_product_type_from_saved_list,4,"source_container,product_type,address_name,card_name",19,114,133,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded

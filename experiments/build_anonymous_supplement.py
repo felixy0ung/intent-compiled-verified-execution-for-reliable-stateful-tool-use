@@ -52,7 +52,7 @@ EXCLUDED_RESULT_DIRS = {
 }
 
 EXCLUDED_RESULT_FILENAMES = {
-    # Superseded by the 121--167 continuation and full local test_normal file summary.
+    # Superseded by the 121--168 continuation and full local test_normal file summary.
     "appworld_test_normal_smoke121_180_" + "20260506.md",
     "second_benchmark_" + "feasibility_20260504.md",
     "rave2_experiments_20260501.md",

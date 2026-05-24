@@ -12,7 +12,8 @@ the same runtime lineage used during development.
 - `src/pctu_pilot/`: ICVE runtime, typed intent DSL, ToolSandbox binding, AppWorld
   binding, MiniStore diagnostic environment, and LLM client utilities.
 - `experiments/`: runners for MiniStore, ToolSandbox, AppWorld slices, hosted
-  OpenAI-compatible replications, and result summarization.
+  OpenAI-compatible replications, static AppWorld coverage audits, and result
+  summarization.
 - `results/`: summary CSV/Markdown outputs and evaluator summaries used to support
   the paper tables.
 - `paper/`: paper source, references, compiled PDF, and artifact manifest.
@@ -94,6 +95,13 @@ PYTHONPATH=src python experiments/summarize_rave2_statistics.py
 Some full benchmark rows require external packages and data that are not redistributed
 here. The repository keeps summary outputs for auditability and provides the runner code
 needed to regenerate them in a properly licensed local setup.
+
+The packaged AppWorld summaries include the deterministic local `test_normal.txt`
+full-file execution diagnostic (`165/168` overall, `165/165` supported success) and a
+static public-instruction compile audit over local `test_normal.txt` and
+`test_challenge.txt` (`165/168` and `18/417` complete frames, respectively). The static
+audit does not execute tools or load ground truth; it is a coverage-boundary diagnostic,
+not a leaderboard result.
 
 The paper PDF also includes Appendix A, a claim-to-evidence matrix, and Appendix B, a
 compact artifact map. These appendices spell out which claims are supported by which

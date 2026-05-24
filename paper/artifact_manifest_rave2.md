@@ -154,12 +154,18 @@ extraction call per task plus the runtime-checked executor.
   ReAct+schema/proof/verifier guardrail evidence via the PCTU ablation, (ii)
   ToolSandbox insufficient-information failure-mode shift from unsafe/invalid ReAct
   outcomes to zero unsafe and zero invalid ICVE outcomes, (iii) AppWorld
-  `test_normal.txt` coverage-risk behavior with unsupported tasks left as no-action
-  abstentions, and (iv) AppWorld machine coverage and development-cost statistics for
-  the "not per-task scripts" analysis. The directory includes a full per-machine
+  `test_normal.txt` execution and static coverage-risk behavior with unsupported tasks
+  left as no-action abstentions, and (iv) AppWorld machine coverage and development-cost
+  statistics for the "not per-task scripts" analysis. The directory includes a full per-machine
   `machine_development_costs.csv`/`.md` table with slots, compiler/handler LOC,
   covered-task counts, shared API namespaces, shared runtime components, and
   `adaptation_time=not_recorded`.
+- Static AppWorld public-instruction coverage audit:
+  `results/appworld_static_coverage/20260524` reads only local AppWorld public
+  `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
+  then runs the ICVE registry compile step without starting AppWorld, executing tools,
+  inspecting databases, or loading ground truth. It compiles 165/168 `test_normal`
+  instructions and 18/417 `test_challenge` instructions to complete frames.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication
@@ -332,11 +338,13 @@ extraction call per task plus the runtime-checked executor.
   and
   `results/appworld_rave_official_test_normal_smoke121_167_llm_intent_deepseek_chat_d18139b_card_path_v70/20260507_032651`
   reaches 47/47 for deterministic and DeepSeek-chat intent rows with 0 invalid and
-  0 unsafe state changes. Combined local file-level summaries under
-  `results/appworld_rave_official_test_normal_full167_d18139b_card_path_20260507/`
-  report 164/167 overall success, 164/167 supported, 164/164 supported success, 0 unsafe
-  state changes, and 0.0180 invalid/tool per task for both rows. This is local
-  AppWorld 0.2.0 file-level evidence, not a public leaderboard submission.
+  0 unsafe state changes. The final local no-newline task ID is recorded under
+  `results/appworld_rave_official_test_normal_missing_bde252e3_20260524/20260524_215549`.
+  The deterministic combined local file-level summary under
+  `results/appworld_rave_official_test_normal_full168_d18139b_card_path_20260524/`
+  reports 165/168 overall success, 165/168 supported, 165/165 supported success, 0 unsafe
+  state changes, and 0.0179 invalid/tool per task. This is local AppWorld 0.2.0
+  file-level evidence, not a public leaderboard submission.
 - Held-out AppWorld test-challenge Amazon-prefix diagnostic:
   `results/20260507_035124` records the first 24 `test_challenge` ids before the latest
   saved-list Amazon machines at 3/24 success, 3/24 supported, 0 unsafe state changes,

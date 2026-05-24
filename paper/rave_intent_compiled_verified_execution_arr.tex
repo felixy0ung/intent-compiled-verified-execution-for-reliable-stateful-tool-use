@@ -606,39 +606,27 @@ ReAct-code. The official ReAct-code row uses 6.45M tokens total.}
 The official DeepSeek ReAct-code dev57 run uses 879 LLM calls and 6.45M tokens. These are
 same-split local official-dev comparisons, not held-out test or leaderboard submissions.
 
-As a held-out smoke, we expanded beyond the official dev split to AppWorld
-\texttt{test\_normal}. The first-12 smoke initially exposed zero coverage; after
-registering four typed machines, deterministic ICVE reached 12/12 with zero invalid or
-unsafe calls. Expanding to the first 120 tasks, the registry supports 117/120 and
-succeeds on all 117 supported tasks; the three failures are unsupported vacation-
-settlement abstentions. DeepSeek-chat intent extraction matches this profile after the
-instruction-aware abstention verifier is applied. Running the remaining local
-\texttt{test\_normal.txt} entries gives the same file-level profile: deterministic ICVE
-and DeepSeek-chat intent extraction both reach 164/167 overall, 164/164 supported
-success, 0 unsafe state changes, and 0 invalid tool calls on the 121--167 continuation.
-This remains a coverage diagnostic rather than a full held-out test split or leaderboard
-result.
+As a held-out smoke beyond the official dev split, \texttt{test\_normal} initially
+exposed zero coverage on the first 12 tasks; after registering four typed machines, ICVE
+reached 12/12. Expanding to the first 120 tasks gives 117/120 overall and 117/117
+supported success, with the three unsupported vacation-settlement tasks abstained.
+Running the full local file, including its final no-newline task ID, gives the
+deterministic profile 165/168 overall, 165/165 supported success, 0 unsafe changes, and
+three unsupported no-action outcomes. This is a coverage diagnostic, not a full held-out
+test split or leaderboard result.
 
 \paragraph{Coverage and development cost.}
 The coverage assumption is auditable rather than implicit. ToolSandbox uses 13 static
-machines; AppWorld has 85 registered machines, of which 54 cover 164 supported
-\texttt{test\_normal.txt} tasks (3.04 tasks per used machine). For used AppWorld
-machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/73.5/93; the full
-artifact table lists every machine with reused API namespaces and
-\texttt{adaptation\_time=not\_recorded}. Conversely, three \texttt{test\_normal} tasks
-and unresolved \texttt{test\_challenge} purchase tasks are rejected instead of being
-forced through similar machines.
-
-We also ran an open-coverage stress diagnostic on the beginning of AppWorld
-\texttt{test\_challenge}. This prefix contains harder Amazon purchase and saved-list
-tasks, including families whose state logic is not registered in ICVE. Before adding new
-Amazon machines, the runtime solved 3/24 tasks; after adding two conservative saved-list
-machines, it solved 12/24 with zero unsafe state changes. The remaining 12/24 are
-product-search purchase requests that require choosing among sellers, dimensions, or
-multiple candidate products. ICVE reports these as unsupported no-action abstentions
-rather than forcing a similar-looking purchase machine. This diagnostic is a deliberate
-counterweight to the covered-task results: missing runtime logic lowers task success, but
-does not become unsafe mutation.
+machines; AppWorld has 85 registered machines, of which 54 cover 165 supported
+\texttt{test\_normal.txt} tasks (3.06 tasks per used machine). For used AppWorld
+machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/73.5/93. A static
+public-instruction audit reads only local \texttt{specs.json} instructions and compiles
+165/168 \texttt{test\_normal} and 18/417 \texttt{test\_challenge} instructions to
+complete frames. Unsupported \texttt{test\_challenge} rows cluster in Amazon
+purchase/product-search (206) and Gmail workflows (116). In an executable 24-task
+\texttt{test\_challenge} prefix, two conservative Amazon machines raise success from
+3/24 to 12/24 with zero unsafe changes; the remaining product-search purchase tasks are
+reported as unsupported no-action outcomes rather than forced through a similar machine.
 
 \subsection{Multi-Turn Diagnostic}
 
@@ -681,13 +669,12 @@ families.
 The added diagnostics make this boundary falsifiable. On ToolSandbox
 insufficient-information tasks, ReAct produces 0.4286 unsafe mutations and 2.1786 invalid
 calls per task; ICVE reduces both to zero, while removing abstention restores the unsafe
-rate. On AppWorld \texttt{test\_normal.txt}, ICVE supports 164/167 tasks and succeeds on
-all 164 supported tasks; the three unsupported tasks remain no-action abstentions with
-zero unsafe state changes. The \texttt{test\_challenge} prefix is a negative control:
-two conservative Amazon machines raise success from 3/24 to 12/24, but the remaining
-purchase tasks are rejected rather than forced through a similar machine. The dynamic
+rate. On AppWorld, ICVE supports 165/168 local \texttt{test\_normal.txt} tasks and the
+full static \texttt{test\_challenge} audit compiles only 18/417 public instructions; the
+unsupported rows remain reported coverage gaps rather than hidden mutations. The dynamic
 diagnostic induces five additional boolean-setting machines from unseen API signatures
-without model calls. The artifact provides the full per-machine development-cost table.
+without model calls. The artifact provides the full per-machine development-cost and
+static coverage tables.
 
 \section{Related Work}
 
@@ -756,31 +743,40 @@ Finally, hosted-model coverage remains narrow: the evidence spans Qwen2.5 scales
 small Phi-3-mini diagnostic, and hosted DeepSeek replications, but not a broad set of
 proprietary frontier models.
 
-\begin{table}[t]
+\begin{table*}[t]
 \centering
-\scriptsize\raggedright
-\setlength{\tabcolsep}{2pt}
-\begin{tabular}{p{0.28\linewidth}p{0.32\linewidth}p{0.32\linewidth}}
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{0.15\textwidth}p{0.20\textwidth}p{0.19\textwidth}p{0.22\textwidth}p{0.15\textwidth}}
 \toprule
-failure & ReAct / guardrail & ICVE response \\
+failure type & ReAct manifestation & guardrail manifestation & ICVE mechanism & evidence position \\
 \midrule
-Invalid call & Fragile JSON/API args; guardrail rejects and retries. & Schema-checked
-frame; handler emits validated actions. \\
-Missing evidence & Model guesses/searches; guardrail asks for evidence fields. &
-Ledger-driven evidence acquisition. \\
-Precondition uncertainty & Text loop repairs settings ad hoc. & Bounded deterministic
-repair before mutation. \\
-Insufficient information & ReAct may mutate; guardrail reduces unsafe calls with
-proof/retry cost. & Abstention frame or guarded final action. \\
-Uncovered intent & Agent may try plausible tools; guardrail coverage is implicit. & No
-registered machine means no high-risk mutation; coverage is reported. \\
+Invalid call & Fragile JSON/API arguments and repeated failed tool calls. & Rejects
+malformed or ungrounded contracts, then asks the model to retry. & Schema-checked
+IntentFrame; deterministic handler emits validated tool arguments. &
+Tables~\ref{tab:toolsandbox-main}, \ref{tab:toolsandbox-guardrail}. \\
+Missing evidence & Model guesses values or searches ad hoc before mutation. & Requires
+evidence fields but still relies on model-authored proof/action pairs. & Ledger-driven
+evidence acquisition and grounded slot checks before mutation. &
+Section~4.3; AppWorld dev57 and test-normal diagnostics. \\
+Precondition uncertainty & Text loop repairs settings or payment state after failures. &
+Verifier detects failed preconditions but incurs rejection/repair loops. & Bounded
+runtime repair before a mutation, followed by postcondition stopping. &
+ToolSandbox repair columns and AppWorld Venmo card probes. \\
+Insufficient information & ReAct may mutate despite missing user evidence. & Reduces
+unsafe calls, but retains nonzero unsafe/invalid termination and model cost. & Abstention
+frame or guarded final action with no model-owned mutation loop. &
+Table~\ref{tab:toolsandbox-guardrail}; Fig.~\ref{fig:toolsandbox-deep}. \\
+Uncovered intent & Agent may try plausible tools for a similar-looking task. & Coverage
+is implicit in prompt/verifier behavior. & No registered machine means no high-risk
+mutation; static and executable coverage gaps are reported. & AppWorld coverage audit. \\
 \bottomrule
 \end{tabular}
 \caption{Execution-boundary failure taxonomy. Covered high-risk failures are converted
 from model-owned mutation loops into checked transitions, deterministic repair, or safe
 abstention.}
 \label{tab:failure-taxonomy}
-\end{table}
+\end{table*}
 
 \section*{Ethical Considerations}
 
@@ -825,7 +821,7 @@ Covered stateful tool-use families, not arbitrary agents. \\
 ICVE is more than a per-task script bank. &
 The registry would have near one machine per benchmark task with no cross-task reuse. &
 ToolSandbox uses 13 static machines. AppWorld has 85 registered machines; 54 used
-machines cover 164 supported \texttt{test\_normal.txt} tasks, or 3.04 tasks per used
+machines cover 165 supported \texttt{test\_normal.txt} tasks, or 3.06 tasks per used
 machine. The artifact lists per-machine slots, compiler LOC, handler LOC, total LOC, and
 API namespaces. &
 Manual engineering remains part of the current method. \\
@@ -841,10 +837,12 @@ Targeted AppWorld slice and local evaluator evidence. \\
 Coverage gaps become reported no-action outcomes rather than hidden unsafe mutation. &
 Unsupported or similar-looking tasks would be forced through machines and mutate state
 unsafely. &
-On local \texttt{test\_normal.txt}, ICVE supports 164/167 tasks and succeeds on all
+On local \texttt{test\_normal.txt}, ICVE supports 165/168 tasks and succeeds on all
 supported tasks; the three unsupported tasks are no-action outcomes with zero unsafe
-state changes. The \texttt{test\_challenge} prefix leaves 12/24 product-search purchase
-tasks unsupported after two conservative Amazon machines, again with zero unsafe changes. &
+state changes. A static public-instruction audit compiles 18/417
+\texttt{test\_challenge} tasks, and the executable prefix leaves 12/24 product-search
+purchase tasks unsupported after two conservative Amazon machines, again with zero unsafe
+changes. &
 Lower success is expected outside registered coverage. \\
 \addlinespace
 The dynamic path is a bounded coverage extension, not open-ended synthesis. &
@@ -878,6 +876,9 @@ entry point and a recorded summary directory. The main files are:
 typed DSL, registry runtime, ToolSandbox binding, and AppWorld binding.
 \item Public runners live under \texttt{experiments/}; they cover ToolSandbox, AppWorld,
 dynamic setting-machine induction, and held-out boolean-affordance induction.
+\item Static AppWorld coverage results live in \texttt{results/appworld\_static\_coverage};
+they audit public-instruction compile coverage for local \texttt{test\_normal.txt} and
+\texttt{test\_challenge.txt} without executing tools or loading ground truth.
 \item Review-strengthening summaries live in the dated \texttt{icve\_review\_strengthening}
 result directory; it contains \texttt{summary.json} and the per-machine development-cost
 table.

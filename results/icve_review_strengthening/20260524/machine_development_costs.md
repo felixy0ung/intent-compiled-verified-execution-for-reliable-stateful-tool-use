@@ -7,9 +7,9 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 counts are reproducible proxies for development cost and reuse.
 
 - Registered AppWorld machines: 85
-- Used by full167 supported tasks: 54
-- Supported tasks: 164
-- Tasks per used machine: 3.04
+- Used by full168 supported tasks: 54
+- Supported tasks: 165
+- Tasks per used machine: 3.06
 - Median slots / compiler LOC / handler LOC / total LOC: 1.0 / 18.0 / 73.5 / 93.0
 
 | intent_type | slots | compiler LOC | handler LOC | covered tasks | shared APIs | adaptation time |
@@ -49,6 +49,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_spotify_playlist_from_recent_simple_note | 1 | 16 | 122 | 3 | simple_note,spotify,supervisor | not_recorded |
 | appworld_spotify_public_liked_library_playlist_share | 1 | 17 | 77 | 3 | phone,spotify,supervisor | not_recorded |
 | appworld_spotify_reset_queue_with_recommendations | 0 | 12 | 26 | 3 | spotify,supervisor | not_recorded |
+| appworld_todoist_fill_today_from_schedule | 1 | 21 | 191 | 3 | simple_note,supervisor,todoist | not_recorded |
 | appworld_todoist_reassign_accepted_takeover_tasks | 1 | 20 | 101 | 3 | supervisor,todoist | not_recorded |
 | appworld_venmo_accept_named_carpool_request_this_month | 1 | 16 | 130 | 3 | phone,supervisor,venmo | not_recorded |
 | appworld_venmo_add_friends_by_relationships | 1 | 18 | 54 | 3 | phone,supervisor,venmo | not_recorded |
@@ -67,7 +68,6 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_venmo_sum_month_transactions | 1 | 17 | 41 | 3 | supervisor,venmo | not_recorded |
 | appworld_venmo_sum_recent_received_requests | 1 | 16 | 33 | 3 | supervisor,venmo | not_recorded |
 | appworld_venmo_sum_year_bill_payments | 1 | 16 | 36 | 3 | supervisor,venmo | not_recorded |
-| appworld_todoist_fill_today_from_schedule | 1 | 21 | 191 | 2 | simple_note,supervisor,todoist | not_recorded |
 | appworld_amazon_move_product_type_between_saved_lists | 3 | 18 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_rating_filtered_products | 4 | 20 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_product_type_from_saved_list | 4 | 19 | 114 | 0 | amazon,supervisor | not_recorded |
