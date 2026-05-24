@@ -1174,6 +1174,20 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_relabel_priority_threads",
+                (
+                    SlotSpec("source_label_1"),
+                    SlotSpec("source_label_2"),
+                    SlotSpec("target_label_1"),
+                    SlotSpec("target_label_2"),
+                    SlotSpec("remove_label"),
+                ),
+            ),
+            compiler=compile_gmail_relabel_priority_threads,
+            handler=handle_gmail_relabel_priority_threads,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_attach_job_search_files_and_send",
                 (
                     SlotSpec("days_back"),
@@ -2574,6 +2588,29 @@ def compile_gmail_label_notification_threads_by_app(
     ):
         return None
     return IntentFrame("appworld_gmail_label_notification_threads_by_app")
+
+
+def compile_gmail_relabel_priority_threads(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Relabel all my (?P<src1>priority-1|P1|pr-1) and (?P<src2>priority-2|P2|pr-2) "
+        r"email threads with (?P<tgt1>priority-1|P1|pr-1) and (?P<tgt2>priority-2|P2|pr-2), "
+        r"respectively, and remove all (?P<remove>priority-3|P3|pr-3) labels\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_relabel_priority_threads")
+    frame.set_slot("source_label_1", match.group("src1"), source="regex")
+    frame.set_slot("source_label_2", match.group("src2"), source="regex")
+    frame.set_slot("target_label_1", match.group("tgt1"), source="regex")
+    frame.set_slot("target_label_2", match.group("tgt2"), source="regex")
+    frame.set_slot("remove_label", match.group("remove"), source="regex")
+    return frame
 
 
 def compile_gmail_attach_job_search_files_and_send(
@@ -8941,6 +8978,135 @@ print(json.dumps({"labeled": labeled, "skipped": skipped}, sort_keys=True))
     )
 
 
+def handle_gmail_relabel_priority_threads(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    source_label_1 = str(frame.get("source_label_1") or "").strip()
+    source_label_2 = str(frame.get("source_label_2") or "").strip()
+    target_label_1 = str(frame.get("target_label_1") or "").strip()
+    target_label_2 = str(frame.get("target_label_2") or "").strip()
+    remove_label = str(frame.get("remove_label") or "").strip()
+    valid_labels = {"priority-1", "priority-2", "priority-3", "P1", "P2", "P3", "pr-1", "pr-2", "pr-3"}
+    if (
+        source_label_1 not in valid_labels
+        or source_label_2 not in valid_labels
+        or target_label_1 not in valid_labels
+        or target_label_2 not in valid_labels
+        or remove_label not in valid_labels
+    ):
+        frame.abstain_reason = "missing_or_unsupported_gmail_priority_relabel_slots"
+        return None
+    code = common_appworld_prelude(["gmail"]) + f"""
+source_label_1 = {json.dumps(source_label_1)}
+source_label_2 = {json.dumps(source_label_2)}
+target_label_1 = {json.dumps(target_label_1)}
+target_label_2 = {json.dumps(target_label_2)}
+remove_label = {json.dumps(remove_label)}
+
+label_actions = {{
+    source_label_1: target_label_1,
+    source_label_2: target_label_2,
+}}
+target_labels = set(label_actions.values())
+candidate_labels = sorted(set(label_actions) | {{remove_label}})
+
+candidate_threads = {{}}
+fetchers = [
+    apis.gmail.show_inbox_threads,
+    apis.gmail.show_outbox_threads,
+    apis.gmail.show_archived_threads,
+    apis.gmail.show_spam_threads,
+    apis.gmail.show_snoozed_threads,
+    apis.gmail.show_starred_threads,
+]
+for label in candidate_labels:
+    for fetch in fetchers:
+        for thread in paged(lambda page, fetch=fetch, label=label: fetch(
+            access_token=tokens["gmail"],
+            label=label,
+            page_index=page,
+            page_limit=20,
+        )):
+            thread_id = thread.get("email_thread_id")
+            if thread_id is not None:
+                candidate_threads[thread_id] = thread
+
+relabelled = []
+removed = []
+unchanged = []
+for thread_id in sorted(candidate_threads):
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    label = str(detail.get("label") or "").strip()
+    if label in label_actions:
+        new_label = label_actions[label]
+        if new_label != label:
+            apis.gmail.label_thread(
+                access_token=tokens["gmail"],
+                email_thread_id=thread_id,
+                label=new_label,
+            )
+            relabelled.append({{
+                "email_thread_id": thread_id,
+                "old_label": label,
+                "new_label": new_label,
+            }})
+        else:
+            unchanged.append(thread_id)
+    elif label == remove_label:
+        apis.gmail.unlabel_thread(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+        removed.append(thread_id)
+    else:
+        unchanged.append(thread_id)
+
+remaining_removed = []
+remaining_source = []
+for label in candidate_labels:
+    if label in target_labels:
+        continue
+    for fetch in fetchers:
+        for thread in paged(lambda page, fetch=fetch, label=label: fetch(
+            access_token=tokens["gmail"],
+            label=label,
+            page_index=page,
+            page_limit=20,
+        )):
+            thread_id = thread.get("email_thread_id")
+            if label == remove_label:
+                remaining_removed.append(thread_id)
+            elif label in label_actions:
+                remaining_source.append(thread_id)
+if remaining_removed or remaining_source:
+    raise Exception(json.dumps({{
+        "remaining_removed_label": remaining_removed,
+        "remaining_source_labels": remaining_source,
+    }}, sort_keys=True))
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "source_label_1": source_label_1,
+    "source_label_2": source_label_2,
+    "target_label_1": target_label_1,
+    "target_label_2": target_label_2,
+    "remove_label": remove_label,
+    "relabelled": relabelled,
+    "removed": removed,
+    "unchanged": unchanged,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_relabel_priority_threads",
+    )
+
+
 def handle_gmail_attach_job_search_files_and_send(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -13676,6 +13842,30 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
+    if intent_type == "appworld_gmail_relabel_priority_threads":
+        label_aliases = {
+            "p1": "P1",
+            "p2": "P2",
+            "p3": "P3",
+            "priority_1": "priority-1",
+            "priority_2": "priority-2",
+            "priority_3": "priority-3",
+            "pr_1": "pr-1",
+            "pr_2": "pr-2",
+            "pr_3": "pr-3",
+        }
+
+        def normalize_priority_label(value: object) -> str:
+            label = str(value or "").strip().replace(" ", "-")
+            return label_aliases.get(label.lower(), label)
+
+        return {
+            "source_label_1": normalize_priority_label(slots.get("source_label_1")),
+            "source_label_2": normalize_priority_label(slots.get("source_label_2")),
+            "target_label_1": normalize_priority_label(slots.get("target_label_1")),
+            "target_label_2": normalize_priority_label(slots.get("target_label_2")),
+            "remove_label": normalize_priority_label(slots.get("remove_label")),
+        }
     if intent_type == "appworld_gmail_attach_job_search_files_and_send":
         return {
             "days_back": int(slots["days_back"]),
@@ -14148,6 +14338,18 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_relabel_priority_threads":
+        required = [
+            "relabel all my",
+            "email threads with",
+            "respectively",
+            "remove all",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_attach_job_search_files_and_send":
         required = [
             "for my job search",
@@ -14406,6 +14608,8 @@ Supported intent types and slots:
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
    slots: empty object.
+21. appworld_gmail_relabel_priority_threads
+   slots: source_label_1 string, source_label_2 string, target_label_1 string, target_label_2 string, remove_label string; labels are one of priority-1, priority-2, priority-3, P1, P2, P3, pr-1, pr-2, or pr-3.
 21. appworld_gmail_attach_job_search_files_and_send
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
 21. appworld_gmail_download_flight_ticket_attachment
@@ -14710,6 +14914,9 @@ JSON: {"intent_type":"appworld_gmail_mark_threads_read_state_by_calendar_window"
 
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}
+
+Task: Relabel all my priority-1 and priority-2 email threads with P1 and P2, respectively, and remove all priority-3 labels.
+JSON: {"intent_type":"appworld_gmail_relabel_priority_threads","slots":{"source_label_1":"priority-1","source_label_2":"priority-2","target_label_1":"P1","target_label_2":"P2","remove_label":"priority-3"}}
 
 Task: For my job search, I've drafted emails to all potential employers in the last 3 days. Attach cv.pdf from my file system to each of them. If it's already attached, update it as I just made some changes to it. Then send the emails.
 JSON: {"intent_type":"appworld_gmail_attach_job_search_files_and_send","slots":{"days_back":3,"file_name":"cv.pdf"}}

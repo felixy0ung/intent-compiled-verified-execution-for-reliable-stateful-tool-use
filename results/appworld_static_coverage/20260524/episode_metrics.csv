@@ -488,9 +488,9 @@ test_challenge,09ac073_3,09ac073,1,1,0,0,appworld_gmail_thread_cleanup,,,,7a13d7
 test_challenge,6a5e690_1,6a5e690,1,1,0,0,appworld_gmail_send_future_scheduled_drafts_now,,,,1012a4f64039f0f9
 test_challenge,6a5e690_2,6a5e690,1,1,0,0,appworld_gmail_send_future_scheduled_drafts_now,,,,1012a4f64039f0f9
 test_challenge,6a5e690_3,6a5e690,1,1,0,0,appworld_gmail_send_future_scheduled_drafts_now,,,,1012a4f64039f0f9
-test_challenge,e52623a_1,e52623a,0,0,0,0,unsupported,,,gmail_email,805148bed6ea5c3f
-test_challenge,e52623a_2,e52623a,0,0,0,0,unsupported,,,gmail_email,3f79722c1c8185b9
-test_challenge,e52623a_3,e52623a,0,0,0,0,unsupported,,,gmail_email,aecf738204f0b229
+test_challenge,e52623a_1,e52623a,1,1,0,0,appworld_gmail_relabel_priority_threads,,,,805148bed6ea5c3f
+test_challenge,e52623a_2,e52623a,1,1,0,0,appworld_gmail_relabel_priority_threads,,,,3f79722c1c8185b9
+test_challenge,e52623a_3,e52623a,1,1,0,0,appworld_gmail_relabel_priority_threads,,,,aecf738204f0b229
 test_challenge,5e27cd7_1,5e27cd7,1,1,0,0,appworld_delete_gmail_empty_drafts,,,,4451cde1e2595b2a
 test_challenge,5e27cd7_2,5e27cd7,1,1,0,0,appworld_delete_gmail_empty_drafts,,,,a9df42f085738728
 test_challenge,5e27cd7_3,5e27cd7,1,1,0,0,appworld_delete_gmail_empty_drafts,,,,4451cde1e2595b2a
