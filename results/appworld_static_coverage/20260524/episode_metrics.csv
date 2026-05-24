@@ -518,9 +518,9 @@ test_challenge,e775c78_3,e775c78,0,0,0,0,unsupported,,,gmail_email,b119937c1529f
 test_challenge,2ff4dfb_1,2ff4dfb,0,0,0,0,unsupported,,,gmail_email,fa4253ce61addb9d
 test_challenge,2ff4dfb_2,2ff4dfb,0,0,0,0,unsupported,,,gmail_email,00c10a0da55af182
 test_challenge,2ff4dfb_3,2ff4dfb,0,0,0,0,unsupported,,,gmail_email,30d50f3aedb46efe
-test_challenge,fddb6b6_1,fddb6b6,0,0,0,0,unsupported,,,gmail_email,3375a61e4bdf9a07
-test_challenge,fddb6b6_2,fddb6b6,0,0,0,0,unsupported,,,gmail_email,1caa6aedb7c5f8d8
-test_challenge,fddb6b6_3,fddb6b6,0,0,0,0,unsupported,,,gmail_email,4328f162836dcd7b
+test_challenge,fddb6b6_1,fddb6b6,1,1,0,0,appworld_gmail_forward_caterer_bill_to_manager_with_note,,,,3375a61e4bdf9a07
+test_challenge,fddb6b6_2,fddb6b6,1,1,0,0,appworld_gmail_forward_caterer_bill_to_manager_with_note,,,,1caa6aedb7c5f8d8
+test_challenge,fddb6b6_3,fddb6b6,1,1,0,0,appworld_gmail_forward_caterer_bill_to_manager_with_note,,,,4328f162836dcd7b
 test_challenge,c1091c7_1,c1091c7,0,0,0,0,unsupported,,,gmail_email,765e8c36fe81e80e
 test_challenge,c1091c7_2,c1091c7,0,0,0,0,unsupported,,,gmail_email,765e8c36fe81e80e
 test_challenge,c1091c7_3,c1091c7,0,0,0,0,unsupported,,,gmail_email,765e8c36fe81e80e

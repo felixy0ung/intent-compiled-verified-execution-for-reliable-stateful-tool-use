@@ -25,6 +25,7 @@ test_challenge,aaa25aa,3,3,3,1.0,1.0,appworld_phone_message_app_account_verify_r
 test_challenge,b71318e,3,3,3,1.0,1.0,appworld_venmo_pay_coworkers_and_email,
 test_challenge,e0fe09c,3,3,3,1.0,1.0,appworld_gmail_label_notification_threads_by_app,
 test_challenge,e52623a,3,3,3,1.0,1.0,appworld_gmail_relabel_priority_threads,
+test_challenge,fddb6b6,3,3,3,1.0,1.0,appworld_gmail_forward_caterer_bill_to_manager_with_note,
 test_challenge,099174d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,16be9ce,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,18670a5,3,0,0,0.0,0.0,,gmail_email
@@ -136,7 +137,6 @@ test_challenge,f99d726,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,fa327a6,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,fb05fed,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,fdc4b74,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,fddb6b6,3,0,0,0.0,0.0,,gmail_email
 test_challenge,ffea2b5,3,0,0,0.0,0.0,,gmail_email
 test_normal,024c982,3,3,3,1.0,1.0,appworld_venmo_request_money_from_contact,
 test_normal,042a9fc,3,3,3,1.0,1.0,appworld_spotify_apply_phone_playlist_suggestions,

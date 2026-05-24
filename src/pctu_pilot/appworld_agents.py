@@ -1174,6 +1174,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_forward_caterer_bill_to_manager_with_note",
+                (SlotSpec("note_prefix"),),
+            ),
+            compiler=compile_gmail_forward_caterer_bill_to_manager_with_note,
+            handler=handle_gmail_forward_caterer_bill_to_manager_with_note,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_star_threads_by_relationship",
                 (SlotSpec("relationship"),),
             ),
@@ -2601,6 +2609,24 @@ def compile_gmail_forward_anniversary_announcement_email(
         return None
     frame = IntentFrame("appworld_gmail_forward_anniversary_announcement_email")
     frame.set_slot("recipient_email", match.group("email").strip(), source="regex")
+    return frame
+
+
+def compile_gmail_forward_caterer_bill_to_manager_with_note(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'I helped organize my company celebration recently\. The caterers have emailed me the bill\. '
+        r'Forward it to my manager with a note prefixed to its body, "(?P<note>[^"]+)"\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_forward_caterer_bill_to_manager_with_note")
+    frame.set_slot("note_prefix", match.group("note").strip(), source="regex")
     return frame
 
 
@@ -9050,6 +9076,165 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_forward_caterer_bill_to_manager_with_note(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    note_prefix = str(frame.get("note_prefix") or "").strip()
+    if not note_prefix:
+        frame.abstain_reason = "missing_gmail_caterer_bill_note_prefix"
+        return None
+    code = common_appworld_prelude(["gmail", "phone"]) + f"""
+note_prefix = {json.dumps(note_prefix)}
+
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def email_set(contacts):
+    return {{
+        str(contact.get("email") or "").strip().lower()
+        for contact in contacts
+        if str(contact.get("email") or "").strip()
+    }}
+
+manager_contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship="manager",
+    page_index=page,
+    page_limit=20,
+))
+manager_emails = email_set(manager_contacts)
+if len(manager_emails) != 1:
+    raise Exception(f"Expected exactly one manager email, found {{sorted(manager_emails)}}.")
+manager_email = next(iter(manager_emails))
+
+queries = [
+    "catering company celebration bill",
+    "caterer company celebration bill",
+    "company celebration bill",
+    "catering bill",
+    "bill",
+]
+threads = []
+seen_thread_ids = set()
+for query in queries:
+    for thread in paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        attachment=True,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )):
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None or thread_id in seen_thread_ids:
+            continue
+        seen_thread_ids.add(thread_id)
+        threads.append(thread)
+
+if not threads:
+    threads = paged(lambda page: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        attachment=True,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+
+candidates = []
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None:
+        continue
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    for email in detail.get("emails", []):
+        sender_email = str((email.get("sender") or {{}}).get("email") or "").strip().lower()
+        if sender_email == user.email.lower():
+            continue
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        sender_name = str((email.get("sender") or {{}}).get("name") or "")
+        haystack = text_key(" ".join([subject, body, sender_name, sender_email]))
+        attachments = email.get("attachments") or []
+        attachment_names = " ".join(str(item.get("file_name") or "") for item in attachments)
+        attachment_key = text_key(attachment_names)
+        has_bill_attachment = bool(attachments) and ("bill" in attachment_key or "invoice" in attachment_key)
+        has_bill_text = "bill" in haystack or "invoice" in haystack
+        has_catering_text = (
+            "catering" in haystack
+            or "caterer" in haystack
+            or "caterers" in haystack
+            or "cuisine" in haystack
+        )
+        has_celebration_text = "company celebration" in haystack or (
+            "company" in haystack and ("celebration" in haystack or "party" in haystack)
+        )
+        if not (has_bill_text and has_catering_text and has_celebration_text and has_bill_attachment):
+            continue
+        candidates.append({{
+            "email_thread_id": thread_id,
+            "email_id": email["email_id"],
+            "created_at": email.get("created_at") or detail.get("created_at") or "",
+            "subject": subject,
+            "sender_email": sender_email,
+            "attachment_count": len(attachments),
+        }})
+
+if not candidates:
+    raise Exception("Could not find the caterer bill email for the company celebration.")
+candidates.sort(key=lambda item: item["created_at"], reverse=True)
+target = candidates[0]
+
+forward = apis.gmail.forward_email_from_thread(
+    access_token=tokens["gmail"],
+    email_thread_id=target["email_thread_id"],
+    email_id=target["email_id"],
+    email_addresses=[manager_email],
+    draft_not_send=True,
+)
+draft_id = forward.get("draft_id")
+if draft_id is None:
+    raise Exception(f"Forward did not create a draft: {{forward}}")
+draft = apis.gmail.show_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+)
+old_body = str(draft.get("body") or "")
+new_body = note_prefix + "\\n\\n" + old_body
+apis.gmail.update_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    body=new_body,
+)
+sent = apis.gmail.send_email_from_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+)
+if "sent_email_id" not in sent and "sent_email_thread_id" not in sent:
+    raise Exception(f"Unable to send caterer bill forward: {{sent}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "manager_email": manager_email,
+    "note_prefix": note_prefix,
+    "source_email_thread_id": target["email_thread_id"],
+    "source_email_id": target["email_id"],
+    "candidate_count": len(candidates),
+    "draft_id": draft_id,
+    "sent_email_id": sent.get("sent_email_id"),
+    "sent_email_thread_id": sent.get("sent_email_thread_id"),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_forward_caterer_bill_to_manager_with_note",
+    )
+
+
 def handle_gmail_star_threads_by_relationship(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -14081,6 +14266,12 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         return {"window": window}
     if intent_type == "appworld_gmail_forward_anniversary_announcement_email":
         return {"recipient_email": str(slots.get("recipient_email") or "").strip().lower()}
+    if intent_type == "appworld_gmail_forward_caterer_bill_to_manager_with_note":
+        return {
+            "note_prefix": str(
+                slots.get("note_prefix") or slots.get("note") or slots.get("message") or ""
+            ).strip()
+        }
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
@@ -14584,6 +14775,18 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_forward_caterer_bill_to_manager_with_note":
+        required = [
+            "company celebration",
+            "caterers have emailed me the bill",
+            "forward it to my manager",
+            "note prefixed to its body",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -14871,6 +15074,8 @@ Supported intent types and slots:
    slots: window string, one of before_this_calendar_month, this_calendar_month, or this_or_the_last_calendar_month.
 21. appworld_gmail_forward_anniversary_announcement_email
    slots: recipient_email string.
+21. appworld_gmail_forward_caterer_bill_to_manager_with_note
+   slots: note_prefix string.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
@@ -15185,6 +15390,9 @@ JSON: {"intent_type":"appworld_gmail_delete_archived_threads_by_calendar_window"
 Task: I just made an announcement about our company's anniversary celebration but I forgot br_ritt@gmail.com. Please forward the announcement email (not the entire thread) to them.
 JSON: {"intent_type":"appworld_gmail_forward_anniversary_announcement_email","slots":{"recipient_email":"br_ritt@gmail.com"}}
 
+Task: I helped organize my company celebration recently. The caterers have emailed me the bill. Forward it to my manager with a note prefixed to its body, "Bill for our last celebration.".
+JSON: {"intent_type":"appworld_gmail_forward_caterer_bill_to_manager_with_note","slots":{"note_prefix":"Bill for our last celebration."}}
+
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}
 
@@ -15488,6 +15696,8 @@ Relevant APIs for this slice:
 - apis.gmail.delete_draft(access_token=..., draft_id=...)
 - apis.gmail.show_inbox_threads(access_token=..., read=True, archived=False, page_index=0, page_limit=20)
 - apis.gmail.show_outbox_threads(access_token=..., read=True, archived=False, page_index=0, page_limit=20)
+- apis.gmail.forward_email_from_thread(access_token=..., email_thread_id=..., email_id=..., email_addresses=[...], draft_not_send=True)
+- apis.gmail.show_draft(access_token=..., draft_id=...)
 - apis.gmail.mark_thread_archived(access_token=..., email_thread_id=...)
 - apis.gmail.delete_thread(access_token=..., email_thread_id=...)
 - apis.gmail.mark_thread_starred(access_token=..., email_thread_id=...)

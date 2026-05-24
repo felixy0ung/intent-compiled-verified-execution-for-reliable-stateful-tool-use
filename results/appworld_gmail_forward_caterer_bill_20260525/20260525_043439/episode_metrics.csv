@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,fddb6b6_1,,appworld_gmail_forward_caterer_bill_to_manager_with_note,1,1,9,0,9,0,0,0,99,1,0,0,0,507,appworld_rave_gmail_forward_caterer_bill_to_manager_with_note,0,,,,
+rave_appworld_slice,deterministic,,fddb6b6_2,,appworld_gmail_forward_caterer_bill_to_manager_with_note,1,1,9,0,9,0,0,0,118,1,0,0,0,503,appworld_rave_gmail_forward_caterer_bill_to_manager_with_note,0,,,,
+rave_appworld_slice,deterministic,,fddb6b6_3,,appworld_gmail_forward_caterer_bill_to_manager_with_note,1,1,9,0,9,0,0,0,150,1,0,0,0,507,appworld_rave_gmail_forward_caterer_bill_to_manager_with_note,0,,,,

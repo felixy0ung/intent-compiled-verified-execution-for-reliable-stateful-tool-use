@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 78/417 `test_challenge` instructions to complete frames. The same
+  instructions and 81/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -278,6 +278,16 @@ extraction call per task plus the runtime-checked executor.
   only that email to the missing recipient, and reaches 3/3 success with 0 invalid calls
   and 0 unsafe state changes. This is a narrow held-out slice, not a full
   `test_challenge` or leaderboard result.
+- Held-out AppWorld Gmail caterer-bill manager-forward slice:
+  `results/appworld_gmail_forward_caterer_bill_20260525/20260525_043439` records three
+  local `test_challenge` tasks whose public instructions ask to forward a caterer bill
+  for a company celebration to the user's manager with a task-specific note prefixed to
+  the body. One general Gmail + phone ICVE machine grounds the manager through
+  runtime-visible phone contacts, selects the matching incoming bill email and attachment
+  through runtime-visible Gmail thread evidence, drafts a forward, prefixes the requested
+  note to the draft body, sends it, and reaches 3/3 success with 0 invalid calls and
+  0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
+  or leaderboard result.
 - Held-out AppWorld Gmail scheduled-draft send-now slice:
   `results/appworld_gmail_send_scheduled_now_20260525/20260525_034758` records three
   local `test_challenge` tasks whose public instructions ask to send all
