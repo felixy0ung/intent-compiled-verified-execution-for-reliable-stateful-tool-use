@@ -1,5 +1,6 @@
 split,intent_type,compiled,dispatchable,abstained,incomplete,scenarios
 test_challenge,appworld_amazon_order_product_type_from_saved_list,6,6,0,0,2
+test_challenge,appworld_amazon_order_saved_collections,6,6,0,0,2
 test_challenge,appworld_amazon_answer_cart_wishlist_total,3,3,0,0,1
 test_challenge,appworld_amazon_move_product_type_between_saved_lists,3,3,0,0,1
 test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1

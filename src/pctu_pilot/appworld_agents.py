@@ -1136,6 +1136,18 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_order_saved_collections",
+                (
+                    SlotSpec("containers"),
+                    SlotSpec("address_name"),
+                    SlotSpec("card_name"),
+                ),
+            ),
+            compiler=compile_amazon_order_saved_collections,
+            handler=handle_amazon_order_saved_collections,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4066,6 +4078,34 @@ def compile_amazon_answer_cart_wishlist_total(
     ):
         return None
     return IntentFrame("appworld_amazon_answer_cart_wishlist_total")
+
+
+def compile_amazon_order_saved_collections(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    text = raw_request.strip()
+    match = re.fullmatch(
+        r"Buy everything on my amazon wishlist, and have it delivered to my (?P<address>home|work) address\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    containers = ["wish_list"]
+    if not match:
+        match = re.fullmatch(
+            r"Place an order for everything in my amazon cart and wishlist for my (?P<address>home|work) address\.?",
+            text,
+            flags=re.IGNORECASE,
+        )
+        containers = ["cart", "wish_list"]
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_order_saved_collections")
+    frame.set_slot("containers", containers, source="regex")
+    frame.set_slot("address_name", match.group("address").title(), source="regex")
+    frame.set_slot("card_name", "", source="default")
+    return frame
 
 
 def handle_phone_message_non_venmo_contacts(
@@ -8828,6 +8868,142 @@ print(json.dumps({
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_cart_wishlist_total",
+    )
+
+
+def handle_amazon_order_saved_collections(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    containers = frame.get("containers", [])
+    if isinstance(containers, str):
+        containers = [containers]
+    containers = [normalize_amazon_container(container) for container in containers]
+    if not containers or any(container not in {"cart", "wish_list"} for container in containers):
+        frame.abstain_reason = "missing_or_unsupported_amazon_saved_collection_containers"
+        return None
+    unique_containers: list[str] = []
+    for container in containers:
+        if container not in unique_containers:
+            unique_containers.append(container)
+    address_name = frame.get("address_name") or "Home"
+    card_name = frame.get("card_name") or ""
+    code = common_appworld_prelude(["amazon"]) + f"""
+containers = {json.dumps(unique_containers)}
+address_name = {json.dumps(str(address_name))}
+card_name = {json.dumps(str(card_name))}
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if str(address.get("name", "")).strip().lower() == address_name.strip().lower():
+            return address
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+    candidates = []
+    for card in cards:
+        if card_name and card_name.strip().lower() not in str(card.get("card_name", "")).strip().lower():
+            continue
+        candidates.append(card)
+    if not candidates:
+        raise Exception(f"No Amazon payment card matched {{card_name or 'any card'}}.")
+    return sorted(
+        candidates,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+def require_positive_quantity(item, source):
+    quantity = int(item.get("quantity") or 1)
+    if quantity < 1:
+        raise Exception(f"Invalid {{source}} quantity for product {{item.get('product_id')}}: {{quantity}}")
+    inventory = item.get("inventory_quantity")
+    if inventory is not None and int(inventory) < quantity:
+        raise Exception(f"Insufficient inventory for {{source}} product {{item.get('product_id')}}.")
+    return quantity
+
+target_items = []
+if "cart" in containers:
+    for item in apis.amazon.show_cart(access_token=tokens["amazon"]).get("cart_items", []):
+        target_items.append({{
+            "source": "cart",
+            "product_id": item["product_id"],
+            "quantity": require_positive_quantity(item, "cart"),
+        }})
+if "wish_list" in containers:
+    for item in apis.amazon.show_wish_list(access_token=tokens["amazon"]):
+        target_items.append({{
+            "source": "wish_list",
+            "product_id": item["product_id"],
+            "quantity": require_positive_quantity(item, "wish_list"),
+        }})
+if not target_items:
+    raise Exception(f"No Amazon items found in requested collections {{containers}}.")
+
+cart_snapshot = list(apis.amazon.show_cart(access_token=tokens["amazon"]).get("cart_items", []))
+apis.amazon.clear_cart(access_token=tokens["amazon"])
+first = True
+for item in target_items:
+    if item["source"] == "wish_list":
+        result = apis.amazon.move_product_from_wish_list_to_cart(
+            access_token=tokens["amazon"],
+            product_id=item["product_id"],
+            quantity=item["quantity"],
+        )
+    else:
+        result = apis.amazon.add_product_to_cart(
+            access_token=tokens["amazon"],
+            product_id=item["product_id"],
+            quantity=item["quantity"],
+            clear_cart_first=first,
+        )
+    first = False
+    if result.get("message") and "not" in str(result.get("message")).lower() and "success" not in str(result.get("message")).lower():
+        raise Exception(f"Unable to stage Amazon product {{item}}: {{result}}")
+
+staged_cart = apis.amazon.show_cart(access_token=tokens["amazon"])
+if staged_cart.get("promo_code") and not bool(staged_cart.get("promo_valid")):
+    apis.amazon.remove_promo_code_from_cart(access_token=tokens["amazon"])
+
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+for card in pick_payment_cards():
+    payment_card_id = card["payment_card_id"]
+    result = apis.amazon.place_order(
+        access_token=tokens["amazon"],
+        payment_card_id=payment_card_id,
+        address_id=address["address_id"],
+    )
+    if "order_id" in result:
+        break
+    failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+if "order_id" not in result:
+    raise Exception(f"Unable to place Amazon saved-collections order: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "containers": containers,
+    "address_name": address_name,
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "ordered_items": target_items,
+    "cart_snapshot_count": len(cart_snapshot),
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_order_saved_collections",
     )
 
 
@@ -14549,6 +14725,30 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
     if intent_type == "appworld_amazon_answer_cart_wishlist_total":
         return {}
+    if intent_type == "appworld_amazon_order_saved_collections":
+        containers_value = slots.get("containers") or slots.get("source_containers") or []
+        if isinstance(containers_value, str):
+            containers = []
+            lowered = containers_value.lower()
+            if "cart" in lowered:
+                containers.append("cart")
+            if "wish" in lowered:
+                containers.append("wish_list")
+        else:
+            containers = [
+                normalize_amazon_container(container)
+                for container in containers_value
+                if str(container).strip()
+            ] if isinstance(containers_value, list) else []
+        unique_containers = []
+        for container in containers:
+            if container not in unique_containers:
+                unique_containers.append(container)
+        return {
+            "containers": unique_containers,
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "card_name": str(slots.get("card_name") or "").strip(),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -15141,6 +15341,21 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_order_saved_collections":
+        if not (
+            re.fullmatch(
+                r"buy everything on my amazon wishlist, and have it delivered to my (home|work) address\.?",
+                raw,
+            )
+            or re.fullmatch(
+                r"place an order for everything in my amazon cart and wishlist for my (home|work) address\.?",
+                raw,
+            )
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -15420,6 +15635,8 @@ Supported intent types and slots:
    slots: relationship string, one of husband, wife, or partner.
 18. appworld_amazon_answer_cart_wishlist_total
    slots: empty object.
+18. appworld_amazon_order_saved_collections
+   slots: containers list using values from [cart, wish_list]; address_name string, one of Home or Work; card_name string, optional.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -15728,6 +15945,12 @@ JSON: {"intent_type":"appworld_amazon_text_wishlist_itemized_costs","slots":{"re
 
 Task: How much does my amazon cart and wishlist cost in total, ignoring potential tax and delivery fees?
 JSON: {"intent_type":"appworld_amazon_answer_cart_wishlist_total","slots":{}}
+
+Task: Buy everything on my amazon wishlist, and have it delivered to my work address.
+JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"containers":["wish_list"],"address_name":"Work","card_name":""}}
+
+Task: Place an order for everything in my amazon cart and wishlist for my home address.
+JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"containers":["cart","wish_list"],"address_name":"Home","card_name":""}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

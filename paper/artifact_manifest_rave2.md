@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 90/417 `test_challenge` instructions to complete frames. The same
+  instructions and 96/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -231,6 +231,22 @@ extraction call per task plus the runtime-checked executor.
   quantities and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
   This is answer-only coverage evidence, not a full `test_challenge` or leaderboard
   result.
+- Held-out AppWorld Amazon wishlist-all order slice:
+  `results/appworld_amazon_order_wishlist_all_20260525/20260525_050933` records three
+  local `test_challenge` tasks whose public instructions ask to buy every item in the
+  runtime-visible Amazon wishlist and ship it to the requested home/work address. One
+  general Amazon ICVE machine stages exactly those wishlist items, removes invalid cart
+  promo state when visible, places the order through runtime-visible payment cards and
+  addresses, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
+  This is a narrow held-out slice, not a full `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon cart+wishlist-all order slice:
+  `results/appworld_amazon_order_cart_wishlist_all_20260525/20260525_050918` records
+  three local `test_challenge` tasks whose public instructions ask to order every item
+  in the runtime-visible Amazon cart and wishlist for the requested home/work address.
+  The same general Amazon ICVE machine stages both visible collections, clears stale
+  promo-code state before checkout when needed, and reaches 3/3 success with 0 invalid
+  calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
+  `test_challenge` or leaderboard result.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420`
   records three local `test_challenge` tasks whose public instructions ask to reply over

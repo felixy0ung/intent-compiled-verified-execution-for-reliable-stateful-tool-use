@@ -58,6 +58,7 @@ appworld_amazon_answer_cart_wishlist_total,0,none,12,27,39,0,0,0,0,"amazon,super
 appworld_amazon_move_product_type_between_saved_lists,3,"source_container,target_container,product_type",18,58,76,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_rating_filtered_products,4,"source_container,target_container,comparison,threshold_rating",20,58,78,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_order_product_type_from_saved_list,4,"source_container,product_type,address_name,card_name",19,114,133,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_order_saved_collections,3,"containers,address_name,card_name",26,126,152,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_purchase_phone_recommendation,4,"recommender_first_name,product_type,address_name,card_name",19,250,269,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_text_wishlist_itemized_costs,1,relationship,19,58,77,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_bucket_list_status_update,2,"item,done",16,51,67,0,0,0,0,"simple_note,supervisor","schema,compiler,handler,ledger,policy",not_recorded

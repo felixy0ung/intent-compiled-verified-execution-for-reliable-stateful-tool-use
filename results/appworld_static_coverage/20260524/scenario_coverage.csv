@@ -14,10 +14,12 @@ test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
 test_challenge,6a5e690,3,3,3,1.0,1.0,appworld_gmail_send_future_scheduled_drafts_now,
 test_challenge,7238049,3,3,3,1.0,1.0,appworld_venmo_send_to_named_user_with_optional_signup,
 test_challenge,7574325,3,3,3,1.0,1.0,appworld_venmo_change_password,
+test_challenge,77bcb81,3,3,3,1.0,1.0,appworld_amazon_order_saved_collections,
 test_challenge,7bdaf23,3,3,3,1.0,1.0,appworld_gmail_download_flight_ticket_attachment,
 test_challenge,7e1be84,3,3,3,1.0,1.0,appworld_amazon_purchase_phone_recommendation,
 test_challenge,82d2e01,3,3,3,1.0,1.0,appworld_venmo_pay_flight_bill_from_email,
 test_challenge,8a13317,3,3,3,1.0,1.0,appworld_spotify_playlist_from_workout_email,
+test_challenge,9871968,3,3,3,1.0,1.0,appworld_amazon_order_saved_collections,
 test_challenge,9aae7da,3,3,3,1.0,1.0,appworld_amazon_answer_cart_wishlist_total,
 test_challenge,9bf2c8a,3,3,3,1.0,1.0,appworld_amazon_move_product_type_between_saved_lists,
 test_challenge,a132254,3,3,3,1.0,1.0,appworld_gmail_forward_anniversary_announcement_email,
@@ -64,7 +66,6 @@ test_challenge,69ba40f,3,0,0,0.0,0.0,,gmail_email
 test_challenge,6d59d90,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7264edc,3,0,0,0.0,0.0,,gmail_email
 test_challenge,7434096,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,77bcb81,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7b97e6d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7d26579,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,80acbaf,3,0,0,0.0,0.0,,spotify_music
@@ -76,7 +77,6 @@ test_challenge,9126bf0,3,0,0,0.0,0.0,,gmail_email
 test_challenge,92fe421,3,0,0,0.0,0.0,,"amazon_purchase_or_product_search,venmo_payment_or_request"
 test_challenge,953b296,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,96bf160,3,0,0,0.0,0.0,,gmail_email
-test_challenge,9871968,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,988af8e,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
 test_challenge,98d2608,3,0,0,0.0,0.0,,gmail_email
 test_challenge,998908e,3,0,0,0.0,0.0,,splitwise_vacation_or_expense

@@ -30,6 +30,9 @@ APPWORLD_FULL168 = (
     / "results/appworld_rave_official_test_normal_full168_trip_note_debts_20260524/20260524_225648/episode_metrics.csv"
 )
 APPWORLD_STATIC_COVERAGE = ROOT / "results/appworld_static_coverage/20260524/summary.json"
+APPWORLD_STATIC_COVERAGE_EPISODES = (
+    ROOT / "results/appworld_static_coverage/20260524/episode_metrics.csv"
+)
 MINISTORE_PCTU = ROOT / "results/real_llm_ministore_qwen25_3b_rave_tpc2_v2.csv"
 TOOLSANDBOX_GUARDRAIL = (
     ROOT
@@ -180,13 +183,23 @@ def coverage_risk(rows: list[dict[str, str]]) -> dict[str, Any]:
             else 0.0
         ),
         "top_supported_intents": top_intents,
-        "challenge_prefix": {
-            "tasks": 24,
-            "solved_before_new_amazon_machines": 3,
-            "solved_after_two_saved_list_machines": 12,
-            "unsupported_safe_no_action": 12,
-            "unsafe_state_changes": 0,
-        },
+        "challenge_prefix": appworld_challenge_prefix_summary(),
+    }
+
+
+def appworld_challenge_prefix_summary(limit: int = 24) -> dict[str, Any]:
+    rows = [
+        row
+        for row in read_csv_dicts(APPWORLD_STATIC_COVERAGE_EPISODES)
+        if row["split"] == "test_challenge"
+    ][:limit]
+    solved = sum(1 for row in rows if int(row["compiled"]))
+    unsupported = len(rows) - solved
+    return {
+        "tasks": len(rows),
+        "compiled_after_current_amazon_machines": solved,
+        "unsupported_safe_no_action": unsupported,
+        "unsafe_state_changes": 0,
     }
 
 
@@ -400,8 +413,11 @@ of {coverage['tasks']} tasks and succeeds on {coverage['overall_success']} overa
 {coverage['unsupported_safe_no_action']} tasks are unsupported safe no-action outcomes;
 unsafe state changes are {coverage['unsafe_state_changes']} and invalid tool calls are
 {coverage['invalid_tool_calls']}. The `test_challenge` prefix is a negative-control
-diagnostic: after adding two conservative saved-list machines, 12/24 solve, 12/24 remain
-unsupported no-action, and unsafe state changes remain 0.
+diagnostic: after the current conservative Amazon machines,
+{coverage['challenge_prefix']['compiled_after_current_amazon_machines']}/{coverage['challenge_prefix']['tasks']}
+compile, {coverage['challenge_prefix']['unsupported_safe_no_action']}/{coverage['challenge_prefix']['tasks']}
+remain unsupported no-action, and unsafe state changes remain
+{coverage['challenge_prefix']['unsafe_state_changes']}.
 
 The static public-instruction audit covers all local AppWorld `test_normal.txt` and
 `test_challenge.txt` IDs without executing tools or loading ground truth. It compiles
