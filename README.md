@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 117/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 120/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -78,6 +78,9 @@ AppWorld leaderboard submission.
   answer-only machine resolves the user's latest matching product question and answers
   yes/no from visible answers across 3 `test_challenge` tasks with 3/3 success,
   0 invalid calls, and 0 unsafe changes.
+- Held-out AppWorld Amazon spending-total answer slice: one general Amazon machine
+  covers 3 `test_challenge` answer-only tasks with 3/3 success, 0 invalid calls, and
+  0 unsafe changes.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice: one general
   cross-app machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls,
   and 0 unsafe changes.
@@ -124,7 +127,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 118 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 119 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -186,6 +189,8 @@ AppWorld leaderboard submission.
   `results/appworld_amazon_returned_product_answer_20260525/20260525_061207/`
 - AppWorld held-out Amazon order-arrival answer slice:
   `results/appworld_amazon_order_arrival_answer_20260525/20260525_062031/`
+- AppWorld held-out Amazon spending-total answer slice:
+  `results/appworld_amazon_spending_total_answer_20260525/20260525_062720/`
 - AppWorld held-out Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420/`
 - AppWorld held-out Spotify draft recommendation update/send slice:

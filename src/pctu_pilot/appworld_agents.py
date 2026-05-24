@@ -1224,6 +1224,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_answer_spending_total",
+                (SlotSpec("period"),),
+            ),
+            compiler=compile_amazon_answer_spending_total,
+            handler=handle_amazon_answer_spending_total,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4314,6 +4322,23 @@ def compile_amazon_answer_order_arrival_date(
     frame = IntentFrame("appworld_amazon_answer_order_arrival_date")
     frame.set_slot("day_offset", 0 if match.group("day").lower().startswith("today") else 1, source="regex")
     frame.set_slot("date_format", match.group("date_format").upper(), source="regex")
+    return frame
+
+
+def compile_amazon_answer_spending_total(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"How much did I spend on amazon in (?P<period>this calendar year|the last calendar month|this or the last calendar month)\?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_answer_spending_total")
+    frame.set_slot("period", compact_text(match.group("period")).lower(), source="regex")
     return frame
 
 
@@ -9939,6 +9964,69 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_order_arrival_date",
+    )
+
+
+def handle_amazon_answer_spending_total(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    period = str(frame.get("period") or "").strip().lower()
+    if period not in {
+        "this calendar year",
+        "the last calendar month",
+        "this or the last calendar month",
+    }:
+        frame.abstain_reason = "missing_amazon_spending_total_period"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+period = {json.dumps(period)}
+now = DateTime.now()
+if period == "this calendar year":
+    min_created_at = now.start_of("year").to_date_string()
+    max_created_at = now.end_of("year").to_date_string()
+elif period == "the last calendar month":
+    min_created_at = now.subtract(months=1).start_of("month").to_date_string()
+    max_created_at = now.subtract(months=1).end_of("month").to_date_string()
+elif period == "this or the last calendar month":
+    min_created_at = now.subtract(months=1).start_of("month").to_date_string()
+    max_created_at = now.end_of("month").to_date_string()
+else:
+    raise Exception(f"Unsupported Amazon spending period: {{period}}")
+
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+matched_orders = []
+total = 0.0
+for order in orders:
+    created_date = str(order.get("created_at") or "")[:10]
+    if not created_date or not (min_created_at <= created_date <= max_created_at):
+        continue
+    paid = float(order.get("paid_amount") or 0)
+    total += paid
+    matched_orders.append({{
+        "order_id": order.get("order_id"),
+        "created_at": order.get("created_at"),
+        "paid_amount": paid,
+    }})
+answer = str(int(round(total))) if abs(total - round(total)) < 1e-9 else str(round(total, 2))
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "period": period,
+    "date_window": [min_created_at, max_created_at],
+    "matched_orders": matched_orders,
+    "total": total,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_spending_total",
     )
 
 
@@ -15718,6 +15806,8 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "day_offset": int(slots.get("day_offset") or 0),
             "date_format": str(slots.get("date_format") or "").strip().upper(),
         }
+    if intent_type == "appworld_amazon_answer_spending_total":
+        return {"period": compact_text(str(slots.get("period") or "")).lower()}
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -16391,6 +16481,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_spending_total":
+        if not re.fullmatch(
+            r"how much did i spend on amazon in (this calendar year|the last calendar month|this or the last calendar month)\?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16686,6 +16785,8 @@ Supported intent types and slots:
    slots: product_type string; period string, one of this month, this year, or this or last month.
 18. appworld_amazon_answer_order_arrival_date
    slots: day_offset integer, 0 for today's order or 1 for yesterday's order; date_format string, one of DD-MM, MM-DD, or DD/MM.
+18. appworld_amazon_answer_spending_total
+   slots: period string, one of this calendar year, the last calendar month, or this or the last calendar month.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -17021,6 +17122,9 @@ JSON: {"intent_type":"appworld_amazon_answer_returned_product_yes_no","slots":{"
 
 Task: By when should everything from my yesterday's amazon order arrive? Tell me the date in DD-MM format.
 JSON: {"intent_type":"appworld_amazon_answer_order_arrival_date","slots":{"day_offset":1,"date_format":"DD-MM"}}
+
+Task: How much did I spend on amazon in this calendar year?
+JSON: {"intent_type":"appworld_amazon_answer_spending_total","slots":{"period":"this calendar year"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

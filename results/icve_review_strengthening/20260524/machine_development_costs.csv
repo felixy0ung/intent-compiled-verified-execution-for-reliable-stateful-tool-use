@@ -58,6 +58,7 @@ appworld_amazon_answer_cart_wishlist_total,0,none,12,27,39,0,0,0,0,"amazon,super
 appworld_amazon_answer_last_order_question_yes_no,2,"product_type,question",17,106,123,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_order_arrival_date,2,"day_offset,date_format",17,60,77,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_returned_product_yes_no,2,"product_type,period",17,81,98,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_answer_spending_total,1,period,15,60,75,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_verified_battery_life_hours,1,product_name,16,160,176,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_product_type_between_saved_lists,3,"source_container,target_container,product_type",18,58,76,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_rating_filtered_products,4,"source_container,target_container,comparison,threshold_rating",20,58,78,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
