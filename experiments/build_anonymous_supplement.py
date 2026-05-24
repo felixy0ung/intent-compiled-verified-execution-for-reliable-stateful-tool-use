@@ -125,8 +125,8 @@ def sanitize_bytes(data: bytes, path: Path) -> bytes:
 def sanitize_venue_strategy_text(text: str) -> str:
     """Remove venue-strategy phrasing that is irrelevant to anonymous review."""
     replacements = {
-        "STOP_CANDIDATE": "STOP_CANDIDATE",
-        "LaTeX": "LaTeX",
+        "STOP_MAIN_TRACK_CANDIDATE": "STOP_CANDIDATE",
+        "NeurIPS/XeTeX": "LaTeX",
     }
     for old, new in replacements.items():
         text = text.replace(old, new)

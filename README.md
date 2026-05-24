@@ -97,11 +97,18 @@ here. The repository keeps summary outputs for auditability and provides the run
 needed to regenerate them in a properly licensed local setup.
 
 The packaged AppWorld summaries include the deterministic local `test_normal.txt`
-full-file execution diagnostic (`165/168` overall, `165/165` supported success) and a
+full-file execution diagnostic (`165/168` overall success, `165/168`
+covered/supported tasks, `165/165` supported-task success) and a
 static public-instruction compile audit over local `test_normal.txt` and
 `test_challenge.txt` (`165/168` and `18/417` complete frames, respectively). The static
 audit does not execute tools or load ground truth; it is a coverage-boundary diagnostic,
 not a leaderboard result.
+
+Static machines are intended to be developed from API signatures, public task
+instructions, and ordinary runtime error categories, not from private database state,
+ground-truth answers, compiled solutions, or successful trajectories. The paper and
+artifact manifest map this protocol to the packaged coverage and development-cost
+tables.
 
 The paper PDF also includes Appendix A, a claim-to-evidence matrix, and Appendix B, a
 compact artifact map. These appendices spell out which claims are supported by which

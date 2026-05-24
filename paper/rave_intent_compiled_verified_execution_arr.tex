@@ -284,6 +284,18 @@ The anonymous supplement and 4open.science mirror include source code, task-id l
 evaluator summaries, and commands for reproducing the reported rows, while excluding
 credentials, raw logs, databases, and downloaded bundles.
 
+\paragraph{Machine construction protocol.}
+Static machines are developed from API signatures, public task instructions, and
+ordinary runtime error categories, not from ground-truth answers, private database state,
+compiled solutions, or successful trajectories. The AppWorld runner enforces this
+discipline at execution time by loading only the public instruction and routing all state
+access through the live \texttt{apis} object. Machines are registered at the intent-family
+level: a compiler emits reusable slots and a handler must either operate through public
+APIs or return an unsupported no-action outcome. We audit this boundary with per-machine
+coverage/LOC tables, the full local \texttt{test\_normal.txt} coverage diagnostic, and a
+static public-instruction compile audit over \texttt{test\_normal.txt} and
+\texttt{test\_challenge.txt}.
+
 \paragraph{Baselines.}
 We compare against ReAct \citep{yao2022react}, a plain JSON tool-use loop with no runtime
 intent compiler; ReAct+guardrail (PCTU), a stronger proof-carrying baseline that keeps
@@ -825,6 +837,15 @@ machines cover 165 supported \texttt{test\_normal.txt} tasks, or 3.06 tasks per 
 machine. The artifact lists per-machine slots, compiler LOC, handler LOC, total LOC, and
 API namespaces. &
 Manual engineering remains part of the current method. \\
+\addlinespace
+The AppWorld machines are not written from hidden answers. &
+Execution would require task answers, private database state, compiled solutions, or
+successful trajectories. &
+The runner loads only public instructions and accesses state through live
+\texttt{apis}; policies block task-file, ground-truth, compiled-solution, and oracle
+references. The static coverage audit compiles instructions without starting AppWorld,
+executing tools, inspecting databases, or loading ground truth. &
+This is an implementation audit, not a proof of independent third-party development. \\
 \addlinespace
 Typed intent recognition alone does not explain the AppWorld gains. &
 Giving the model the same typed frame and asking it to write mutation code would close

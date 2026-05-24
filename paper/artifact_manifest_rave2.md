@@ -342,8 +342,8 @@ extraction call per task plus the runtime-checked executor.
   `results/appworld_rave_official_test_normal_missing_bde252e3_20260524/20260524_215549`.
   The deterministic combined local file-level summary under
   `results/appworld_rave_official_test_normal_full168_d18139b_card_path_20260524/`
-  reports 165/168 overall success, 165/168 supported, 165/165 supported success, 0 unsafe
-  state changes, and 0.0179 invalid/tool per task. This is local AppWorld 0.2.0
+  reports 165/168 overall success, 165/168 covered/supported tasks, 165/165
+  supported-task success, 0 unsafe state changes, and 0.0179 invalid/tool per task. This is local AppWorld 0.2.0
   file-level evidence, not a public leaderboard submission.
 - Held-out AppWorld test-challenge Amazon-prefix diagnostic:
   `results/20260507_035124` records the first 24 `test_challenge` ids before the latest
