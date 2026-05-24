@@ -1109,6 +1109,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_label_notification_threads_by_app",
+                (),
+            ),
+            compiler=compile_gmail_label_notification_threads_by_app,
+            handler=handle_gmail_label_notification_threads_by_app,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_remove_expired_payment_cards",
                 (),
             ),
@@ -2366,6 +2374,21 @@ def compile_gmail_star_threads_by_relationship(
     frame = IntentFrame("appworld_gmail_star_threads_by_relationship")
     frame.set_slot("relationship", relationship, source="regex")
     return frame
+
+
+def compile_gmail_label_notification_threads_by_app(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    if not re.fullmatch(
+        r"Label all email threads in my Gmail inbox from notifications@<app>\.com "
+        r"with the label of the respective app\. Ignore spam and archived ones\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+    return IntentFrame("appworld_gmail_label_notification_threads_by_app")
 
 
 def compile_remove_expired_payment_cards(
@@ -7982,6 +8005,70 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_label_notification_threads_by_app(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    code = common_appworld_prelude(["gmail"]) + """
+threads = paged(lambda page: apis.gmail.show_inbox_threads(
+    access_token=tokens["gmail"],
+    archived=False,
+    spam=False,
+    page_index=page,
+    page_limit=20,
+))
+
+def app_label_from_email(email_address):
+    email_address = str(email_address or "").strip().lower()
+    match = re.fullmatch(r"notifications@([a-z0-9_\\-]+)\\.com", email_address)
+    if not match:
+        return ""
+    return match.group(1).replace("_", " ").replace("-", " ").strip()
+
+labeled = []
+skipped = []
+seen_thread_ids = set()
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    if detail.get("archived") or detail.get("spam"):
+        skipped.append(thread_id)
+        continue
+    labels = []
+    for email in detail.get("emails", []):
+        sender = email.get("sender") or {}
+        label = app_label_from_email(sender.get("email"))
+        if label and label not in labels:
+            labels.append(label)
+    if len(labels) != 1:
+        skipped.append(thread_id)
+        continue
+    label = labels[0]
+    current_label = str(detail.get("label") or "").strip()
+    if current_label != label:
+        apis.gmail.label_thread(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+            label=label,
+        )
+    labeled.append({"email_thread_id": thread_id, "label": label})
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({"labeled": labeled, "skipped": skipped}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_label_notification_threads_by_app",
+    )
+
+
 def handle_remove_expired_payment_cards(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -12883,6 +12970,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_label_notification_threads_by_app":
+        required = [
+            "label all email threads in my gmail inbox",
+            "notifications@<app>.com",
+            "ignore spam and archived",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_remove_expired_payment_cards":
         if raw != "remove expired payment cards from all my app accounts that have payment cards.":
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -13065,6 +13163,8 @@ Supported intent types and slots:
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
+20. appworld_gmail_label_notification_threads_by_app
+   slots: empty object.
 21. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
@@ -13345,6 +13445,9 @@ JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"delete",
 
 Task: Delete all my read Gmail threads from inbox/outbox, except the ones that have some priority label or are starred.
 JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"delete","exception_mode":"or"}}
+
+Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
+JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}
 
 Task: Mark "Learning to cook a signature dish from scratch" in my Bucket List Simple Note as done.
 JSON: {"intent_type":"appworld_bucket_list_status_update","slots":{"item":"Learning to cook a signature dish from scratch","done":true}}

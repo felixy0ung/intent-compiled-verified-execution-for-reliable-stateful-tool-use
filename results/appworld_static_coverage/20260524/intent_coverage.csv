@@ -4,6 +4,7 @@ test_challenge,appworld_amazon_move_product_type_between_saved_lists,3,3,0,0,1
 test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1
 test_challenge,appworld_amazon_purchase_phone_recommendation,3,3,0,0,1
 test_challenge,appworld_delete_gmail_empty_drafts,3,3,0,0,1
+test_challenge,appworld_gmail_label_notification_threads_by_app,3,3,0,0,1
 test_challenge,appworld_gmail_star_threads_by_relationship,3,3,0,0,1
 test_challenge,appworld_gmail_thread_cleanup,3,3,0,0,1
 test_challenge,appworld_phone_message_app_account_verify_reset,3,3,0,0,1

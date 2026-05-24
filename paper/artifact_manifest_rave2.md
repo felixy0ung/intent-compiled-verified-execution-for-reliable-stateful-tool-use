@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 45/417 `test_challenge` instructions to complete frames. The same
+  instructions and 48/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -242,6 +242,15 @@ extraction call per task plus the runtime-checked executor.
   phone contacts and Venmo search, adds a usable payment card if balance is insufficient,
   and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes. This is a
   narrow held-out slice, not a full `test_challenge` or leaderboard result.
+- Held-out AppWorld Gmail notification-labeling slice:
+  `results/appworld_gmail_label_notification_threads_20260525/20260525_021446` records
+  three local `test_challenge` tasks whose public instructions ask to label Gmail inbox
+  threads from `notifications@<app>.com` with the corresponding app label while ignoring
+  spam and archived threads. One general Gmail ICVE machine enumerates non-spam,
+  non-archived inbox threads, grounds notification senders through runtime-visible thread
+  details, applies app-derived labels, and reaches 3/3 success with 0 invalid calls and
+  0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
+  or leaderboard result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication

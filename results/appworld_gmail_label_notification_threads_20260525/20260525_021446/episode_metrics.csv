@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,e0fe09c_1,,appworld_gmail_label_notification_threads_by_app,1,1,9,0,9,0,0,0,147,1,0,0,0,211,appworld_rave_gmail_label_notification_threads_by_app,0,,,,
+rave_appworld_slice,deterministic,,e0fe09c_2,,appworld_gmail_label_notification_threads_by_app,1,1,9,0,9,0,0,0,138,1,0,0,0,211,appworld_rave_gmail_label_notification_threads_by_app,0,,,,
+rave_appworld_slice,deterministic,,e0fe09c_3,,appworld_gmail_label_notification_threads_by_app,1,1,9,0,9,0,0,0,78,1,0,0,0,211,appworld_rave_gmail_label_notification_threads_by_app,0,,,,

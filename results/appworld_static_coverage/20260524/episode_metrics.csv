@@ -470,9 +470,9 @@ test_challenge,a7179fa_3,a7179fa,0,0,0,0,unsupported,,,gmail_email,1da5e2f7884a7
 test_challenge,80acbaf_1,80acbaf,0,0,0,0,unsupported,,,spotify_music,0c4a922481a11d34
 test_challenge,80acbaf_2,80acbaf,0,0,0,0,unsupported,,,spotify_music,0c4a922481a11d34
 test_challenge,80acbaf_3,80acbaf,0,0,0,0,unsupported,,,spotify_music,0c4a922481a11d34
-test_challenge,e0fe09c_1,e0fe09c,0,0,0,0,unsupported,,,gmail_email,565fff951f52f6d2
-test_challenge,e0fe09c_2,e0fe09c,0,0,0,0,unsupported,,,gmail_email,565fff951f52f6d2
-test_challenge,e0fe09c_3,e0fe09c,0,0,0,0,unsupported,,,gmail_email,565fff951f52f6d2
+test_challenge,e0fe09c_1,e0fe09c,1,1,0,0,appworld_gmail_label_notification_threads_by_app,,,,565fff951f52f6d2
+test_challenge,e0fe09c_2,e0fe09c,1,1,0,0,appworld_gmail_label_notification_threads_by_app,,,,565fff951f52f6d2
+test_challenge,e0fe09c_3,e0fe09c,1,1,0,0,appworld_gmail_label_notification_threads_by_app,,,,565fff951f52f6d2
 test_challenge,7264edc_1,7264edc,0,0,0,0,unsupported,,,gmail_email,21b2411841accde3
 test_challenge,7264edc_2,7264edc,0,0,0,0,unsupported,,,gmail_email,0988434e6979708f
 test_challenge,7264edc_3,7264edc,0,0,0,0,unsupported,,,gmail_email,40dad28f8a26bc9e
