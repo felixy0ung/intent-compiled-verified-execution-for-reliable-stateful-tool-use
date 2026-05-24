@@ -1202,6 +1202,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_answer_returned_product_yes_no",
+                (
+                    SlotSpec("product_type"),
+                    SlotSpec("period"),
+                ),
+            ),
+            compiler=compile_amazon_answer_returned_product_yes_no,
+            handler=handle_amazon_answer_returned_product_yes_no,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4254,6 +4265,25 @@ def compile_amazon_answer_verified_battery_life_hours(
         return None
     frame = IntentFrame("appworld_amazon_answer_verified_battery_life_hours")
     frame.set_slot("product_name", compact_text(match.group("product_name")), source="regex")
+    return frame
+
+
+def compile_amazon_answer_returned_product_yes_no(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Have I returned any (?P<product_type>.+?) on amazon in (?P<period>this month|this year|this or last month)\? "
+        r"Say yes or no\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_answer_returned_product_yes_no")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("period", compact_text(match.group("period")).lower(), source="regex")
     return frame
 
 
@@ -9724,6 +9754,95 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_verified_battery_life_hours",
+    )
+
+
+def handle_amazon_answer_returned_product_yes_no(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_type = frame.get("product_type")
+    period = str(frame.get("period") or "").strip().lower()
+    if not product_type or period not in {"this month", "this year", "this or last month"}:
+        frame.abstain_reason = "missing_amazon_returned_product_answer_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+period = {json.dumps(period)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def product_matches(return_row, product):
+    target = normalize_text(target_product_type)
+    if normalize_text(product.get("product_type")) == target:
+        return True
+    text = " ".join([
+        str(return_row.get("product_name") or ""),
+        str(product.get("name") or ""),
+        str(product.get("product_type") or ""),
+        str(product.get("description") or ""),
+    ])
+    target_words = word_set(target)
+    return bool(target_words) and target_words <= word_set(text)
+
+def date_window():
+    now = DateTime.now()
+    if period == "this month":
+        return now.start_of("month").to_date_string(), now.end_of("month").to_date_string()
+    if period == "this year":
+        return now.start_of("year").to_date_string(), now.end_of("year").to_date_string()
+    if period == "this or last month":
+        start = now.subtract(months=1).start_of("month").to_date_string()
+        end = now.end_of("month").to_date_string()
+        return start, end
+    raise Exception(f"Unsupported return answer period: {{period}}")
+
+min_date, max_date = date_window()
+returns = paged(lambda page: apis.amazon.show_returns(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-initiated_at",
+))
+matches = []
+for row in returns:
+    return_date = str(row.get("returned_at") or row.get("initiated_at") or "")[:10]
+    if not return_date or not (min_date <= return_date <= max_date):
+        continue
+    product_id = row.get("product_id")
+    if product_id is None:
+        continue
+    product = apis.amazon.show_product(product_id=int(product_id))
+    if not product_matches(row, product):
+        continue
+    matches.append({{
+        "return_id": row.get("return_id"),
+        "order_id": row.get("order_id"),
+        "product_id": int(product_id),
+        "product_name": row.get("product_name") or product.get("name"),
+        "return_date": return_date,
+    }})
+
+answer = "yes" if matches else "no"
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "period": period,
+    "product_type": target_product_type,
+    "date_window": [min_date, max_date],
+    "matched_returns": matches,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_returned_product_yes_no",
     )
 
 
@@ -15493,6 +15612,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         }
     if intent_type == "appworld_amazon_answer_verified_battery_life_hours":
         return {"product_name": compact_text(str(slots.get("product_name") or ""))}
+    if intent_type == "appworld_amazon_answer_returned_product_yes_no":
+        return {
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "period": compact_text(str(slots.get("period") or "")).lower(),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -16147,6 +16271,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_returned_product_yes_no":
+        if not re.fullmatch(
+            r"have i returned any .+? on amazon in (this month|this year|this or last month)\? say yes or no\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16438,6 +16571,8 @@ Supported intent types and slots:
    slots: product_type string; question string without the trailing "Say yes or no".
 18. appworld_amazon_answer_verified_battery_life_hours
    slots: product_name string.
+18. appworld_amazon_answer_returned_product_yes_no
+   slots: product_type string; period string, one of this month, this year, or this or last month.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -16767,6 +16902,9 @@ JSON: {"intent_type":"appworld_amazon_answer_last_order_question_yes_no","slots"
 
 Task: How many hours does the battery of HP Pavilion 15 Laptop last? Please answer as per its amazon reviews or questions/answers and and only trust information from its verified purchasers.
 JSON: {"intent_type":"appworld_amazon_answer_verified_battery_life_hours","slots":{"product_name":"HP Pavilion 15 Laptop"}}
+
+Task: Have I returned any office desk on amazon in this month? Say yes or no.
+JSON: {"intent_type":"appworld_amazon_answer_returned_product_yes_no","slots":{"product_type":"office desk","period":"this month"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

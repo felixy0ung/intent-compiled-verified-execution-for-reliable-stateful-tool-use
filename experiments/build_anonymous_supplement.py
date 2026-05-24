@@ -59,6 +59,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_order_wishlist_all_20260525": {"20260525_050933"},
     "appworld_amazon_answer_last_order_question_20260525": {"20260525_055112"},
     "appworld_amazon_verified_battery_life_20260525": {"20260525_060235"},
+    "appworld_amazon_returned_product_answer_20260525": {"20260525_061207"},
     "appworld_amazon_post_last_order_question_20260525": {"20260525_052247"},
     "appworld_amazon_return_recent_orders_20260525": {"20260525_052017"},
     "appworld_amazon_update_last_month_review_20260525": {"20260525_053844"},
