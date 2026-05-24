@@ -147,22 +147,22 @@
   "static_instruction_coverage": {
     "benchmark": "AppWorld public-instruction static compile audit",
     "not_a_success_or_leaderboard_metric": true,
-    "registered_appworld_machines": 126,
+    "registered_appworld_machines": 127,
     "total_tasks": 585,
     "overall": {
       "tasks": 585,
-      "compiled": 309,
-      "dispatchable": 309,
+      "compiled": 312,
+      "dispatchable": 312,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 276,
-      "compiled_rate": 0.5282,
-      "dispatchable_rate": 0.5282,
-      "unsupported_rate": 0.4718,
+      "unsupported": 273,
+      "compiled_rate": 0.5333,
+      "dispatchable_rate": 0.5333,
+      "unsupported_rate": 0.4667,
       "scenarios": 195,
-      "compiled_scenarios": 103,
-      "dispatchable_scenarios": 103,
-      "dispatchable_scenario_rate": 0.5282
+      "compiled_scenarios": 104,
+      "dispatchable_scenarios": 104,
+      "dispatchable_scenario_rate": 0.5333
     },
     "test_normal": {
       "tasks": 168,
@@ -181,23 +181,23 @@
     },
     "test_challenge": {
       "tasks": 417,
-      "compiled": 141,
-      "dispatchable": 141,
+      "compiled": 144,
+      "dispatchable": 144,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 276,
-      "compiled_rate": 0.3381,
-      "dispatchable_rate": 0.3381,
-      "unsupported_rate": 0.6619,
+      "unsupported": 273,
+      "compiled_rate": 0.3453,
+      "dispatchable_rate": 0.3453,
+      "unsupported_rate": 0.6547,
       "scenarios": 139,
-      "compiled_scenarios": 47,
-      "dispatchable_scenarios": 47,
-      "dispatchable_scenario_rate": 0.3381
+      "compiled_scenarios": 48,
+      "dispatchable_scenarios": 48,
+      "dispatchable_scenario_rate": 0.3453
     },
     "top_unsupported_buckets": [
       [
         "amazon_purchase_or_product_search",
-        152
+        149
       ],
       [
         "gmail_email",
@@ -219,7 +219,7 @@
   },
   "machine_coverage_cost": {
     "toolsandbox_static_machines": 13,
-    "appworld_static_machines": 126,
+    "appworld_static_machines": 127,
     "appworld_machines_used_in_full168": 55,
     "appworld_supported_tasks": 168,
     "appworld_tasks_per_used_machine": 3.0545454545454547,
