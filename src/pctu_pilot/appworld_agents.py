@@ -1248,6 +1248,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_membership_remaining_duration",
+                (
+                    SlotSpec("app_name"),
+                    SlotSpec("unit"),
+                ),
+            ),
+            compiler=compile_membership_remaining_duration,
+            handler=handle_membership_remaining_duration,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4399,6 +4410,31 @@ def compile_membership_last_payment_card_name(
         return None
     frame = IntentFrame("appworld_membership_last_payment_card_name")
     frame.set_slot("app_name", app_name, source="regex")
+    return frame
+
+
+def compile_membership_remaining_duration(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"How many (?P<unit>days|months) of (?P<app>amazon|spotify) "
+        r"(?P<membership>prime|premium) subscription do I still have left\? "
+        r"Round to the nearest number\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    app_name = match.group("app").lower()
+    membership = match.group("membership").lower()
+    unit = match.group("unit").lower()
+    if (app_name, membership) not in {("amazon", "prime"), ("spotify", "premium")}:
+        return None
+    frame = IntentFrame("appworld_membership_remaining_duration")
+    frame.set_slot("app_name", app_name, source="regex")
+    frame.set_slot("unit", unit, source="regex")
     return frame
 
 
@@ -10224,6 +10260,84 @@ print(json.dumps({{
     )
 
 
+def handle_membership_remaining_duration(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    app_name = str(frame.get("app_name") or "").strip().lower()
+    unit = str(frame.get("unit") or "").strip().lower()
+    if app_name not in {"amazon", "spotify"} or unit not in {"days", "months"}:
+        frame.abstain_reason = "missing_membership_remaining_duration_slots"
+        return None
+    code = common_appworld_prelude([app_name]) + f"""
+app_name = {json.dumps(app_name)}
+unit = {json.dumps(unit)}
+
+if app_name == "amazon":
+    subscriptions = paged(lambda page: apis.amazon.show_prime_subscriptions(
+        access_token=tokens["amazon"],
+        page_index=page,
+        page_limit=20,
+    ))
+elif app_name == "spotify":
+    subscriptions = paged(lambda page: apis.spotify.show_premium_subscriptions(
+        access_token=tokens["spotify"],
+        page_index=page,
+        page_limit=20,
+    ))
+else:
+    raise Exception(f"Unsupported membership app: {{app_name}}")
+
+now = DateTime.now()
+active = []
+for subscription in subscriptions:
+    end_raw = subscription.get("end_date")
+    if not end_raw:
+        continue
+    end_dt = DateTime.fromisoformat(str(end_raw))
+    start_raw = subscription.get("start_date")
+    start_dt = DateTime.fromisoformat(str(start_raw)) if start_raw else None
+    if end_dt >= now and (start_dt is None or start_dt <= now):
+        active.append((end_dt, subscription))
+
+if not active:
+    answer = "0"
+    chosen_subscription = None
+    remaining_days = 0.0
+else:
+    active.sort(key=lambda item: item[0], reverse=True)
+    end_dt, chosen_subscription = active[0]
+    remaining_seconds = max(0.0, float(end_dt.timestamp() - now.timestamp()))
+    remaining_days = remaining_seconds / 86400.0
+    if unit == "days":
+        remaining_calendar_days = max(0, (end_dt.date() - now.date()).days)
+        answer = str(remaining_calendar_days)
+    elif unit == "months":
+        answer = str(int((remaining_days / 30.0) + 0.5))
+    else:
+        raise Exception(f"Unsupported duration unit: {{unit}}")
+
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "app_name": app_name,
+    "unit": unit,
+    "remaining_days": remaining_days,
+    "chosen_subscription": None if chosen_subscription is None else {{
+        "start_date": chosen_subscription.get("start_date"),
+        "end_date": chosen_subscription.get("end_date"),
+        "payment_card_digits": chosen_subscription.get("payment_card_digits"),
+        "paid_amount": chosen_subscription.get("paid_amount"),
+    }},
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_membership_remaining_duration",
+    )
+
+
 def handle_delete_gmail_empty_drafts(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -16020,6 +16134,16 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             elif membership == "premium":
                 app_name = "spotify"
         return {"app_name": app_name}
+    if intent_type == "appworld_membership_remaining_duration":
+        app_name = str(slots.get("app_name") or slots.get("app") or "").strip().lower()
+        membership = str(slots.get("membership") or slots.get("subscription") or "").strip().lower()
+        if not app_name:
+            if membership == "prime":
+                app_name = "amazon"
+            elif membership == "premium":
+                app_name = "spotify"
+        unit = str(slots.get("unit") or slots.get("duration_unit") or "").strip().lower()
+        return {"app_name": app_name, "unit": unit}
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -16720,6 +16844,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_membership_remaining_duration":
+        if not re.fullmatch(
+            r"how many (days|months) of (amazon|spotify) (prime|premium) subscription do i still have left\? round to the nearest number\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -17021,6 +17154,8 @@ Supported intent types and slots:
    slots: app_name string, one of amazon or spotify.
 18. appworld_membership_last_payment_card_name
    slots: app_name string, one of amazon or spotify.
+18. appworld_membership_remaining_duration
+   slots: app_name string, one of amazon or spotify; unit string, one of days or months.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -17365,6 +17500,9 @@ JSON: {"intent_type":"appworld_membership_paid_total","slots":{"app_name":"spoti
 
 Task: Tell me the card name I used for my last amazon prime membership payment?
 JSON: {"intent_type":"appworld_membership_last_payment_card_name","slots":{"app_name":"amazon"}}
+
+Task: How many months of amazon prime subscription do I still have left? Round to the nearest number.
+JSON: {"intent_type":"appworld_membership_remaining_duration","slots":{"app_name":"amazon","unit":"months"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

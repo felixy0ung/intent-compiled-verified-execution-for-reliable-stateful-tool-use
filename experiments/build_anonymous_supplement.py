@@ -64,6 +64,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_spending_total_answer_20260525": {"20260525_062720"},
     "appworld_membership_paid_total_answer_20260525": {"20260525_063804"},
     "appworld_membership_payment_card_answer_20260525": {"20260525_064427"},
+    "appworld_membership_remaining_duration_answer_20260525": {"20260525_065048"},
     "appworld_amazon_post_last_order_question_20260525": {"20260525_052247"},
     "appworld_amazon_return_recent_orders_20260525": {"20260525_052017"},
     "appworld_amazon_update_last_month_review_20260525": {"20260525_053844"},
