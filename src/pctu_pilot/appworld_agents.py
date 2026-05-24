@@ -1232,6 +1232,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_membership_paid_total",
+                (SlotSpec("app_name"),),
+            ),
+            compiler=compile_membership_paid_total,
+            handler=handle_membership_paid_total,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4339,6 +4347,28 @@ def compile_amazon_answer_spending_total(
         return None
     frame = IntentFrame("appworld_amazon_answer_spending_total")
     frame.set_slot("period", compact_text(match.group("period")).lower(), source="regex")
+    return frame
+
+
+def compile_membership_paid_total(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"How much have I paid in (?P<membership>prime|premium) membership since I made the "
+        r"(?P<app>amazon|spotify) account\?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    app_name = match.group("app").lower()
+    membership = match.group("membership").lower()
+    if (app_name, membership) not in {("amazon", "prime"), ("spotify", "premium")}:
+        return None
+    frame = IntentFrame("appworld_membership_paid_total")
+    frame.set_slot("app_name", app_name, source="regex")
     return frame
 
 
@@ -10027,6 +10057,61 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_spending_total",
+    )
+
+
+def handle_membership_paid_total(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    app_name = str(frame.get("app_name") or "").strip().lower()
+    if app_name not in {"amazon", "spotify"}:
+        frame.abstain_reason = "missing_membership_paid_total_app"
+        return None
+    code = common_appworld_prelude([app_name]) + f"""
+app_name = {json.dumps(app_name)}
+
+if app_name == "amazon":
+    subscriptions = paged(lambda page: apis.amazon.show_prime_subscriptions(
+        access_token=tokens["amazon"],
+        page_index=page,
+        page_limit=20,
+    ))
+elif app_name == "spotify":
+    subscriptions = paged(lambda page: apis.spotify.show_premium_subscriptions(
+        access_token=tokens["spotify"],
+        page_index=page,
+        page_limit=20,
+    ))
+else:
+    raise Exception(f"Unsupported membership app: {{app_name}}")
+
+total = 0.0
+matched_subscriptions = []
+for subscription in subscriptions:
+    paid = float(subscription.get("paid_amount") or 0)
+    total += paid
+    matched_subscriptions.append({{
+        "start_date": subscription.get("start_date"),
+        "end_date": subscription.get("end_date"),
+        "payment_card_digits": subscription.get("payment_card_digits"),
+        "paid_amount": paid,
+    }})
+
+answer = str(int(round(total))) if abs(total - round(total)) < 1e-9 else str(round(total, 2))
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "app_name": app_name,
+    "subscription_count": len(matched_subscriptions),
+    "total": total,
+    "subscriptions": matched_subscriptions,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_membership_paid_total",
     )
 
 
@@ -15808,6 +15893,15 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         }
     if intent_type == "appworld_amazon_answer_spending_total":
         return {"period": compact_text(str(slots.get("period") or "")).lower()}
+    if intent_type == "appworld_membership_paid_total":
+        app_name = str(slots.get("app_name") or slots.get("app") or "").strip().lower()
+        membership = str(slots.get("membership") or slots.get("subscription") or "").strip().lower()
+        if not app_name:
+            if membership == "prime":
+                app_name = "amazon"
+            elif membership == "premium":
+                app_name = "spotify"
+        return {"app_name": app_name}
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -16490,6 +16584,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_membership_paid_total":
+        if not re.fullmatch(
+            r"how much have i paid in (prime|premium) membership since i made the (amazon|spotify) account\?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16787,6 +16890,8 @@ Supported intent types and slots:
    slots: day_offset integer, 0 for today's order or 1 for yesterday's order; date_format string, one of DD-MM, MM-DD, or DD/MM.
 18. appworld_amazon_answer_spending_total
    slots: period string, one of this calendar year, the last calendar month, or this or the last calendar month.
+18. appworld_membership_paid_total
+   slots: app_name string, one of amazon or spotify.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -17125,6 +17230,9 @@ JSON: {"intent_type":"appworld_amazon_answer_order_arrival_date","slots":{"day_o
 
 Task: How much did I spend on amazon in this calendar year?
 JSON: {"intent_type":"appworld_amazon_answer_spending_total","slots":{"period":"this calendar year"}}
+
+Task: How much have I paid in premium membership since I made the spotify account?
+JSON: {"intent_type":"appworld_membership_paid_total","slots":{"app_name":"spotify"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

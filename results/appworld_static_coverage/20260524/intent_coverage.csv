@@ -27,6 +27,7 @@ test_challenge,appworld_gmail_reply_weekly_manager_tasks_by_star_state,3,3,0,0,1
 test_challenge,appworld_gmail_send_future_scheduled_drafts_now,3,3,0,0,1
 test_challenge,appworld_gmail_star_threads_by_relationship,3,3,0,0,1
 test_challenge,appworld_gmail_thread_cleanup,3,3,0,0,1
+test_challenge,appworld_membership_paid_total,3,3,0,0,1
 test_challenge,appworld_phone_message_app_account_verify_reset,3,3,0,0,1
 test_challenge,appworld_remove_expired_payment_cards,3,3,0,0,1
 test_challenge,appworld_shared_subscription_password_reset_and_text,3,3,0,0,1

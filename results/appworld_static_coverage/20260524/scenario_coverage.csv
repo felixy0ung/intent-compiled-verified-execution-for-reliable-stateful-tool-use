@@ -9,6 +9,7 @@ test_challenge,1c4bd27,3,3,3,1.0,1.0,appworld_amazon_return_recent_orders,
 test_challenge,258796c,3,3,3,1.0,1.0,appworld_amazon_answer_verified_battery_life_hours,
 test_challenge,277d81d,3,3,3,1.0,1.0,appworld_gmail_mark_threads_read_state_by_calendar_window,
 test_challenge,3650990,3,3,3,1.0,1.0,appworld_amazon_answer_returned_product_yes_no,
+test_challenge,365e0a3,3,3,3,1.0,1.0,appworld_membership_paid_total,
 test_challenge,3f3c139,3,3,3,1.0,1.0,appworld_remove_expired_payment_cards,
 test_challenge,4441ee9,3,3,3,1.0,1.0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,
 test_challenge,4d12842,3,3,3,1.0,1.0,appworld_gmail_delete_archived_threads_by_calendar_window,
@@ -52,7 +53,6 @@ test_challenge,2ff4dfb,3,0,0,0.0,0.0,,gmail_email
 test_challenge,30e8586,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,321ec38,3,0,0,0.0,0.0,,gmail_email
 test_challenge,33e202d,3,0,0,0.0,0.0,,gmail_email
-test_challenge,365e0a3,3,0,0,0.0,0.0,,"amazon_purchase_or_product_search,spotify_music"
 test_challenge,36705ae,3,0,0,0.0,0.0,,gmail_email
 test_challenge,383a053,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,3fcc458,3,0,0,0.0,0.0,,splitwise_vacation_or_expense

@@ -383,9 +383,9 @@ test_challenge,f099b4c_3,f099b4c,0,0,0,0,unsupported,,,amazon_purchase_or_produc
 test_challenge,dcb2559_1,dcb2559,0,0,0,0,unsupported,,,spotify_music,13b7ec37711b245c
 test_challenge,dcb2559_2,dcb2559,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,32b7b2bca1613973
 test_challenge,dcb2559_3,dcb2559,0,0,0,0,unsupported,,,spotify_music,13b7ec37711b245c
-test_challenge,365e0a3_1,365e0a3,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,efec3c46abf228e4
-test_challenge,365e0a3_2,365e0a3,0,0,0,0,unsupported,,,spotify_music,1236312c98d4c014
-test_challenge,365e0a3_3,365e0a3,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,efec3c46abf228e4
+test_challenge,365e0a3_1,365e0a3,1,1,0,0,appworld_membership_paid_total,,,,efec3c46abf228e4
+test_challenge,365e0a3_2,365e0a3,1,1,0,0,appworld_membership_paid_total,,,,1236312c98d4c014
+test_challenge,365e0a3_3,365e0a3,1,1,0,0,appworld_membership_paid_total,,,,efec3c46abf228e4
 test_challenge,476b213_1,476b213,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,27236a191027e1bf
 test_challenge,476b213_2,476b213,0,0,0,0,unsupported,,,venmo_payment_or_request,14be37df78d0a5b4
 test_challenge,476b213_3,476b213,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,27236a191027e1bf

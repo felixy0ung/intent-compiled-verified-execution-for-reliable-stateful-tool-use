@@ -147,22 +147,22 @@
   "static_instruction_coverage": {
     "benchmark": "AppWorld public-instruction static compile audit",
     "not_a_success_or_leaderboard_metric": true,
-    "registered_appworld_machines": 119,
+    "registered_appworld_machines": 120,
     "total_tasks": 585,
     "overall": {
       "tasks": 585,
-      "compiled": 288,
-      "dispatchable": 288,
+      "compiled": 291,
+      "dispatchable": 291,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 297,
-      "compiled_rate": 0.4923,
-      "dispatchable_rate": 0.4923,
-      "unsupported_rate": 0.5077,
+      "unsupported": 294,
+      "compiled_rate": 0.4974,
+      "dispatchable_rate": 0.4974,
+      "unsupported_rate": 0.5026,
       "scenarios": 195,
-      "compiled_scenarios": 96,
-      "dispatchable_scenarios": 96,
-      "dispatchable_scenario_rate": 0.4923
+      "compiled_scenarios": 97,
+      "dispatchable_scenarios": 97,
+      "dispatchable_scenario_rate": 0.4974
     },
     "test_normal": {
       "tasks": 168,
@@ -181,23 +181,23 @@
     },
     "test_challenge": {
       "tasks": 417,
-      "compiled": 120,
-      "dispatchable": 120,
+      "compiled": 123,
+      "dispatchable": 123,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 297,
-      "compiled_rate": 0.2878,
-      "dispatchable_rate": 0.2878,
-      "unsupported_rate": 0.7122,
+      "unsupported": 294,
+      "compiled_rate": 0.295,
+      "dispatchable_rate": 0.295,
+      "unsupported_rate": 0.705,
       "scenarios": 139,
-      "compiled_scenarios": 40,
-      "dispatchable_scenarios": 40,
-      "dispatchable_scenario_rate": 0.2878
+      "compiled_scenarios": 41,
+      "dispatchable_scenarios": 41,
+      "dispatchable_scenario_rate": 0.295
     },
     "top_unsupported_buckets": [
       [
         "amazon_purchase_or_product_search",
-        169
+        167
       ],
       [
         "gmail_email",
@@ -209,7 +209,7 @@
       ],
       [
         "spotify_music",
-        15
+        14
       ],
       [
         "venmo_payment_or_request",
@@ -219,7 +219,7 @@
   },
   "machine_coverage_cost": {
     "toolsandbox_static_machines": 13,
-    "appworld_static_machines": 119,
+    "appworld_static_machines": 120,
     "appworld_machines_used_in_full168": 55,
     "appworld_supported_tasks": 168,
     "appworld_tasks_per_used_machine": 3.0545454545454547,
