@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 27/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 30/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -46,7 +46,10 @@ AppWorld leaderboard submission.
 - Held-out AppWorld expired-payment-card cleanup slice: one general cross-app machine
   covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe
   changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 89 registered
+- Held-out AppWorld Venmo password-reset slice: one general account-security machine
+  covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe
+  changes.
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 90 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -80,6 +83,8 @@ AppWorld leaderboard submission.
   `results/appworld_gmail_star_relationship_20260524/20260525_000839/`
 - AppWorld held-out expired-payment-card cleanup slice:
   `results/appworld_remove_expired_cards_20260525/20260525_002233/`
+- AppWorld held-out Venmo password-reset slice:
+  `results/appworld_venmo_change_password_20260525/20260525_004717/`
 - AppWorld static public-instruction coverage:
   `results/appworld_static_coverage/20260524/`
 - Review-strengthening summaries and machine development-cost table:

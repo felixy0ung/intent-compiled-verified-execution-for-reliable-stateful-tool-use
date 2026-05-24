@@ -777,6 +777,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_venmo_change_password",
+                (SlotSpec("new_password"),),
+            ),
+            compiler=compile_venmo_change_password,
+            handler=handle_venmo_change_password,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_splitwise_record_venmo_receipt_payments",
                 (SlotSpec("note"),),
             ),
@@ -1723,6 +1731,26 @@ def compile_phone_message_app_account_verify_reset(
     frame.set_slot("relationship", relationship, source="regex")
     frame.set_slot("password", match.group("password").strip(), source="regex")
     frame.set_slot("date_window", match.group("window").lower(), source="regex")
+    return frame
+
+
+def compile_venmo_change_password(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Change my venmo password to (?P<password>.+?)\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    password = match.group("password").strip()
+    if len(password) < 5:
+        return None
+    frame = IntentFrame("appworld_venmo_change_password")
+    frame.set_slot("new_password", password, source="regex")
     return frame
 
 
@@ -4001,6 +4029,87 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_phone_message_app_account_verify_reset",
+    )
+
+
+def handle_venmo_change_password(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    new_password = frame.get("new_password")
+    if not new_password:
+        frame.abstain_reason = "missing_venmo_new_password"
+        return None
+    code = common_appworld_prelude(["gmail"]) + f"""
+new_password = {json.dumps(str(new_password))}
+
+def code_from_email(text):
+    patterns = [
+        r"password reset code is:\\s*([A-Za-z0-9_-]+)",
+        r"reset code is:\\s*([A-Za-z0-9_-]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+def find_recent_password_reset_code():
+    queries = [
+        "venmo Password Reset Code",
+        "venmo password reset code",
+        "Password Reset Code",
+    ]
+    candidates = []
+    for query in queries:
+        threads = paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+            access_token=tokens["gmail"],
+            query=query,
+            page_index=page,
+            page_limit=20,
+            sort_by="-created_at",
+        ))
+        for thread in threads:
+            thread_id = thread.get("email_thread_id")
+            if thread_id is None:
+                continue
+            detail = apis.gmail.show_thread(
+                access_token=tokens["gmail"],
+                email_thread_id=thread_id,
+            )
+            for email in detail.get("emails", []):
+                subject = str(email.get("subject") or "")
+                body = str(email.get("body") or "")
+                if "venmo" not in (subject + "\\n" + body).lower():
+                    continue
+                code = code_from_email(subject + "\\n" + body)
+                if code:
+                    candidates.append((str(email.get("created_at") or ""), code, subject))
+        if candidates:
+            break
+    if not candidates:
+        return ""
+    candidates.sort(reverse=True)
+    return candidates[0][1]
+
+email = profile["email"]
+reset_request = apis.venmo.send_password_reset_code(email=email)
+reset_code = find_recent_password_reset_code()
+if not reset_code:
+    raise Exception("No Venmo password reset code found in Gmail.")
+apis.venmo.reset_password(
+    email=email,
+    password_reset_code=reset_code,
+    new_password=new_password,
+)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{"app": "venmo", "password_reset_requested": bool(reset_request)}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_venmo_change_password",
     )
 
 
@@ -11633,6 +11742,12 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_venmo_change_password":
+        if not raw.startswith("change my venmo password to "):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type in {
         "appworld_venmo_process_pending_payment_requests",
         "appworld_venmo_approve_roommate_requests_this_month",
@@ -11703,6 +11818,8 @@ Supported intent types and slots:
    slots: relationships list using singular values from [parent, roommate], password string, message string.
 6. appworld_phone_message_app_account_verify_reset
    slots: relationship string, one of son, daughter, or child; password string; date_window string, normally yesterday.
+6. appworld_venmo_change_password
+   slots: new_password string.
 6. appworld_splitwise_record_venmo_receipt_payments
    slots: note string.
 7. appworld_todoist_reassign_accepted_takeover_tasks
@@ -11900,6 +12017,9 @@ JSON: {"intent_type":"appworld_venmo_signup_missing_relationship_accounts","slot
 
 Task: My son sent me a message yesterday on phone about an app account creation. Please do as per his message. Use password UEHA7Gv for the new account.
 JSON: {"intent_type":"appworld_phone_message_app_account_verify_reset","slots":{"relationship":"son","password":"UEHA7Gv","date_window":"yesterday"}}
+
+Task: Change my venmo password to aQAdQp
+JSON: {"intent_type":"appworld_venmo_change_password","slots":{"new_password":"aQAdQp"}}
 
 Task: I owed people some money. They put the associated expenses on Splitwise yesterday. I paid some of them up on Venmo today. Please record payments on Splitwise for each in their respective groups. Each payment should have a note, "Sent on Venmo, see receipt.", and an attached Venmo receipt of it as a proof.
 JSON: {"intent_type":"appworld_splitwise_record_venmo_receipt_payments","slots":{"note":"Sent on Venmo, see receipt."}}
@@ -12286,6 +12406,8 @@ Relevant APIs for this slice:
 - apis.venmo.add_friend(access_token=..., user_email=...)
 - apis.venmo.remove_friend(access_token=..., user_email=...)
 - apis.venmo.show_account(access_token=...)
+- apis.venmo.send_password_reset_code(email=...)
+- apis.venmo.reset_password(email=..., password_reset_code=..., new_password=...)
 - apis.venmo.show_payment_cards(access_token=...)
 - apis.venmo.create_transaction(access_token=..., receiver_email=..., amount=..., private=..., payment_card_id=..., description=...)
 - apis.venmo.create_payment_request(access_token=..., user_email=..., amount=..., private=..., description=...)

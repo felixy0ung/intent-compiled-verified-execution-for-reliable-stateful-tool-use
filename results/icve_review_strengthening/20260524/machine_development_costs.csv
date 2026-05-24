@@ -81,6 +81,7 @@ appworld_spotify_playlist_best_song_per_collection,3,"playlist_title,song_metric
 appworld_spotify_rate_library_songs_by_liked_status,3,"collection_type,liked_filter,target_rating",29,82,111,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_sync_following_by_liked_song_artists,1,operation,24,49,73,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_top_played_genre_titles,2,"genre,limit",18,50,68,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_venmo_change_password,1,new_password,18,75,93,0,0,0,0,"gmail,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_like_transactions_by_relationship_period,2,"relationships,period",17,64,81,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_manager_meal_total_from_social_feed,4,"relationships,meal,venue,share_amount",22,85,107,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_pay_grocery_from_text_and_notify,3,"person_first_name,note,message",20,104,124,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded

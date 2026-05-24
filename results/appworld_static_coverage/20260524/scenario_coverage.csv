@@ -6,6 +6,7 @@ test_challenge,0de03ad,3,3,3,1.0,1.0,appworld_gmail_star_threads_by_relationship
 test_challenge,3f3c139,3,3,3,1.0,1.0,appworld_remove_expired_payment_cards,
 test_challenge,5238afc,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
+test_challenge,7574325,3,3,3,1.0,1.0,appworld_venmo_change_password,
 test_challenge,9bf2c8a,3,3,3,1.0,1.0,appworld_amazon_move_product_type_between_saved_lists,
 test_challenge,aaa25aa,3,3,3,1.0,1.0,appworld_phone_message_app_account_verify_reset,
 test_challenge,099174d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
@@ -50,7 +51,6 @@ test_challenge,6d59d90,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7238049,3,0,0,0.0,0.0,,venmo_payment_or_request
 test_challenge,7264edc,3,0,0,0.0,0.0,,gmail_email
 test_challenge,7434096,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,7574325,3,0,0,0.0,0.0,,venmo_payment_or_request
 test_challenge,77bcb81,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7b97e6d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7bdaf23,3,0,0,0.0,0.0,,gmail_email
