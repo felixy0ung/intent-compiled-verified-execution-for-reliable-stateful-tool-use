@@ -855,6 +855,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_venmo_send_to_named_user_with_optional_signup",
+                (
+                    SlotSpec("person_first_name"),
+                    SlotSpec("amount"),
+                ),
+            ),
+            compiler=compile_venmo_send_to_named_user_with_optional_signup,
+            handler=handle_venmo_send_to_named_user_with_optional_signup,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_venmo_accept_named_carpool_request_this_month",
                 (SlotSpec("person_first_name"),),
             ),
@@ -1960,6 +1971,25 @@ def compile_venmo_send_to_named_user(
     if not match:
         return None
     frame = IntentFrame("appworld_venmo_send_to_named_user")
+    frame.set_slot("person_first_name", match.group("first_name"), source="regex")
+    frame.set_slot("amount", float(match.group("amount")), source="regex")
+    return frame
+
+
+def compile_venmo_send_to_named_user_with_optional_signup(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Send \$(?P<amount>\d+(?:\.\d+)?) to (?P<first_name>[A-Z][A-Za-z]+) via Venmo\. "
+        r"You may need to make me an account first, if I do not have one\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_venmo_send_to_named_user_with_optional_signup")
     frame.set_slot("person_first_name", match.group("first_name"), source="regex")
     frame.set_slot("amount", float(match.group("amount")), source="regex")
     return frame
@@ -5335,6 +5365,237 @@ print(json.dumps({{"first_name": first_name, "receiver_email": receiver_email, "
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_venmo_send_to_named_user",
+    )
+
+
+def handle_venmo_send_to_named_user_with_optional_signup(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    first_name = frame.get("person_first_name")
+    amount = frame.get("amount")
+    if not first_name or amount is None:
+        frame.abstain_reason = "missing_venmo_optional_signup_payment_slots"
+        return None
+    code = common_appworld_prelude(["phone", "gmail"]) + f"""
+first_name = {json.dumps(str(first_name))}
+amount = {float(amount)}
+first_name_lower = first_name.lower()
+profile_first = str(profile.get("first_name") or "").strip()
+profile_last = str(profile.get("last_name") or "").strip()
+profile_email = str(profile.get("email") or "").strip().lower()
+venmo_password = passwords.get("venmo") or passwords.get("gmail") or "TempVenmo1"
+created_account = False
+verified_account = False
+
+def code_from_email(text):
+    patterns = [
+        r"account verification code is:\\s*([A-Za-z0-9_-]+)",
+        r"verification code is:\\s*([A-Za-z0-9_-]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, str(text or ""), flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+def find_recent_venmo_verification_code():
+    queries = [
+        "Venmo Account Verficiation Code",
+        "Venmo verification code",
+        "account verification code",
+    ]
+    candidates = []
+    for query in queries:
+        threads = paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+            access_token=tokens["gmail"],
+            query=query,
+            page_index=page,
+            page_limit=20,
+            sort_by="-created_at",
+        ))
+        for thread in threads:
+            thread_id = thread.get("email_thread_id")
+            if thread_id is None:
+                continue
+            detail = apis.gmail.show_thread(
+                access_token=tokens["gmail"],
+                email_thread_id=thread_id,
+            )
+            for email in detail.get("emails", []):
+                subject = str(email.get("subject") or "")
+                body = str(email.get("body") or "")
+                if "venmo" not in (subject + "\\n" + body).lower():
+                    continue
+                code = code_from_email(subject + "\\n" + body)
+                if code:
+                    candidates.append((str(email.get("created_at") or ""), code, subject))
+        if candidates:
+            break
+    if not candidates:
+        return ""
+    candidates.sort(reverse=True)
+    return candidates[0][1]
+
+login_result = apis.venmo.login(username=profile_email, password=venmo_password)
+if "access_token" not in login_result:
+    signup_result = apis.venmo.signup(
+        first_name=profile_first,
+        last_name=profile_last,
+        email=profile_email,
+        password=venmo_password,
+    )
+    created_account = "created" in str(signup_result.get("message", "")).lower()
+    verification_code = find_recent_venmo_verification_code()
+    if not verification_code:
+        send_result = apis.venmo.send_verification_code(email=profile_email)
+        verification_code = find_recent_venmo_verification_code()
+    if not verification_code:
+        raise Exception("No Venmo account verification code found in Gmail.")
+    verify_result = apis.venmo.verify_account(
+        email=profile_email,
+        verification_code=verification_code,
+    )
+    verified_account = "verified" in str(verify_result.get("message", "")).lower()
+    login_result = apis.venmo.login(username=profile_email, password=venmo_password)
+if "access_token" not in login_result:
+    raise Exception(f"Unable to log in to Venmo after optional signup: {{login_result}}")
+tokens["venmo"] = login_result["access_token"]
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    query=first_name,
+    page_index=page,
+    page_limit=20,
+))
+contact_matches = [
+    contact
+    for contact in contacts
+    if (contact.get("first_name") or "").strip().lower() == first_name_lower
+]
+candidate_emails = [
+    (contact.get("email") or "").strip().lower()
+    for contact in contact_matches
+    if (contact.get("email") or "").strip()
+]
+venmo_matches = []
+for email in candidate_emails:
+    users = apis.venmo.search_users(
+        access_token=tokens["venmo"],
+        query=email,
+        page_limit=20,
+    )
+    venmo_matches.extend(
+        user for user in users if (user.get("email") or "").strip().lower() == email
+    )
+if not venmo_matches:
+    users = apis.venmo.search_users(
+        access_token=tokens["venmo"],
+        query=first_name,
+        page_limit=20,
+    )
+    venmo_matches = [
+        user
+        for user in users
+        if (user.get("first_name") or "").strip().lower() == first_name_lower
+    ]
+unique_by_email = {{}}
+for user_record in venmo_matches:
+    email = (user_record.get("email") or "").strip().lower()
+    if email and email != profile_email:
+        unique_by_email[email] = user_record
+if len(unique_by_email) != 1:
+    raise Exception(f"Expected exactly one Venmo receiver named {{first_name}}, found {{len(unique_by_email)}}.")
+receiver_email = next(iter(unique_by_email))
+
+transaction_args = {{
+    "access_token": tokens["venmo"],
+    "receiver_email": receiver_email,
+    "amount": amount,
+    "private": False,
+    "description": "",
+}}
+account = apis.venmo.show_account(access_token=tokens["venmo"])
+failed_api_attempts = 0
+if float(account.get("venmo_balance") or 0) >= amount:
+    result = apis.venmo.create_transaction(**transaction_args)
+else:
+    result = {{"message": "No non-expired payment card available."}}
+    cards = [
+        card
+        for card in apis.venmo.show_payment_cards(access_token=tokens["venmo"])
+        if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+    ]
+    cards = sorted(
+        cards,
+        key=lambda card: (
+            float(card.get("balance") or 0),
+            card["expiry_year"],
+            card["expiry_month"],
+            card["payment_card_id"],
+        ),
+        reverse=True,
+    )
+    existing_card_numbers = {{str(card.get("card_number")) for card in cards}}
+    supervisor_cards = sorted(
+        apis.supervisor.show_payment_cards(),
+        key=lambda card: (
+            float(card.get("balance") or 0),
+            card["expiry_year"],
+            card["expiry_month"],
+            str(card["card_number"]),
+        ),
+        reverse=True,
+    )
+    for supervisor_card in supervisor_cards:
+        if str(supervisor_card.get("card_number")) in existing_card_numbers:
+            continue
+        if DateTime(supervisor_card["expiry_year"], supervisor_card["expiry_month"], 1).start_of("month") <= DateTime.now():
+            continue
+        if "balance" in supervisor_card and float(supervisor_card.get("balance") or 0) < amount:
+            continue
+        add_result = apis.venmo.add_payment_card(
+            access_token=tokens["venmo"],
+            card_name=supervisor_card["card_name"],
+            owner_name=supervisor_card["owner_name"],
+            card_number=supervisor_card["card_number"],
+            expiry_year=supervisor_card["expiry_year"],
+            expiry_month=supervisor_card["expiry_month"],
+            cvv_number=supervisor_card["cvv_number"],
+        )
+        if "payment_card_id" not in add_result:
+            result = add_result
+            failed_api_attempts += 1
+            continue
+        transaction_args["payment_card_id"] = add_result["payment_card_id"]
+        result = apis.venmo.create_transaction(**transaction_args)
+        if "transaction_id" in result:
+            break
+        failed_api_attempts += 1
+    if "transaction_id" not in result:
+        for card in cards:
+            transaction_args["payment_card_id"] = card["payment_card_id"]
+            result = apis.venmo.create_transaction(**transaction_args)
+            if "transaction_id" in result:
+                break
+            failed_api_attempts += 1
+if "transaction_id" not in result:
+    raise Exception(f"Unable to create Venmo transaction: {{result}}")
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "first_name": first_name,
+    "receiver_email": receiver_email,
+    "amount": amount,
+    "created_account": created_account,
+    "verified_account": verified_account,
+    "failed_api_attempts": failed_api_attempts,
+    "result": result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_venmo_send_to_named_user_with_optional_signup",
     )
 
 
@@ -11941,6 +12202,15 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             ).strip(),
             "amount": float(slots["amount"]),
         }
+    if intent_type == "appworld_venmo_send_to_named_user_with_optional_signup":
+        return {
+            "person_first_name": str(
+                slots.get("person_first_name")
+                or slots.get("first_name")
+                or ""
+            ).strip(),
+            "amount": float(slots["amount"]),
+        }
     if intent_type == "appworld_venmo_accept_named_carpool_request_this_month":
         return {
             "person_first_name": str(
@@ -12625,6 +12895,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_venmo_send_to_named_user_with_optional_signup":
+        required = [
+            "send $",
+            " via venmo",
+            "may need to make me an account first",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_spotify_playlist_from_workout_email":
         if "workout partner" not in raw or "spotify playlist" not in raw:
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -12741,6 +13022,8 @@ Supported intent types and slots:
 10. appworld_venmo_send_to_phone_number
    slots: phone_number string, amount number, private boolean.
 10. appworld_venmo_send_to_named_user
+   slots: person_first_name string, amount number.
+10. appworld_venmo_send_to_named_user_with_optional_signup
    slots: person_first_name string, amount number.
 10. appworld_venmo_accept_named_carpool_request_this_month
    slots: person_first_name string.
@@ -12936,6 +13219,9 @@ JSON: {"intent_type":"appworld_phone_message_app_account_verify_reset","slots":{
 
 Task: Change my venmo password to aQAdQp
 JSON: {"intent_type":"appworld_venmo_change_password","slots":{"new_password":"aQAdQp"}}
+
+Task: Send $73 to Troy via Venmo. You may need to make me an account first, if I do not have one.
+JSON: {"intent_type":"appworld_venmo_send_to_named_user_with_optional_signup","slots":{"person_first_name":"Troy","amount":73}}
 
 Task: I owed people some money. They put the associated expenses on Splitwise yesterday. I paid some of them up on Venmo today. Please record payments on Splitwise for each in their respective groups. Each payment should have a note, "Sent on Venmo, see receipt.", and an attached Venmo receipt of it as a proof.
 JSON: {"intent_type":"appworld_splitwise_record_venmo_receipt_payments","slots":{"note":"Sent on Venmo, see receipt."}}

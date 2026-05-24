@@ -60,6 +60,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_spotify_update_song_recommendation_draft_20260525": {"20260525_014643"},
     "appworld_spotify_workout_email_playlist_20260525": {"20260525_005603"},
     "appworld_venmo_change_password_20260525": {"20260525_004717"},
+    "appworld_venmo_optional_signup_payment_20260525": {"20260525_020403"},
 }
 
 EXCLUDED_RESULT_FILENAMES = {

@@ -91,5 +91,6 @@ appworld_venmo_manager_meal_total_from_social_feed,4,"relationships,meal,venue,s
 appworld_venmo_pay_grocery_from_text_and_notify,3,"person_first_name,note,message",20,104,124,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_process_pending_payment_requests,2,"decision,relationships",20,79,99,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_remind_old_payment_requests,2,"relationships,min_days",19,50,69,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
+appworld_venmo_send_to_named_user_with_optional_signup,2,"person_first_name,amount",17,224,241,0,0,0,0,"gmail,phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_send_to_phone_number,3,"phone_number,amount,private",18,72,90,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_transaction_likes,2,"direction,period",18,43,61,0,0,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
