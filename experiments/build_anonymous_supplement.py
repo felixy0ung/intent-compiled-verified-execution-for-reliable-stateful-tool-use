@@ -56,6 +56,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_phone_recommendation_purchase_20260525": {"20260525_011413"},
     "appworld_gmail_star_relationship_20260524": {"20260525_000839"},
     "appworld_remove_expired_cards_20260525": {"20260525_002233"},
+    "appworld_spotify_liked_song_email_recommendations_20260525": {"20260525_013420"},
     "appworld_spotify_workout_email_playlist_20260525": {"20260525_005603"},
     "appworld_venmo_change_password_20260525": {"20260525_004717"},
 }

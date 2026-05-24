@@ -81,6 +81,7 @@ appworld_spotify_navigate_until_artist,2,"direction,artist_name",17,46,63,0,0,0,
 appworld_spotify_playlist_best_song_per_collection,3,"playlist_title,song_metric,collection_type",22,67,89,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_playlist_from_workout_email,1,playlist_title,16,154,170,0,0,0,0,"gmail,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_rate_library_songs_by_liked_status,3,"collection_type,liked_filter,target_rating",29,82,111,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_spotify_reply_liked_song_recommendations_email,2,"relationship,message_prefix",23,129,152,0,0,0,0,"gmail,phone,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_sync_following_by_liked_song_artists,1,operation,24,49,73,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_top_played_genre_titles,2,"genre,limit",18,50,68,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_change_password,1,new_password,18,75,93,0,0,0,0,"gmail,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded

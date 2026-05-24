@@ -638,15 +638,17 @@ submission.
 
 \paragraph{Coverage and development cost.}
 The coverage assumption is auditable rather than implicit. ToolSandbox uses 13 static
-machines; AppWorld has 92 registered machines, of which 55 cover all 168
+machines; AppWorld has 93 registered machines, of which 55 cover all 168
 \texttt{test\_normal.txt} tasks (3.05 tasks per used machine). For used AppWorld
 machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/74/94. A static
-public-instruction audit compiles 168/168 \texttt{test\_normal} and 36/417
+public-instruction audit compiles 168/168 \texttt{test\_normal} and 39/417
 \texttt{test\_challenge} instructions without tools, databases, or ground truth; the
-roadmap keeps unsupported Amazon purchase/search (206) and Gmail (113) buckets as
-coverage gaps. Five held-out \texttt{test\_challenge} slices now cover eighteen
-additional tasks across phone, Gmail, payment-card, Venmo, Spotify, and Amazon
-recommendation workflows, reaching 18/18 success with zero invalid or unsafe calls.
+roadmap keeps unsupported Amazon purchase/search (206), Gmail (113), and Spotify (20)
+buckets as coverage gaps. Six held-out \texttt{test\_challenge} slices now cover
+twenty-one additional tasks across phone, Gmail, payment-card, Venmo, Spotify, Amazon
+recommendation, and Gmail-grounded Spotify recommendation workflows, reaching 21/21
+success with zero invalid or unsafe calls. These numbers are deliberately reported as
+machine-family reuse and coverage accounting, not as a full challenge-set score.
 
 \subsection{Multi-Turn Diagnostic}
 
@@ -676,75 +678,6 @@ the handler emits only schema-valid actions over grounded slots, the ledger reme
 observed state and failed calls, the verifier blocks unavailable or unsafe transitions,
 and the completion detector prevents duplicate actions. Table~\ref{tab:failure-taxonomy}
 summarizes this failure taxonomy.
-
-Ablations support this mechanism. Removing the typed DSL leaves the model with runtime
-guards but loses much of the single-turn success and invalid-call control; removing
-abstention reproduces the unsafe insufficient-information pattern seen in ReAct. In
-AppWorld, giving the model a typed intent but still asking it to author mutation code
-does not close the gap, while routing the same frame through the runtime-checked executor
-does. The result is a boundary effect: ICVE is clean where an accurate machine covers the
-task, but this hand-engineered coverage does not imply broad success on uncovered
-families.
-
-The added diagnostics make this boundary falsifiable. On ToolSandbox
-insufficient-information tasks, ReAct produces 0.4286 unsafe mutations and 2.1786 invalid
-calls per task; ICVE reduces both to zero, while removing abstention restores the unsafe
-rate. On AppWorld, the 168-task local \texttt{test\_normal.txt} diagnostic, 36/417 static
-\texttt{test\_challenge} compile audit, and 18-task held-out slice collection expose both
-coverage and non-coverage. The dynamic diagnostic also induces five boolean-setting
-machines from unseen API signatures without model calls.
-
-\section{Related Work}
-ReAct-style agents interleave reasoning and action through text \citep{yao2022react};
-Reflexion adds verbal self-feedback \citep{shinn2023reflexion}, and Toolformer explores
-tool-use learning \citep{schick2023toolformer}. Tool-learning systems and
-function-calling datasets scale API selection and invocation
-\citep{li2023apibank,shen2024smalltoollearners,qin2024toolllm,patil2024gorilla,
-liu2025toolace,dang2025guidedtemplates}, while ToolSandbox, AppWorld, BFCL, tau-bench,
-and agent benchmarks evaluate stateful and interactive use
-\citep{lu2024toolsandbox,appworld2024,bfcl2024,taubench2024,liu2024agentbench,
-zhou2024webarena,xie2024osworld,wang2025dialogtool}. Guardrails, schemas,
-proof-carrying prompts, and safety evaluations constrain calls
-\citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}, but ICVE moves
-evidence search, repair, mutation, and stopping into executable intent-level state
-machines. Semantic parsing and task-oriented dialogue use intent/slot structure; ICVE
-treats frames as substrates for checked execution.
-
-\section{Conclusion}
-
-ICVE reframes reliable stateful tool use as runtime-checked execution: the agent supplies
-intent, while a typed runtime owns risky transitions. Across covered ToolSandbox and
-AppWorld slices, this boundary reduces invalid calls, unsafe changes, and repair cost;
-broader leaderboard coverage remains next.
-
-\section*{Limitations}
-
-The current strongest claim is intentionally narrow. The clean real-LLM evidence is on
-ToolSandbox no-distraction single-turn and insufficient-information suites plus targeted
-AppWorld transfer, complete local official AppWorld dev57, and local
-\texttt{test\_normal.txt} file-level runs. These runs use AppWorld's packaged evaluator
-where applicable, but they are not a public AppWorld leaderboard submission. Unsupported
-\texttt{test\_challenge} product-search purchase, Gmail, and vacation-expense tasks
-remain blocked as unsupported no-action results rather than forced through similar-looking
-machines. Multi-turn coverage is promising but not yet a headline claim.
-
-The explicit, partly hand-engineered registry improves auditability but limits open-domain
-coverage. Our affordance-induction prototype shows one conservative extension path: log
-unsupported intent frames, induce schemas and handlers only for signature-identifiable
-boolean setting APIs, execute candidates first in shadow mode, and promote them only
-after runtime invariants and counterexample tests pass. This improves coverage for a
-recognizable API family, but it is not open-ended program synthesis. Extending the idea
-to AppWorld purchase, Gmail, vacation-expense, or other multi-entity workflows remains future
-work; newly proposed machines must be checked before they are trusted to mutate state.
-
-The runtime does not eliminate the need for a language model. It changes where the model
-is trusted. ICVE still needs the model for uncovered intents, natural-language
-clarification, and domains whose state machines have not been registered. The safety claim
-therefore applies to covered high-risk intents, not arbitrary tool execution.
-
-Finally, hosted-model coverage remains narrow: the evidence spans Qwen2.5 scales, a
-small Phi-3-mini diagnostic, and hosted DeepSeek replications, but not a broad set of
-proprietary frontier models.
 
 \begin{table*}[t]
 \centering
@@ -780,6 +713,75 @@ from model-owned mutation loops into checked transitions, deterministic repair, 
 abstention.}
 \label{tab:failure-taxonomy}
 \end{table*}
+
+Ablations support this mechanism. Removing the typed DSL leaves the model with runtime
+guards but loses much of the single-turn success and invalid-call control; removing
+abstention reproduces the unsafe insufficient-information pattern seen in ReAct. In
+AppWorld, giving the model a typed intent but still asking it to author mutation code
+does not close the gap, while routing the same frame through the runtime-checked executor
+does. The result is a boundary effect: ICVE is clean where an accurate machine covers the
+task, but this hand-engineered coverage does not imply broad success on uncovered
+families.
+
+The added diagnostics make this boundary falsifiable. On ToolSandbox
+insufficient-information tasks, ReAct produces 0.4286 unsafe mutations and 2.1786 invalid
+calls per task; ICVE reduces both to zero, while removing abstention restores the unsafe
+rate. On AppWorld, the 168-task local \texttt{test\_normal.txt} diagnostic, 39/417 static
+\texttt{test\_challenge} compile audit, and 21-task held-out slice collection expose both
+coverage and non-coverage. The dynamic diagnostic also induces five boolean-setting
+machines from unseen API signatures without model calls.
+
+\section{Related Work}
+ReAct-style agents interleave reasoning and action through text \citep{yao2022react};
+Reflexion adds verbal self-feedback \citep{shinn2023reflexion}, and Toolformer explores
+tool-use learning \citep{schick2023toolformer}. Tool-learning systems and
+function-calling datasets scale API selection and invocation
+\citep{li2023apibank,shen2024smalltoollearners,qin2024toolllm,patil2024gorilla,
+liu2025toolace,dang2025guidedtemplates}, while ToolSandbox, AppWorld, BFCL, tau-bench,
+and agent benchmarks evaluate stateful and interactive use
+\citep{lu2024toolsandbox,appworld2024,bfcl2024,taubench2024,liu2024agentbench,
+zhou2024webarena,xie2024osworld,wang2025dialogtool}. Guardrails, schemas,
+proof-carrying prompts, and safety evaluations constrain calls
+\citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}, but ICVE moves
+evidence search, repair, mutation, and stopping into executable intent-level state
+machines. Semantic parsing and task-oriented dialogue use intent/slot structure; ICVE
+treats frames as substrates for checked execution.
+
+\section{Conclusion}
+
+ICVE reframes reliable stateful tool use as runtime-checked execution: the agent supplies
+intent, while a typed runtime owns risky transitions. Across covered ToolSandbox and
+AppWorld slices, this boundary reduces invalid calls, unsafe changes, and repair cost;
+broader leaderboard coverage remains next.
+
+\section*{Limitations}
+
+The current strongest claim is intentionally narrow. The clean real-LLM evidence is on
+ToolSandbox no-distraction single-turn and insufficient-information suites plus targeted
+AppWorld transfer, complete local official AppWorld dev57, and local
+\texttt{test\_normal.txt} file-level runs. These runs use AppWorld's packaged evaluator
+where applicable, but they are not a public AppWorld leaderboard submission. Unsupported
+\texttt{test\_challenge} product-search purchase, many Gmail, and vacation-expense tasks
+remain blocked as unsupported no-action results rather than forced through similar-looking
+machines. Multi-turn coverage is promising but not yet a headline claim.
+
+The explicit, partly hand-engineered registry improves auditability but limits open-domain
+coverage. Our affordance-induction prototype shows one conservative extension path: log
+unsupported intent frames, induce schemas and handlers only for signature-identifiable
+boolean setting APIs, execute candidates first in shadow mode, and promote them only
+after runtime invariants and counterexample tests pass. This improves coverage for a
+recognizable API family, but it is not open-ended program synthesis. Extending the idea
+to AppWorld purchase, Gmail, vacation-expense, or other multi-entity workflows remains future
+work; newly proposed machines must be checked before they are trusted to mutate state.
+
+The runtime does not eliminate the need for a language model. It changes where the model
+is trusted. ICVE still needs the model for uncovered intents, natural-language
+clarification, and domains whose state machines have not been registered. The safety claim
+therefore applies to covered high-risk intents, not arbitrary tool execution.
+
+Finally, hosted-model coverage remains narrow: the evidence spans Qwen2.5 scales, a
+small Phi-3-mini diagnostic, and hosted DeepSeek replications, but not a broad set of
+proprietary frontier models.
 
 \section*{Ethical Considerations}
 
@@ -823,7 +825,7 @@ Covered stateful tool-use families, not arbitrary agents. \\
 \addlinespace
 ICVE is more than a per-task script bank. &
 The registry would have near one machine per benchmark task with no cross-task reuse. &
-ToolSandbox uses 13 static machines. AppWorld has 92 registered machines; 55 used
+ToolSandbox uses 13 static machines. AppWorld has 93 registered machines; 55 used
 machines cover 168 \texttt{test\_normal.txt} tasks, or 3.05 tasks per used
 machine. The artifact lists per-machine slots, compiler LOC, handler LOC, total LOC, and
 API namespaces. &
@@ -850,7 +852,7 @@ Coverage gaps become reported no-action outcomes rather than hidden unsafe mutat
 Unsupported or similar-looking tasks would be forced through machines and mutate state
 unsafely. &
 On local \texttt{test\_normal.txt}, ICVE supports and succeeds on 168/168 tasks with
-zero unsafe state changes. A static public-instruction audit compiles only 36/417
+zero unsafe state changes. A static public-instruction audit compiles only 39/417
 \texttt{test\_challenge} tasks, and the executable prefix leaves 12/24 product-search
 purchase tasks unsupported after two conservative Amazon machines, again with zero unsafe
 changes. The derived coverage roadmap records the required machine capabilities and

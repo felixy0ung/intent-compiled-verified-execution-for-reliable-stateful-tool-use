@@ -1385,6 +1385,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_spotify_reply_liked_song_recommendations_email",
+                (
+                    SlotSpec("relationship"),
+                    SlotSpec("message_prefix"),
+                ),
+            ),
+            compiler=compile_spotify_reply_liked_song_recommendations_email,
+            handler=handle_spotify_reply_liked_song_recommendations_email,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_simple_note_import_markdown_files",
                 (SlotSpec("source_directory"),),
             ),
@@ -2348,6 +2359,31 @@ def compile_spotify_playlist_from_workout_email(
         return None
     frame = IntentFrame("appworld_spotify_playlist_from_workout_email")
     frame.set_slot("playlist_title", match.group("title").strip(), source="regex")
+    return frame
+
+
+def compile_spotify_reply_liked_song_recommendations_email(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'One of my (?P<relationship>friends|coworkers|roommates) has asked me for '
+        r'song recommendations over email\. Reply them with a list of my liked songs '
+        r'that are in my Spotify song library\. It should say "(?P<prefix>[^"]+)" '
+        r'and then a comma-separated list of song titles\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationship = RELATION_ALIASES.get(
+        match.group("relationship").lower(),
+        match.group("relationship").lower(),
+    )
+    frame = IntentFrame("appworld_spotify_reply_liked_song_recommendations_email")
+    frame.set_slot("relationship", relationship, source="regex")
+    frame.set_slot("message_prefix", match.group("prefix").strip(), source="regex")
     return frame
 
 
@@ -8574,6 +8610,145 @@ print(json.dumps({{
     )
 
 
+def handle_spotify_reply_liked_song_recommendations_email(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    message_prefix = str(frame.get("message_prefix") or "").strip()
+    if not relationship or not message_prefix:
+        frame.abstain_reason = "missing_spotify_email_recommendation_slots"
+        return None
+    code = common_appworld_prelude(["gmail", "spotify", "phone"]) + f"""
+relationship = {json.dumps(relationship)}
+message_prefix = {json.dumps(message_prefix)}
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+target_emails = {{
+    (contact.get("email") or "").strip().lower()
+    for contact in contacts
+    if (contact.get("email") or "").strip()
+}}
+if not target_emails:
+    raise Exception(f"No contact emails found for relationship {{relationship}}.")
+
+threads = []
+for query in ["song recommendations", "recommendations", "favorite songs"]:
+    threads.extend(paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )))
+if not threads:
+    threads = paged(lambda page: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+
+unique_thread_ids = []
+seen_thread_ids = set()
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None or thread_id in seen_thread_ids:
+        continue
+    unique_thread_ids.append(thread_id)
+    seen_thread_ids.add(thread_id)
+
+candidate_emails = []
+for thread_id in unique_thread_ids:
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    if detail.get("archived") or detail.get("spam"):
+        continue
+    for email in detail.get("emails", []):
+        sender = email.get("sender") or {{}}
+        sender_email = (sender.get("email") or "").strip().lower()
+        if sender_email not in target_emails:
+            continue
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        lower = (subject + "\\n" + body).lower()
+        if "song" not in lower or "recommend" not in lower:
+            continue
+        candidate_emails.append((
+            str(email.get("created_at") or ""),
+            int(thread_id),
+            int(email.get("email_id")),
+            sender_email,
+            subject,
+        ))
+
+if len(candidate_emails) != 1:
+    raise Exception(f"Expected one target song-recommendation email, found {{len(candidate_emails)}}.")
+_, thread_id, email_id, sender_email, subject = candidate_emails[0]
+
+liked_songs = paged(lambda page: apis.spotify.show_liked_songs(
+    access_token=tokens["spotify"],
+    page_index=page,
+    page_limit=20,
+))
+song_library = paged(lambda page: apis.spotify.show_song_library(
+    access_token=tokens["spotify"],
+    page_index=page,
+    page_limit=20,
+))
+library_song_ids = {{
+    int(song.get("song_id") or song.get("id"))
+    for song in song_library
+    if song.get("song_id") is not None or song.get("id") is not None
+}}
+
+titles = []
+seen_song_ids = set()
+for song in liked_songs:
+    song_id = int(song.get("song_id") or song.get("id"))
+    if song_id not in library_song_ids or song_id in seen_song_ids:
+        continue
+    seen_song_ids.add(song_id)
+    title = str(song.get("title") or "").strip()
+    if title:
+        titles.append(title)
+
+if not titles:
+    raise Exception("No liked songs found in Spotify song library.")
+body = message_prefix + " " + ", ".join(titles)
+reply = apis.gmail.reply_to_email(
+    access_token=tokens["gmail"],
+    email_thread_id=thread_id,
+    email_id=email_id,
+    body=body,
+    email_addresses=None,
+    attachment_file_paths=[],
+)
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "relationship": relationship,
+    "target_email": sender_email,
+    "email_thread_id": thread_id,
+    "email_id": email_id,
+    "sent_email_id": reply.get("sent_email_id"),
+    "song_count": len(titles),
+    "titles": titles,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_spotify_reply_liked_song_recommendations_email",
+    )
+
+
 def handle_spotify_append_most_common_playlist_genre(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -11893,6 +12068,16 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
                 or ""
             ).strip()
         }
+    if intent_type == "appworld_spotify_reply_liked_song_recommendations_email":
+        relationship = str(slots.get("relationship", "")).strip().lower()
+        return {
+            "relationship": RELATION_ALIASES.get(relationship, relationship),
+            "message_prefix": str(
+                slots.get("message_prefix")
+                or slots.get("prefix")
+                or ""
+            ).strip(),
+        }
     if intent_type == "appworld_simple_note_fill_liked_song_release_months":
         return {}
     if intent_type == "appworld_spotify_append_most_common_playlist_genre":
@@ -12260,6 +12445,18 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_spotify_reply_liked_song_recommendations_email":
+        required = [
+            "asked me for song recommendations over email",
+            "liked songs",
+            "spotify song library",
+            "comma-separated list",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type in {
         "appworld_venmo_process_pending_payment_requests",
         "appworld_venmo_approve_roommate_requests_this_month",
@@ -12448,6 +12645,8 @@ Supported intent types and slots:
    slots: source_file_path string, playlist_title string.
 42. appworld_spotify_playlist_from_workout_email
    slots: playlist_title string.
+43. appworld_spotify_reply_liked_song_recommendations_email
+   slots: relationship string, singular value from [friend, coworker, roommate]; message_prefix string.
 43. appworld_simple_note_import_markdown_files
    slots: source_directory string.
 44. appworld_simple_note_workout_duration
@@ -12557,6 +12756,9 @@ JSON: {"intent_type":"appworld_spotify_apply_phone_playlist_suggestions","slots"
 
 Task: My workout partner has sent me some songs over email. Make a new Spotify playlist titled "Workout Playlist" with those songs in it.
 JSON: {"intent_type":"appworld_spotify_playlist_from_workout_email","slots":{"playlist_title":"Workout Playlist"}}
+
+Task: One of my coworkers has asked me for song recommendations over email. Reply them with a list of my liked songs that are in my Spotify song library. It should say "Sure! These are my favorite songs." and then a comma-separated list of song titles.
+JSON: {"intent_type":"appworld_spotify_reply_liked_song_recommendations_email","slots":{"relationship":"coworker","message_prefix":"Sure! These are my favorite songs."}}
 
 Task: I have a list of people I owe money to, including amounts and descriptions, in owe_list.csv. For each person, (1) If they have a Venmo account, send the money privately with the specified amount and description. (2) If not, create an individual (non-grouped) Splitwise expense with the same details so I remember to pay them later. For Splitwise expenses, attach the PDF receipt as well. They are in the same folder as the CSV file.
 JSON: {"intent_type":"appworld_pay_csv_debts_via_venmo_or_splitwise","slots":{"csv_file_name":"owe_list.csv","private":true}}
@@ -12949,6 +13151,8 @@ Relevant APIs for this slice:
 - apis.gmail.delete_thread(access_token=..., email_thread_id=...)
 - apis.gmail.mark_thread_starred(access_token=..., email_thread_id=...)
 - apis.gmail.mark_thread_unstarred(access_token=..., email_thread_id=...)
+- apis.gmail.show_thread(access_token=..., email_thread_id=...)
+- apis.gmail.reply_to_email(access_token=..., email_thread_id=..., email_id=..., body=..., email_addresses=None, attachment_file_paths=[])
 - apis.amazon.show_payment_cards(access_token=...)
 - apis.amazon.delete_payment_card(access_token=..., payment_card_id=...)
 - apis.spotify.show_payment_cards(access_token=...)

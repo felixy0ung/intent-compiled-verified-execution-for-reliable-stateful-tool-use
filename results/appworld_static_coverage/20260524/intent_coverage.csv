@@ -9,6 +9,7 @@ test_challenge,appworld_gmail_thread_cleanup,3,3,0,0,1
 test_challenge,appworld_phone_message_app_account_verify_reset,3,3,0,0,1
 test_challenge,appworld_remove_expired_payment_cards,3,3,0,0,1
 test_challenge,appworld_spotify_playlist_from_workout_email,3,3,0,0,1
+test_challenge,appworld_spotify_reply_liked_song_recommendations_email,3,3,0,0,1
 test_challenge,appworld_venmo_change_password,3,3,0,0,1
 test_normal,appworld_venmo_friend_transaction_counterparties,6,6,0,0,2
 test_normal,appworld_file_delete_downloads_by_extension,3,3,0,0,1
