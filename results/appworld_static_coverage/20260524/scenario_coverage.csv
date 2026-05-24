@@ -4,6 +4,7 @@ test_challenge,09ac073,3,3,3,1.0,1.0,appworld_gmail_thread_cleanup,
 test_challenge,0d22252,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,0de03ad,3,3,3,1.0,1.0,appworld_gmail_star_threads_by_relationship,
 test_challenge,143527e,3,3,3,1.0,1.0,appworld_spotify_reply_liked_song_recommendations_email,
+test_challenge,1b988ac,3,3,3,1.0,1.0,appworld_spotify_update_song_recommendation_draft_from_library,
 test_challenge,3f3c139,3,3,3,1.0,1.0,appworld_remove_expired_payment_cards,
 test_challenge,5238afc,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
@@ -17,7 +18,6 @@ test_challenge,16be9ce,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,18670a5,3,0,0,0.0,0.0,,gmail_email
 test_challenge,1a79e37,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,1b2bae9,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,1b988ac,3,0,0,0.0,0.0,,spotify_music
 test_challenge,1c4bd27,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,20c1328,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,23d431c,3,0,0,0.0,0.0,,amazon_purchase_or_product_search

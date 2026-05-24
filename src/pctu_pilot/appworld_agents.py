@@ -1396,6 +1396,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_spotify_update_song_recommendation_draft_from_library",
+                (SlotSpec("person_first_name"),),
+            ),
+            compiler=compile_spotify_update_song_recommendation_draft_from_library,
+            handler=handle_spotify_update_song_recommendation_draft_from_library,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_simple_note_import_markdown_files",
                 (SlotSpec("source_directory"),),
             ),
@@ -2384,6 +2392,28 @@ def compile_spotify_reply_liked_song_recommendations_email(
     frame = IntentFrame("appworld_spotify_reply_liked_song_recommendations_email")
     frame.set_slot("relationship", relationship, source="regex")
     frame.set_slot("message_prefix", match.group("prefix").strip(), source="regex")
+    return frame
+
+
+def compile_spotify_update_song_recommendation_draft_from_library(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"(?P<name>[A-Z][A-Za-z]+) asked me for my song recommendations over email\. "
+        r"I started drafting the response email off the top of my head\. "
+        r"But then realized I can mine it from my Spotify account! "
+        r"Please update the email draft with all of my liked songs that are in my song "
+        r"or album library or any of my plalists\. Keep the existing format of the email, "
+        r"making changes only to the song entries\. Once done, send the email\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_spotify_update_song_recommendation_draft_from_library")
+    frame.set_slot("person_first_name", match.group("name").strip(), source="regex")
     return frame
 
 
@@ -8749,6 +8779,154 @@ print(json.dumps({{
     )
 
 
+def handle_spotify_update_song_recommendation_draft_from_library(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    person_first_name = str(frame.get("person_first_name") or "").strip()
+    if not person_first_name:
+        frame.abstain_reason = "missing_spotify_draft_recipient_name"
+        return None
+    code = common_appworld_prelude(["gmail", "spotify"]) + f"""
+person_first_name = {json.dumps(person_first_name)}
+
+def normalize_key(value):
+    return re.sub(r"[^a-z0-9]+", "", str(value or "").lower())
+
+def artist_names(song):
+    return [str(artist.get("name") or "").strip() for artist in song.get("artists", []) if str(artist.get("name") or "").strip()]
+
+def song_line(song):
+    names = artist_names(song)
+    if not names:
+        raise Exception(f"Song {{song.get('song_id')}} has no artist names.")
+    return f"- {{str(song.get('title') or '').strip()}} by {{', '.join(names)}}"
+
+def library_song_ids_from_playlists(playlists):
+    song_ids = set()
+    for playlist in playlists:
+        for song_id in playlist.get("song_ids") or []:
+            song_ids.add(int(song_id))
+    return song_ids
+
+drafts = paged(lambda page: apis.gmail.show_drafts(
+    access_token=tokens["gmail"],
+    query="song recommendations",
+    page_index=page,
+    page_limit=20,
+    sort_by="-updated_at",
+))
+if not drafts:
+    drafts = paged(lambda page: apis.gmail.show_drafts(
+        access_token=tokens["gmail"],
+        page_index=page,
+        page_limit=20,
+        sort_by="-updated_at",
+    ))
+
+target_first_key = normalize_key(person_first_name)
+candidate_drafts = []
+for draft in drafts:
+    subject_body = (str(draft.get("subject") or "") + "\\n" + str(draft.get("body") or "")).lower()
+    if "song" not in subject_body or ("recommend" not in subject_body and "favorite" not in subject_body):
+        continue
+    recipients = draft.get("recipients") or []
+    recipient_matches = False
+    for recipient in recipients:
+        name_key = normalize_key(recipient.get("name"))
+        email_key = normalize_key(recipient.get("email"))
+        if name_key.startswith(target_first_key) or email_key.startswith(target_first_key):
+            recipient_matches = True
+    if recipient_matches:
+        candidate_drafts.append(draft)
+
+if len(candidate_drafts) != 1:
+    raise Exception(f"Expected one song-recommendation draft for {{person_first_name}}, found {{len(candidate_drafts)}}.")
+draft = candidate_drafts[0]
+
+liked_songs = paged(lambda page: apis.spotify.show_liked_songs(
+    access_token=tokens["spotify"],
+    page_index=page,
+    page_limit=20,
+))
+song_library = paged(lambda page: apis.spotify.show_song_library(
+    access_token=tokens["spotify"],
+    page_index=page,
+    page_limit=20,
+))
+album_library = paged(lambda page: apis.spotify.show_album_library(
+    access_token=tokens["spotify"],
+    page_index=page,
+    page_limit=20,
+))
+playlist_library = paged(lambda page: apis.spotify.show_playlist_library(
+    access_token=tokens["spotify"],
+    page_index=page,
+    page_limit=20,
+))
+library_song_ids = set()
+library_song_ids.update(int(song.get("song_id") or song.get("id")) for song in song_library if song.get("song_id") is not None or song.get("id") is not None)
+for album in album_library:
+    for song_id in album.get("song_ids") or []:
+        library_song_ids.add(int(song_id))
+library_song_ids.update(library_song_ids_from_playlists(playlist_library))
+
+target_songs = []
+seen_song_ids = set()
+for song in liked_songs:
+    song_id = int(song.get("song_id") or song.get("id"))
+    if song_id not in library_song_ids or song_id in seen_song_ids:
+        continue
+    if not str(song.get("title") or "").strip():
+        continue
+    seen_song_ids.add(song_id)
+    target_songs.append(song)
+if not target_songs:
+    raise Exception("No liked songs found across Spotify song, album, or playlist libraries.")
+
+old_lines = str(draft.get("body") or "").splitlines()
+new_song_lines = [song_line(song) for song in target_songs]
+new_lines = []
+inserted = False
+replaced_count = 0
+for line in old_lines:
+    if re.match(r"^\\s*[-*]\\s+.+\\s+by\\s+.+", line, flags=re.IGNORECASE):
+        if not inserted:
+            new_lines.extend(new_song_lines)
+            inserted = True
+        replaced_count += 1
+        continue
+    new_lines.append(line)
+if not inserted:
+    raise Exception("Could not find song-entry lines in the draft body.")
+new_body = "\\n".join(new_lines)
+
+apis.gmail.update_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft["draft_id"],
+    body=new_body,
+)
+sent = apis.gmail.send_email_from_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft["draft_id"],
+)
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "person_first_name": person_first_name,
+    "draft_id": draft["draft_id"],
+    "replaced_count": replaced_count,
+    "song_count": len(new_song_lines),
+    "sent_email_id": sent.get("sent_email_id"),
+    "sent_email_thread_id": sent.get("sent_email_thread_id"),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_spotify_update_song_recommendation_draft_from_library",
+    )
+
+
 def handle_spotify_append_most_common_playlist_genre(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -12078,6 +12256,14 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
                 or ""
             ).strip(),
         }
+    if intent_type == "appworld_spotify_update_song_recommendation_draft_from_library":
+        return {
+            "person_first_name": str(
+                slots.get("person_first_name")
+                or slots.get("first_name")
+                or ""
+            ).strip()
+        }
     if intent_type == "appworld_simple_note_fill_liked_song_release_months":
         return {}
     if intent_type == "appworld_spotify_append_most_common_playlist_genre":
@@ -12457,6 +12643,19 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_spotify_update_song_recommendation_draft_from_library":
+        required = [
+            "asked me for my song recommendations over email",
+            "started drafting the response email",
+            "mine it from my spotify account",
+            "keep the existing format",
+            "once done, send the email",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type in {
         "appworld_venmo_process_pending_payment_requests",
         "appworld_venmo_approve_roommate_requests_this_month",
@@ -12647,6 +12846,8 @@ Supported intent types and slots:
    slots: playlist_title string.
 43. appworld_spotify_reply_liked_song_recommendations_email
    slots: relationship string, singular value from [friend, coworker, roommate]; message_prefix string.
+44. appworld_spotify_update_song_recommendation_draft_from_library
+   slots: person_first_name string.
 43. appworld_simple_note_import_markdown_files
    slots: source_directory string.
 44. appworld_simple_note_workout_duration
@@ -12759,6 +12960,9 @@ JSON: {"intent_type":"appworld_spotify_playlist_from_workout_email","slots":{"pl
 
 Task: One of my coworkers has asked me for song recommendations over email. Reply them with a list of my liked songs that are in my Spotify song library. It should say "Sure! These are my favorite songs." and then a comma-separated list of song titles.
 JSON: {"intent_type":"appworld_spotify_reply_liked_song_recommendations_email","slots":{"relationship":"coworker","message_prefix":"Sure! These are my favorite songs."}}
+
+Task: Angelica asked me for my song recommendations over email. I started drafting the response email off the top of my head. But then realized I can mine it from my Spotify account! Please update the email draft with all of my liked songs that are in my song or album library or any of my plalists. Keep the existing format of the email, making changes only to the song entries. Once done, send the email.
+JSON: {"intent_type":"appworld_spotify_update_song_recommendation_draft_from_library","slots":{"person_first_name":"Angelica"}}
 
 Task: I have a list of people I owe money to, including amounts and descriptions, in owe_list.csv. For each person, (1) If they have a Venmo account, send the money privately with the specified amount and description. (2) If not, create an individual (non-grouped) Splitwise expense with the same details so I remember to pay them later. For Splitwise expenses, attach the PDF receipt as well. They are in the same folder as the CSV file.
 JSON: {"intent_type":"appworld_pay_csv_debts_via_venmo_or_splitwise","slots":{"csv_file_name":"owe_list.csv","private":true}}
@@ -13153,6 +13357,8 @@ Relevant APIs for this slice:
 - apis.gmail.mark_thread_unstarred(access_token=..., email_thread_id=...)
 - apis.gmail.show_thread(access_token=..., email_thread_id=...)
 - apis.gmail.reply_to_email(access_token=..., email_thread_id=..., email_id=..., body=..., email_addresses=None, attachment_file_paths=[])
+- apis.gmail.update_draft(access_token=..., draft_id=..., body=...)
+- apis.gmail.send_email_from_draft(access_token=..., draft_id=...)
 - apis.amazon.show_payment_cards(access_token=...)
 - apis.amazon.delete_payment_card(access_token=..., payment_card_id=...)
 - apis.spotify.show_payment_cards(access_token=...)

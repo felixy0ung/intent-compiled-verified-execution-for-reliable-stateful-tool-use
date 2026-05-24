@@ -554,9 +554,9 @@ test_challenge,18670a5_3,18670a5,0,0,0,0,unsupported,,,gmail_email,115a354449832
 test_challenge,143527e_1,143527e,1,1,0,0,appworld_spotify_reply_liked_song_recommendations_email,,,,a90218c680b7087d
 test_challenge,143527e_2,143527e,1,1,0,0,appworld_spotify_reply_liked_song_recommendations_email,,,,47d6c15c7099929f
 test_challenge,143527e_3,143527e,1,1,0,0,appworld_spotify_reply_liked_song_recommendations_email,,,,7222ae42a3832b26
-test_challenge,1b988ac_1,1b988ac,0,0,0,0,unsupported,,,spotify_music,df6087c351c17eae
-test_challenge,1b988ac_2,1b988ac,0,0,0,0,unsupported,,,spotify_music,8d25af7c39e915de
-test_challenge,1b988ac_3,1b988ac,0,0,0,0,unsupported,,,spotify_music,32218663fa3a6a63
+test_challenge,1b988ac_1,1b988ac,1,1,0,0,appworld_spotify_update_song_recommendation_draft_from_library,,,,df6087c351c17eae
+test_challenge,1b988ac_2,1b988ac,1,1,0,0,appworld_spotify_update_song_recommendation_draft_from_library,,,,8d25af7c39e915de
+test_challenge,1b988ac_3,1b988ac,1,1,0,0,appworld_spotify_update_song_recommendation_draft_from_library,,,,32218663fa3a6a63
 test_challenge,9a16324_1,9a16324,0,0,0,0,unsupported,,,spotify_music,a540aedb9ad6edcf
 test_challenge,9a16324_2,9a16324,0,0,0,0,unsupported,,,spotify_music,a540aedb9ad6edcf
 test_challenge,9a16324_3,9a16324,0,0,0,0,unsupported,,,spotify_music,a540aedb9ad6edcf

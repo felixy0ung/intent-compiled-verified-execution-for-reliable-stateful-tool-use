@@ -1,38 +1,38 @@
 {
   "audit_type": "static_public_instruction_compile_coverage",
   "not_a_success_or_leaderboard_metric": true,
-  "registered_appworld_machines": 93,
+  "registered_appworld_machines": 94,
   "total_tasks": 585,
   "overall": {
     "tasks": 585,
-    "compiled": 207,
-    "dispatchable": 207,
+    "compiled": 210,
+    "dispatchable": 210,
     "abstained": 0,
     "incomplete": 0,
-    "unsupported": 378,
-    "compiled_rate": 0.3538,
-    "dispatchable_rate": 0.3538,
-    "unsupported_rate": 0.6462,
+    "unsupported": 375,
+    "compiled_rate": 0.359,
+    "dispatchable_rate": 0.359,
+    "unsupported_rate": 0.641,
     "scenarios": 195,
-    "compiled_scenarios": 69,
-    "dispatchable_scenarios": 69,
-    "dispatchable_scenario_rate": 0.3538
+    "compiled_scenarios": 70,
+    "dispatchable_scenarios": 70,
+    "dispatchable_scenario_rate": 0.359
   },
   "by_split": {
     "test_challenge": {
       "tasks": 417,
-      "compiled": 39,
-      "dispatchable": 39,
+      "compiled": 42,
+      "dispatchable": 42,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 378,
-      "compiled_rate": 0.0935,
-      "dispatchable_rate": 0.0935,
-      "unsupported_rate": 0.9065,
+      "unsupported": 375,
+      "compiled_rate": 0.1007,
+      "dispatchable_rate": 0.1007,
+      "unsupported_rate": 0.8993,
       "scenarios": 139,
-      "compiled_scenarios": 13,
-      "dispatchable_scenarios": 13,
-      "dispatchable_scenario_rate": 0.0935
+      "compiled_scenarios": 14,
+      "dispatchable_scenarios": 14,
+      "dispatchable_scenario_rate": 0.1007
     },
     "test_normal": {
       "tasks": 168,
@@ -115,7 +115,7 @@
     ],
     [
       "spotify_music",
-      20
+      17
     ],
     [
       "venmo_payment_or_request",
