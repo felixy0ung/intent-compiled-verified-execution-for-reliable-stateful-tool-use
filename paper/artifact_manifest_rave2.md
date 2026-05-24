@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 66/417 `test_challenge` instructions to complete frames. The same
+  instructions and 69/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -259,6 +259,14 @@ extraction call per task plus the runtime-checked executor.
   scheduled drafts remain, and reaches 3/3 success with 0 invalid calls and 0 unsafe
   state changes. This is a narrow held-out slice, not a full `test_challenge` or
   leaderboard result.
+- Held-out AppWorld Gmail read-state calendar-window slice:
+  `results/appworld_gmail_mark_read_state_20260525/20260525_035609` records three local
+  `test_challenge` tasks whose public instructions ask to mark inbox/outbox Gmail
+  threads read or unread within a calendar-month/year window. One general Gmail ICVE
+  machine computes the calendar window from runtime time, enumerates inbox and outbox
+  threads, changes only mismatched read states, and reaches 3/3 success with 0 invalid
+  calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
+  `test_challenge` or leaderboard result.
 - Held-out AppWorld Gmail job-search attachment/send slice:
   `results/appworld_gmail_job_search_attach_send_20260525/20260525_023325` records
   three local `test_challenge` tasks whose public instructions ask to attach a freshly

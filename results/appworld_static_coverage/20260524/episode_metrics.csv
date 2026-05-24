@@ -494,9 +494,9 @@ test_challenge,e52623a_3,e52623a,0,0,0,0,unsupported,,,gmail_email,aecf738204f0b
 test_challenge,5e27cd7_1,5e27cd7,1,1,0,0,appworld_delete_gmail_empty_drafts,,,,4451cde1e2595b2a
 test_challenge,5e27cd7_2,5e27cd7,1,1,0,0,appworld_delete_gmail_empty_drafts,,,,a9df42f085738728
 test_challenge,5e27cd7_3,5e27cd7,1,1,0,0,appworld_delete_gmail_empty_drafts,,,,4451cde1e2595b2a
-test_challenge,277d81d_1,277d81d,0,0,0,0,unsupported,,,gmail_email,ac4135e35d3d515d
-test_challenge,277d81d_2,277d81d,0,0,0,0,unsupported,,,gmail_email,116b5ff0addde545
-test_challenge,277d81d_3,277d81d,0,0,0,0,unsupported,,,gmail_email,6d5fac2b44cb50f6
+test_challenge,277d81d_1,277d81d,1,1,0,0,appworld_gmail_mark_threads_read_state_by_calendar_window,,,,ac4135e35d3d515d
+test_challenge,277d81d_2,277d81d,1,1,0,0,appworld_gmail_mark_threads_read_state_by_calendar_window,,,,116b5ff0addde545
+test_challenge,277d81d_3,277d81d,1,1,0,0,appworld_gmail_mark_threads_read_state_by_calendar_window,,,,6d5fac2b44cb50f6
 test_challenge,ce73d68_1,ce73d68,0,0,0,0,unsupported,,,gmail_email,45db4ed1a155a4c3
 test_challenge,ce73d68_2,ce73d68,0,0,0,0,unsupported,,,gmail_email,e1a43f22fe0cbdef
 test_challenge,ce73d68_3,ce73d68,0,0,0,0,unsupported,,,gmail_email,310b1d0e5f0b02bf

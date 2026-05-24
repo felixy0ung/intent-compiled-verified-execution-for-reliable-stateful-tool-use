@@ -1147,6 +1147,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_mark_threads_read_state_by_calendar_window",
+                (
+                    SlotSpec("target_state"),
+                    SlotSpec("window"),
+                ),
+            ),
+            compiler=compile_gmail_mark_threads_read_state_by_calendar_window,
+            handler=handle_gmail_mark_threads_read_state_by_calendar_window,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_star_threads_by_relationship",
                 (SlotSpec("relationship"),),
             ),
@@ -2506,6 +2517,25 @@ def compile_gmail_thread_cleanup(
     exception_mode = "and" if match.group("joiner").lower() == "and" else "or"
     frame.set_slot("action", action, source="regex")
     frame.set_slot("exception_mode", exception_mode, source="regex")
+    return frame
+
+
+def compile_gmail_mark_threads_read_state_by_calendar_window(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Mark everything in my Gmail inbox and outbox (?P<window>before the last calendar month|in the current calendar month|before the current calendar year) as (?P<state>read|unread)\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_mark_threads_read_state_by_calendar_window")
+    frame.set_slot("target_state", match.group("state").lower(), source="regex")
+    window = match.group("window").lower().replace(" ", "_")
+    frame.set_slot("window", window, source="regex")
     return frame
 
 
@@ -8664,6 +8694,88 @@ print(json.dumps({{"action": action, "exception_mode": exception_mode, "processe
     )
 
 
+def handle_gmail_mark_threads_read_state_by_calendar_window(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    target_state = str(frame.get("target_state") or "").strip().lower()
+    window = str(frame.get("window") or "").strip().lower()
+    if target_state not in {"read", "unread"} or window not in {
+        "before_the_last_calendar_month",
+        "in_the_current_calendar_month",
+        "before_the_current_calendar_year",
+    }:
+        frame.abstain_reason = "missing_or_unsupported_gmail_read_state_window"
+        return None
+    code = common_appworld_prelude(["gmail"]) + f"""
+target_state = {json.dumps(target_state)}
+window = {json.dumps(window)}
+now = DateTime.now()
+if window == "before_the_last_calendar_month":
+    min_created_at = "1500-01-01"
+    max_created_at = now.subtract(months=1).start_of("month").subtract(microseconds=1).to_date_string()
+elif window == "in_the_current_calendar_month":
+    min_created_at = now.start_of("month").to_date_string()
+    max_created_at = now.end_of("month").to_date_string()
+elif window == "before_the_current_calendar_year":
+    min_created_at = "1500-01-01"
+    max_created_at = now.start_of("year").subtract(microseconds=1).to_date_string()
+else:
+    raise Exception(f"Unsupported calendar window: {{window}}")
+
+target_read = target_state == "read"
+seen_thread_ids = set()
+threads = []
+for fetch in [apis.gmail.show_inbox_threads, apis.gmail.show_outbox_threads]:
+    threads.extend(paged(lambda page, fetch=fetch: fetch(
+        access_token=tokens["gmail"],
+        min_created_at=min_created_at,
+        max_created_at=max_created_at,
+        page_index=page,
+        page_limit=20,
+        sort_by="+created_at",
+    )))
+
+processed = []
+already_matching = []
+for thread in threads:
+    thread_id = thread["email_thread_id"]
+    if thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    current_read = bool(thread.get("read"))
+    if current_read == target_read:
+        already_matching.append(thread_id)
+        continue
+    if target_read:
+        apis.gmail.mark_thread_read(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+    else:
+        apis.gmail.mark_thread_unread(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+    processed.append(thread_id)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "target_state": target_state,
+    "window": window,
+    "min_created_at": min_created_at,
+    "max_created_at": max_created_at,
+    "processed": processed,
+    "already_matching": already_matching,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_mark_threads_read_state_by_calendar_window",
+    )
+
+
 def handle_gmail_star_threads_by_relationship(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -13557,6 +13669,10 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         if exception_mode in {"and", "both"}:
             exception_mode = "and"
         return {"action": action, "exception_mode": exception_mode}
+    if intent_type == "appworld_gmail_mark_threads_read_state_by_calendar_window":
+        target_state = str(slots.get("target_state") or slots.get("state") or "").strip().lower()
+        window = str(slots.get("window") or "").strip().lower().replace(" ", "_")
+        return {"target_state": target_state, "window": window}
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
@@ -14005,6 +14121,16 @@ def verify_or_repair_llm_intent_frame(
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
             if repaired is not None:
                 return repaired
+    if frame.intent_type == "appworld_gmail_mark_threads_read_state_by_calendar_window":
+        required = [
+            "mark everything in my gmail inbox and outbox",
+            "calendar",
+        ]
+        if not all(part in raw for part in required) or not raw.endswith((" as read.", " as unread.")):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -14274,6 +14400,8 @@ Supported intent types and slots:
    slots: empty object.
 19. appworld_gmail_thread_cleanup
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
+19. appworld_gmail_mark_threads_read_state_by_calendar_window
+   slots: target_state string, one of read or unread; window string, one of before_the_last_calendar_month, in_the_current_calendar_month, or before_the_current_calendar_year.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
@@ -14576,6 +14704,9 @@ JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"delete",
 
 Task: Delete all my read Gmail threads from inbox/outbox, except the ones that have some priority label or are starred.
 JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"delete","exception_mode":"or"}}
+
+Task: Mark everything in my Gmail inbox and outbox before the last calendar month as read.
+JSON: {"intent_type":"appworld_gmail_mark_threads_read_state_by_calendar_window","slots":{"target_state":"read","window":"before_the_last_calendar_month"}}
 
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}
