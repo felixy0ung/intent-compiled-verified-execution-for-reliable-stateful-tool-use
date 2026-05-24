@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 48/417 `test_challenge` instructions to complete frames. The same
+  instructions and 51/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -251,6 +251,16 @@ extraction call per task plus the runtime-checked executor.
   details, applies app-derived labels, and reaches 3/3 success with 0 invalid calls and
   0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
   or leaderboard result.
+- Held-out AppWorld Gmail job-search attachment/send slice:
+  `results/appworld_gmail_job_search_attach_send_20260525/20260525_023325` records
+  three local `test_challenge` tasks whose public instructions ask to attach a freshly
+  updated `resume.pdf` or `cv.pdf` from the file system to recent job-search Gmail
+  drafts, replacing stale attachments if present, and then send the drafts. One general
+  Gmail + file-system ICVE machine selects the non-trash, most recently updated matching
+  PDF through runtime-visible file metadata, filters recent job-application drafts, adds
+  or overwrites the attachment, sends the drafts, and reaches 3/3 success with 0 invalid
+  calls and 0 unsafe state changes. This is a narrow held-out slice, not a full
+  `test_challenge` or leaderboard result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication

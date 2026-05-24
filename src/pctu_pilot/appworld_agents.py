@@ -1117,6 +1117,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_attach_job_search_files_and_send",
+                (
+                    SlotSpec("days_back"),
+                    SlotSpec("file_name"),
+                ),
+            ),
+            compiler=compile_gmail_attach_job_search_files_and_send,
+            handler=handle_gmail_attach_job_search_files_and_send,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_remove_expired_payment_cards",
                 (),
             ),
@@ -2389,6 +2400,27 @@ def compile_gmail_label_notification_threads_by_app(
     ):
         return None
     return IntentFrame("appworld_gmail_label_notification_threads_by_app")
+
+
+def compile_gmail_attach_job_search_files_and_send(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"For my job search, I've drafted emails to all potential employers in the last "
+        r"(?P<days_back>\d+) days\. Attach (?P<file_name>[\w.\-]+\.pdf) from my file "
+        r"system to each of them\. If it's already attached, update it as I just made "
+        r"some changes to it\. Then send the emails\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_attach_job_search_files_and_send")
+    frame.set_slot("days_back", int(match.group("days_back")), source="regex")
+    frame.set_slot("file_name", match.group("file_name"), source="regex")
+    return frame
 
 
 def compile_remove_expired_payment_cards(
@@ -8069,6 +8101,107 @@ print(json.dumps({"labeled": labeled, "skipped": skipped}, sort_keys=True))
     )
 
 
+def handle_gmail_attach_job_search_files_and_send(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    try:
+        days_back = int(frame.get("days_back"))
+    except (TypeError, ValueError):
+        frame.abstain_reason = "missing_gmail_job_search_days_back"
+        return None
+    file_name = str(frame.get("file_name") or "").strip()
+    if days_back < 1 or not re.fullmatch(r"[\w.\-]+\.pdf", file_name, flags=re.IGNORECASE):
+        frame.abstain_reason = "missing_or_unsupported_gmail_job_search_file"
+        return None
+    code = common_appworld_prelude(["gmail", "file_system"]) + f"""
+days_back = {days_back}
+file_name = {json.dumps(file_name)}
+now = DateTime.now()
+window_start = now.subtract(days=days_back).start_of("day")
+window_end = now.end_of("day")
+min_created_at = window_start.to_date_string()
+max_created_at = window_end.to_date_string()
+
+candidate_paths = apis.file_system.show_directory(
+    access_token=tokens["file_system"],
+    directory_path="/",
+    substring=file_name,
+    entry_type="files",
+    recursive=True,
+)
+matching_paths = [path for path in candidate_paths if path.rstrip("/").split("/")[-1].lower() == file_name.lower()]
+if not matching_paths:
+    raise Exception(f"No {{file_name}} was found in the file system.")
+file_candidates = []
+for path in matching_paths:
+    file_info = apis.file_system.show_file(access_token=tokens["file_system"], file_path=path)
+    in_trash = "/trash/" in path.lower() or path.lower().endswith("/trash/" + file_name.lower())
+    file_candidates.append((in_trash, str(file_info.get("updated_at") or ""), path))
+file_candidates.sort(key=lambda item: (item[0], item[1]), reverse=False)
+non_trash_candidates = [item for item in file_candidates if not item[0]]
+if non_trash_candidates:
+    file_path = sorted(non_trash_candidates, key=lambda item: item[1], reverse=True)[0][2]
+else:
+    file_path = sorted(file_candidates, key=lambda item: item[1], reverse=True)[0][2]
+
+drafts = paged(lambda page: apis.gmail.show_drafts(
+    access_token=tokens["gmail"],
+    query="",
+    page_index=page,
+    page_limit=20,
+    min_created_at=min_created_at,
+    max_created_at=max_created_at,
+    sort_by="+created_at",
+))
+
+target_drafts = []
+for draft in drafts:
+    created_at = DateTime.fromisoformat(draft["created_at"])
+    if created_at < window_start or created_at > window_end:
+        continue
+    if not draft.get("recipients"):
+        continue
+    text = (str(draft.get("subject") or "") + "\\n" + str(draft.get("body") or "")).lower()
+    if "job" not in text and "application" not in text and "position" not in text:
+        continue
+    target_drafts.append(draft)
+
+if not target_drafts:
+    raise Exception("No recent job-search drafts with recipients were found.")
+
+processed = []
+for draft in target_drafts:
+    draft_id = draft["draft_id"]
+    apis.gmail.upload_attachments_to_draft(
+        access_token=tokens["gmail"],
+        draft_id=draft_id,
+        attachment_file_paths=[file_path],
+        overwrite=True,
+        file_system_access_token=tokens["file_system"],
+    )
+    sent = apis.gmail.send_email_from_draft(
+        access_token=tokens["gmail"],
+        draft_id=draft_id,
+        file_system_access_token=tokens["file_system"],
+    )
+    processed.append({{
+        "draft_id": draft_id,
+        "file_path": file_path,
+        "sent_email_thread_id": sent.get("sent_email_thread_id"),
+        "sent_email_id": sent.get("sent_email_id"),
+    }})
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{"file_name": file_name, "days_back": days_back, "processed": processed}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_attach_job_search_files_and_send",
+    )
+
+
 def handle_remove_expired_payment_cards(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -12542,6 +12675,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
+    if intent_type == "appworld_gmail_attach_job_search_files_and_send":
+        return {
+            "days_back": int(slots["days_back"]),
+            "file_name": str(slots.get("file_name") or "").strip(),
+        }
     if intent_type == "appworld_bucket_list_status_update":
         done_value = slots.get("done")
         if isinstance(done_value, str):
@@ -12981,6 +13119,19 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_attach_job_search_files_and_send":
+        required = [
+            "for my job search",
+            "drafted emails to all potential employers",
+            "attach ",
+            "from my file system",
+            "then send the emails",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_remove_expired_payment_cards":
         if raw != "remove expired payment cards from all my app accounts that have payment cards.":
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -13165,6 +13316,8 @@ Supported intent types and slots:
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
    slots: empty object.
+21. appworld_gmail_attach_job_search_files_and_send
+   slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
 21. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
@@ -13448,6 +13601,9 @@ JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"delete",
 
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}
+
+Task: For my job search, I've drafted emails to all potential employers in the last 3 days. Attach cv.pdf from my file system to each of them. If it's already attached, update it as I just made some changes to it. Then send the emails.
+JSON: {"intent_type":"appworld_gmail_attach_job_search_files_and_send","slots":{"days_back":3,"file_name":"cv.pdf"}}
 
 Task: Mark "Learning to cook a signature dish from scratch" in my Bucket List Simple Note as done.
 JSON: {"intent_type":"appworld_bucket_list_status_update","slots":{"item":"Learning to cook a signature dish from scratch","done":true}}
