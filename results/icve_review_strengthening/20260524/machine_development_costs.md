@@ -6,7 +6,7 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 122
+- Registered AppWorld machines: 123
 - Used by full168 supported tasks: 55
 - Supported tasks: 168
 - Tasks per used machine: 3.05
@@ -70,6 +70,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_venmo_sum_recent_received_requests | 1 | 16 | 33 | 3 | supervisor,venmo | not_recorded |
 | appworld_venmo_sum_year_bill_payments | 1 | 16 | 36 | 3 | supervisor,venmo | not_recorded |
 | appworld_amazon_answer_cart_wishlist_total | 0 | 12 | 27 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_answer_current_price_from_birthday_order | 2 | 19 | 127 | 0 | amazon,phone,supervisor | not_recorded |
 | appworld_amazon_answer_last_order_question_yes_no | 2 | 17 | 106 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_answer_order_arrival_date | 2 | 17 | 60 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_answer_returned_product_yes_no | 2 | 17 | 81 | 0 | amazon,supervisor | not_recorded |

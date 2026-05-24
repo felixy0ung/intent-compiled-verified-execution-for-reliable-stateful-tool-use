@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 129/417 `test_challenge` instructions to complete frames. The same
+  instructions and 132/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -311,6 +311,15 @@ extraction call per task plus the runtime-checked executor.
   much the user spent on Amazon in a calendar window. One general Amazon ICVE machine
   filters runtime-visible orders by creation date, sums visible paid amounts, formats
   the total answer, and reaches 3/3 success with 0 invalid calls and 0 unsafe state
+  changes. This is answer-only coverage evidence, not a full `test_challenge` or
+  leaderboard result.
+- Held-out AppWorld Amazon birthday-order current-price answer slice:
+  `results/appworld_amazon_birthday_current_price_answer_20260525/20260525_070341`
+  records three local `test_challenge` answer-only tasks whose public instructions ask
+  for the current Amazon price of a product ordered on a relative's birthday last year.
+  One general Amazon + phone ICVE machine reads runtime-visible phone birthdays,
+  filters runtime-visible Amazon orders by the corresponding date, resolves visible
+  product metadata, and reaches 3/3 success with 0 invalid calls and 0 unsafe state
   changes. This is answer-only coverage evidence, not a full `test_challenge` or
   leaderboard result.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice:

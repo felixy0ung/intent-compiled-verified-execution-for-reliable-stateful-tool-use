@@ -16,6 +16,8 @@ RELATION_ALIASES = {
     "manager": "manager",
     "parents": "parent",
     "parent": "parent",
+    "mothers": "mother",
+    "mother": "mother",
     "children": "child",
     "child": "child",
     "sons": "son",
@@ -24,6 +26,10 @@ RELATION_ALIASES = {
     "daughter": "daughter",
     "siblings": "sibling",
     "sibling": "sibling",
+    "sisters": "sister",
+    "sister": "sister",
+    "brothers": "brother",
+    "brother": "brother",
     "roommates": "roommate",
     "roommate": "roommate",
     "friends": "friend",
@@ -1229,6 +1235,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
             ),
             compiler=compile_amazon_answer_spending_total,
             handler=handle_amazon_answer_spending_total,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
+                "appworld_amazon_answer_current_price_from_birthday_order",
+                (
+                    SlotSpec("product_type"),
+                    SlotSpec("relationship"),
+                ),
+            ),
+            compiler=compile_amazon_answer_current_price_from_birthday_order,
+            handler=handle_amazon_answer_current_price_from_birthday_order,
         ),
         IntentMachine(
             schema=IntentSchema(
@@ -4366,6 +4383,27 @@ def compile_amazon_answer_spending_total(
         return None
     frame = IntentFrame("appworld_amazon_answer_spending_total")
     frame.set_slot("period", compact_text(match.group("period")).lower(), source="regex")
+    return frame
+
+
+def compile_amazon_answer_current_price_from_birthday_order(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"I ordered an? (?P<product_type>.+?) on amazon on my "
+        r"(?P<relationship>mother|sister|brother|father|parent|sibling)'s birthday last year\. "
+        r"How much does it cost now, ignoring tax and delivery fees\?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationship = match.group("relationship").lower()
+    frame = IntentFrame("appworld_amazon_answer_current_price_from_birthday_order")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("relationship", RELATION_ALIASES.get(relationship, relationship), source="regex")
     return frame
 
 
@@ -10123,6 +10161,146 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_spending_total",
+    )
+
+
+def handle_amazon_answer_current_price_from_birthday_order(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_type = frame.get("product_type")
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    if not product_type or relationship not in {"mother", "sister", "brother", "father", "parent", "sibling"}:
+        frame.abstain_reason = "missing_amazon_current_price_birthday_order_slots"
+        return None
+    code = common_appworld_prelude(["phone", "amazon"]) + f"""
+target_product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+relationship = {json.dumps(relationship)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def product_matches(item, product):
+    target = normalize_text(target_product_type)
+    if normalize_text(product.get("product_type")) == target:
+        return True
+    item_text = " ".join([
+        str(item.get("product_name") or ""),
+        str(product.get("name") or ""),
+        str(product.get("product_type") or ""),
+        str(product.get("description") or ""),
+    ])
+    target_words = word_set(target)
+    return bool(target_words) and target_words <= word_set(item_text)
+
+def parse_birthday_date(value):
+    birthday = str(value or "").strip()
+    if not birthday:
+        return None
+    try:
+        return DateTime.fromisoformat(birthday)
+    except Exception:
+        pass
+    match = re.fullmatch(r"(\\d{{1,2}})[-/](\\d{{1,2}})(?:[-/](\\d{{2,4}}))?", birthday)
+    if match:
+        month = int(match.group(1))
+        day = int(match.group(2))
+        year = int(match.group(3) or DateTime.now().year)
+        if year < 100:
+            year += 1900
+        return DateTime(year, month, day)
+    return None
+
+def amount_answer(value):
+    amount = float(value)
+    return str(int(round(amount))) if abs(amount - round(amount)) < 1e-9 else str(round(amount, 2))
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+if not contacts and relationship in {{"mother", "father"}}:
+    contacts = paged(lambda page: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship="parent",
+        page_index=page,
+        page_limit=20,
+    ))
+if not contacts and relationship in {{"sister", "brother"}}:
+    contacts = paged(lambda page: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship="sibling",
+        page_index=page,
+        page_limit=20,
+    ))
+
+now = DateTime.now()
+candidate_dates = []
+for contact in contacts:
+    birthday_dt = parse_birthday_date(contact.get("birthday"))
+    if birthday_dt is None:
+        continue
+    date = DateTime(now.year - 1, birthday_dt.month, birthday_dt.day).to_date_string()
+    candidate_dates.append({{
+        "date": date,
+        "contact_id": contact.get("contact_id"),
+        "name": contact.get("name"),
+        "relationship": contact.get("relationship"),
+    }})
+if not candidate_dates:
+    raise Exception(f"No {{relationship}} contacts with birthdays found.")
+
+candidate_date_values = {{row["date"] for row in candidate_dates}}
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+
+matches = []
+for order in orders:
+    order_date = str(order.get("created_at") or "")[:10]
+    if order_date not in candidate_date_values:
+        continue
+    for item in order.get("order_items", []):
+        product = apis.amazon.show_product(product_id=item["product_id"])
+        if not product_matches(item, product):
+            continue
+        matches.append({{
+            "order_id": order.get("order_id"),
+            "created_at": order.get("created_at"),
+            "product_id": item.get("product_id"),
+            "product_name": item.get("product_name") or product.get("name"),
+            "product_type": product.get("product_type"),
+            "current_price": float(product.get("price") or 0),
+        }})
+
+if len(matches) != 1:
+    raise Exception(f"Expected exactly one {{target_product_type}} order on a {{relationship}} birthday last year, found {{len(matches)}}: {{matches}}")
+
+selected = matches[0]
+answer = amount_answer(selected["current_price"])
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "relationship": relationship,
+    "product_type": target_product_type,
+    "candidate_dates": candidate_dates,
+    "selected": selected,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_current_price_from_birthday_order",
     )
 
 
@@ -16116,6 +16294,12 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         }
     if intent_type == "appworld_amazon_answer_spending_total":
         return {"period": compact_text(str(slots.get("period") or "")).lower()}
+    if intent_type == "appworld_amazon_answer_current_price_from_birthday_order":
+        relationship = str(slots.get("relationship") or "").strip().lower()
+        return {
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "relationship": RELATION_ALIASES.get(relationship, relationship),
+        }
     if intent_type == "appworld_membership_paid_total":
         app_name = str(slots.get("app_name") or slots.get("app") or "").strip().lower()
         membership = str(slots.get("membership") or slots.get("subscription") or "").strip().lower()
@@ -16826,6 +17010,16 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_current_price_from_birthday_order":
+        if not re.fullmatch(
+            r"i ordered an? .+? on amazon on my (mother|sister|brother|father|parent|sibling)'s birthday last year\. "
+            r"how much does it cost now, ignoring tax and delivery fees\?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_membership_paid_total":
         if not re.fullmatch(
             r"how much have i paid in (prime|premium) membership since i made the (amazon|spotify) account\?",
@@ -17150,6 +17344,8 @@ Supported intent types and slots:
    slots: day_offset integer, 0 for today's order or 1 for yesterday's order; date_format string, one of DD-MM, MM-DD, or DD/MM.
 18. appworld_amazon_answer_spending_total
    slots: period string, one of this calendar year, the last calendar month, or this or the last calendar month.
+18. appworld_amazon_answer_current_price_from_birthday_order
+   slots: product_type string; relationship string, one of mother, sister, brother, parent, sibling, or father.
 18. appworld_membership_paid_total
    slots: app_name string, one of amazon or spotify.
 18. appworld_membership_last_payment_card_name
@@ -17494,6 +17690,9 @@ JSON: {"intent_type":"appworld_amazon_answer_order_arrival_date","slots":{"day_o
 
 Task: How much did I spend on amazon in this calendar year?
 JSON: {"intent_type":"appworld_amazon_answer_spending_total","slots":{"period":"this calendar year"}}
+
+Task: I ordered a drone on amazon on my mother's birthday last year. How much does it cost now, ignoring tax and delivery fees?
+JSON: {"intent_type":"appworld_amazon_answer_current_price_from_birthday_order","slots":{"product_type":"drone","relationship":"mother"}}
 
 Task: How much have I paid in premium membership since I made the spotify account?
 JSON: {"intent_type":"appworld_membership_paid_total","slots":{"app_name":"spotify"}}

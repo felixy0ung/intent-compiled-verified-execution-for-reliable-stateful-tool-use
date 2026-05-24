@@ -55,6 +55,7 @@ appworld_venmo_sum_month_transactions,1,direction,17,41,58,3,3,0,0,"supervisor,v
 appworld_venmo_sum_recent_received_requests,1,days,16,33,49,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_venmo_sum_year_bill_payments,1,bill_type,16,36,52,3,3,0,0,"supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_cart_wishlist_total,0,none,12,27,39,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_answer_current_price_from_birthday_order,2,"product_type,relationship",19,127,146,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_last_order_question_yes_no,2,"product_type,question",17,106,123,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_order_arrival_date,2,"day_offset,date_format",17,60,77,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_returned_product_yes_no,2,"product_type,period",17,81,98,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
