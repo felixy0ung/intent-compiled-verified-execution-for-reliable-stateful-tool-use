@@ -1240,6 +1240,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_membership_last_payment_card_name",
+                (SlotSpec("app_name"),),
+            ),
+            compiler=compile_membership_last_payment_card_name,
+            handler=handle_membership_last_payment_card_name,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4368,6 +4376,28 @@ def compile_membership_paid_total(
     if (app_name, membership) not in {("amazon", "prime"), ("spotify", "premium")}:
         return None
     frame = IntentFrame("appworld_membership_paid_total")
+    frame.set_slot("app_name", app_name, source="regex")
+    return frame
+
+
+def compile_membership_last_payment_card_name(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Tell me the card name I used for my last (?P<app>amazon|spotify) "
+        r"(?P<membership>prime|premium) membership payment\?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    app_name = match.group("app").lower()
+    membership = match.group("membership").lower()
+    if (app_name, membership) not in {("amazon", "prime"), ("spotify", "premium")}:
+        return None
+    frame = IntentFrame("appworld_membership_last_payment_card_name")
     frame.set_slot("app_name", app_name, source="regex")
     return frame
 
@@ -10112,6 +10142,85 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_membership_paid_total",
+    )
+
+
+def handle_membership_last_payment_card_name(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    app_name = str(frame.get("app_name") or "").strip().lower()
+    if app_name not in {"amazon", "spotify"}:
+        frame.abstain_reason = "missing_membership_last_payment_card_app"
+        return None
+    code = common_appworld_prelude([app_name]) + f"""
+app_name = {json.dumps(app_name)}
+
+def last_digits(card_number):
+    digits = re.sub(r"\\D+", "", str(card_number or ""))
+    return digits[-4:] if len(digits) >= 4 else digits
+
+if app_name == "amazon":
+    subscriptions = paged(lambda page: apis.amazon.show_prime_subscriptions(
+        access_token=tokens["amazon"],
+        page_index=page,
+        page_limit=20,
+    ))
+    app_payment_cards = apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+elif app_name == "spotify":
+    subscriptions = paged(lambda page: apis.spotify.show_premium_subscriptions(
+        access_token=tokens["spotify"],
+        page_index=page,
+        page_limit=20,
+    ))
+    app_payment_cards = apis.spotify.show_payment_cards(access_token=tokens["spotify"])
+else:
+    raise Exception(f"Unsupported membership app: {{app_name}}")
+
+if not subscriptions:
+    raise Exception(f"No membership subscriptions found for {{app_name}}.")
+
+subscriptions.sort(key=lambda row: (str(row.get("start_date") or ""), str(row.get("end_date") or "")), reverse=True)
+latest_subscription = subscriptions[0]
+target_digits = re.sub(r"\\D+", "", str(latest_subscription.get("payment_card_digits") or ""))
+if not target_digits:
+    raise Exception(f"Latest membership subscription has no payment card digits for {{app_name}}.")
+
+matches = []
+for card in app_payment_cards:
+    card_digits = last_digits(card.get("card_number"))
+    if card_digits and target_digits.endswith(card_digits):
+        matches.append(card)
+if not matches:
+    for card in apis.supervisor.show_payment_cards():
+        card_digits = last_digits(card.get("card_number"))
+        if card_digits and target_digits.endswith(card_digits):
+            matches.append(card)
+
+if len(matches) != 1:
+    raise Exception(f"Expected exactly one payment card ending with {{target_digits}}, found {{len(matches)}}.")
+
+answer = str(matches[0].get("card_name") or "").strip()
+if not answer:
+    raise Exception("Matched payment card has no card_name.")
+
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "app_name": app_name,
+    "latest_subscription": {{
+        "start_date": latest_subscription.get("start_date"),
+        "end_date": latest_subscription.get("end_date"),
+        "payment_card_digits": latest_subscription.get("payment_card_digits"),
+        "paid_amount": latest_subscription.get("paid_amount"),
+    }},
+    "matched_payment_card_digits": last_digits(matches[0].get("card_number")),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_membership_last_payment_card_name",
     )
 
 
@@ -15902,6 +16011,15 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             elif membership == "premium":
                 app_name = "spotify"
         return {"app_name": app_name}
+    if intent_type == "appworld_membership_last_payment_card_name":
+        app_name = str(slots.get("app_name") or slots.get("app") or "").strip().lower()
+        membership = str(slots.get("membership") or slots.get("subscription") or "").strip().lower()
+        if not app_name:
+            if membership == "prime":
+                app_name = "amazon"
+            elif membership == "premium":
+                app_name = "spotify"
+        return {"app_name": app_name}
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -16593,6 +16711,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_membership_last_payment_card_name":
+        if not re.fullmatch(
+            r"tell me the card name i used for my last (amazon|spotify) (prime|premium) membership payment\?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16891,6 +17018,8 @@ Supported intent types and slots:
 18. appworld_amazon_answer_spending_total
    slots: period string, one of this calendar year, the last calendar month, or this or the last calendar month.
 18. appworld_membership_paid_total
+   slots: app_name string, one of amazon or spotify.
+18. appworld_membership_last_payment_card_name
    slots: app_name string, one of amazon or spotify.
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
@@ -17233,6 +17362,9 @@ JSON: {"intent_type":"appworld_amazon_answer_spending_total","slots":{"period":"
 
 Task: How much have I paid in premium membership since I made the spotify account?
 JSON: {"intent_type":"appworld_membership_paid_total","slots":{"app_name":"spotify"}}
+
+Task: Tell me the card name I used for my last amazon prime membership payment?
+JSON: {"intent_type":"appworld_membership_last_payment_card_name","slots":{"app_name":"amazon"}}
 
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}

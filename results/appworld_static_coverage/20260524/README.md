@@ -9,20 +9,20 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | metric | value |
 | --- | ---: |
-| registered_appworld_machines | 120 |
+| registered_appworld_machines | 121 |
 | total_tasks | 585 |
-| compiled | 291 |
-| dispatchable | 291 |
-| unsupported | 294 |
-| compiled_rate | 0.4974 |
-| dispatchable_rate | 0.4974 |
-| dispatchable_scenarios | 97 / 195 |
+| compiled | 294 |
+| dispatchable | 294 |
+| unsupported | 291 |
+| compiled_rate | 0.5026 |
+| dispatchable_rate | 0.5026 |
+| dispatchable_scenarios | 98 / 195 |
 
 ## By Split
 
 | split | tasks | compiled | dispatchable | unsupported | dispatchable rate | dispatchable scenarios |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| test_challenge | 417 | 123 | 123 | 294 | 0.2950 | 41 / 139 |
+| test_challenge | 417 | 126 | 126 | 291 | 0.3022 | 42 / 139 |
 | test_normal | 168 | 168 | 168 | 0 | 1.0000 | 56 / 56 |
 
 ## Top Dispatchable Intents
@@ -46,11 +46,11 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | bucket | tasks |
 | --- | ---: |
-| amazon_purchase_or_product_search | 167 |
+| amazon_purchase_or_product_search | 165 |
 | gmail_email | 83 |
 | splitwise_vacation_or_expense | 28 |
 | spotify_music | 14 |
-| venmo_payment_or_request | 2 |
+| venmo_payment_or_request | 1 |
 
 ## Coverage Roadmap
 
@@ -61,15 +61,15 @@ Full rows are in `coverage_roadmap.csv`.
 
 | split | bucket | tasks | scenarios | roadmap family |
 | --- | --- | ---: | ---: | --- |
-| test_challenge | amazon_purchase_or_product_search | 167 | 58 | Amazon search-and-purchase machines |
+| test_challenge | amazon_purchase_or_product_search | 165 | 57 | Amazon search-and-purchase machines |
 | test_challenge | gmail_email | 83 | 28 | Gmail thread-and-draft machines |
 | test_challenge | splitwise_vacation_or_expense | 28 | 10 | Splitwise expense-settlement machines |
 | test_challenge | spotify_music | 14 | 6 | Spotify search-and-library machines |
-| test_challenge | venmo_payment_or_request | 2 | 2 | Venmo payment/request machines |
+| test_challenge | venmo_payment_or_request | 1 | 1 | Venmo payment/request machines |
 
 ## Scenario Coverage
 
-- Fully dispatchable scenarios: 97
+- Fully dispatchable scenarios: 98
 - Partially dispatchable scenarios: 0
 - Full per-scenario rows are in `scenario_coverage.csv`.
 

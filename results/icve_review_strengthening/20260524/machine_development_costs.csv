@@ -85,6 +85,7 @@ appworld_gmail_reply_weekly_manager_tasks_by_star_state,3,"subject_prefix,done_r
 appworld_gmail_send_future_scheduled_drafts_now,0,none,12,44,56,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_star_threads_by_relationship,1,relationship,20,96,116,0,0,0,0,"gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_thread_cleanup,2,"action,exception_mode",18,63,81,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_membership_last_payment_card_name,1,app_name,20,69,89,0,0,0,0,"amazon,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_membership_paid_total,1,app_name,20,50,70,0,0,0,0,"amazon,spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_phone_message_app_account_verify_reset,3,"relationship,password,date_window",20,185,205,0,0,0,0,"gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_phone_message_non_venmo_contacts,3,"relationships,excluded_app,message",18,48,66,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded

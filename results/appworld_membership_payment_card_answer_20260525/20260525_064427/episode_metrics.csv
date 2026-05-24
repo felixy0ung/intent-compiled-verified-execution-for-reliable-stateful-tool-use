@@ -1,0 +1,4 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,476b213_1,,appworld_membership_last_payment_card_name,1,1,2,0,2,0,0,0,6,1,0,0,0,261,appworld_rave_membership_last_payment_card_name,0,,,,
+rave_appworld_slice,deterministic,,476b213_2,,appworld_membership_last_payment_card_name,1,1,2,0,2,0,0,0,7,1,0,0,0,261,appworld_rave_membership_last_payment_card_name,0,,,,
+rave_appworld_slice,deterministic,,476b213_3,,appworld_membership_last_payment_card_name,1,1,2,0,2,0,0,0,7,1,0,0,0,261,appworld_rave_membership_last_payment_card_name,0,,,,

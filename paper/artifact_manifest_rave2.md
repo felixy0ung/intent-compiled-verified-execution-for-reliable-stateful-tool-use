@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 123/417 `test_challenge` instructions to complete frames. The same
+  instructions and 126/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -321,6 +321,15 @@ extraction call per task plus the runtime-checked executor.
   histories, sums paid amounts, formats the total answer, and reaches 3/3 success with
   0 invalid calls and 0 unsafe state changes. This is answer-only coverage evidence, not
   a full `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon/Spotify membership payment-card answer slice:
+  `results/appworld_membership_payment_card_answer_20260525/20260525_064427` records
+  three local `test_challenge` answer-only tasks whose public instructions ask for the
+  card name used for the user's last Amazon Prime or Spotify Premium membership payment.
+  One general subscription-history + payment-card ICVE machine reads runtime-visible
+  subscription histories, resolves the payment-card digits through app-local or
+  supervisor-visible payment cards, and reaches 3/3 success with 0 invalid calls and
+  0 unsafe state changes. This is answer-only coverage evidence, not a full
+  `test_challenge` or leaderboard result.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420`
   records three local `test_challenge` tasks whose public instructions ask to reply over
