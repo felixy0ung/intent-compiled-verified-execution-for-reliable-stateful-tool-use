@@ -165,10 +165,17 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 18/417 `test_challenge` instructions to complete frames. The same
+  instructions and 21/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
+- Held-out AppWorld phone-message account-verification slice:
+  `results/appworld_phone_account_verify_reset_20260524/20260524_233807` records three
+  local `test_challenge` tasks whose public instructions say that a child sent a phone
+  message about app account creation. One general ICVE machine reads runtime-visible
+  phone-message and Gmail verification/reset evidence, verifies the app account, resets
+  its password, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
+  This is a narrow held-out slice, not a full `test_challenge` or leaderboard result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication

@@ -123,8 +123,9 @@ ROADMAP_BY_BUCKET = {
             "separate read-only contact lookup from mutating message sends."
         ),
         "why_not_currently_covered": (
-            "Current registry does not include phone-message schemas or contact-message "
-            "state transitions."
+            "Current registry covers direct sends, several phone-message read/act "
+            "patterns, and a narrow account-verification/reset pattern, but not "
+            "recommendation-driven shopping or broad contact-message task execution."
         ),
         "validation_gate": (
             "Pass a messaging slice with explicit contact disambiguation and zero sends "

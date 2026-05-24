@@ -763,6 +763,18 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_phone_message_app_account_verify_reset",
+                (
+                    SlotSpec("relationship"),
+                    SlotSpec("password"),
+                    SlotSpec("date_window"),
+                ),
+            ),
+            compiler=compile_phone_message_app_account_verify_reset,
+            handler=handle_phone_message_app_account_verify_reset,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_splitwise_record_venmo_receipt_payments",
                 (SlotSpec("note"),),
             ),
@@ -1671,6 +1683,28 @@ def compile_venmo_signup_missing_relationship_accounts(
     frame.set_slot("relationships", relationships, source="regex")
     frame.set_slot("password", match.group("password").strip(), source="regex")
     frame.set_slot("message", match.group("message"), source="regex")
+    return frame
+
+
+def compile_phone_message_app_account_verify_reset(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"My (?P<relation>son|daughter|child) sent me a message (?P<window>yesterday) "
+        r"on phone about an app account creation\. Please do as per (?:his|her|their) "
+        r"message\. Use password (?P<password>.+?) for the new account\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationship = RELATION_ALIASES.get(match.group("relation").lower(), match.group("relation").lower())
+    frame = IntentFrame("appworld_phone_message_app_account_verify_reset")
+    frame.set_slot("relationship", relationship, source="regex")
+    frame.set_slot("password", match.group("password").strip(), source="regex")
+    frame.set_slot("date_window", match.group("window").lower(), source="regex")
     return frame
 
 
@@ -3714,6 +3748,205 @@ print(json.dumps({{"relationships": relationships, "created": created, "messaged
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_venmo_signup_missing_relationship_accounts",
+    )
+
+
+def handle_phone_message_app_account_verify_reset(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    password = frame.get("password")
+    date_window = str(frame.get("date_window") or "yesterday").strip().lower()
+    if relationship not in {"son", "daughter", "child"} or not password:
+        frame.abstain_reason = "missing_phone_message_account_reset_slots"
+        return None
+    if date_window != "yesterday":
+        frame.abstain_reason = "unsupported_phone_message_account_reset_window"
+        return None
+    code = common_appworld_prelude(["phone", "gmail"]) + f"""
+relationship = {json.dumps(relationship)}
+new_password = {json.dumps(str(password))}
+now = DateTime.now()
+yesterday = now.subtract(days=1).to_date_string()
+supported_apps = {{
+    "amazon",
+    "file_system",
+    "simple_note",
+    "splitwise",
+    "spotify",
+    "todoist",
+    "venmo",
+}}
+
+def one_line(text):
+    return " ".join(str(text or "").split())
+
+def app_label(app_name):
+    return {{
+        "file_system": "file system",
+        "simple_note": "simple note",
+    }}.get(app_name, app_name.replace("_", " "))
+
+def app_from_text(text):
+    lower = text.lower()
+    match = re.search(r"created an? ([a-z_ ]+?) account", lower)
+    if not match:
+        return ""
+    phrase = match.group(1).strip().replace("-", " ").replace("_", " ")
+    normalized = phrase.replace(" ", "_")
+    aliases = {{
+        "simplenote": "simple_note",
+        "simple_note": "simple_note",
+        "simple note": "simple_note",
+        "file system": "file_system",
+        "filesystem": "file_system",
+    }}
+    return aliases.get(phrase, aliases.get(normalized, normalized))
+
+def temp_password_from_text(text):
+    match = re.search(r"(?:password to be|password is|temporary password is|set your password to be)\\s+(.+?)\\s+(?:for now|\\.\\s|$)", text, flags=re.IGNORECASE)
+    if not match:
+        return ""
+    return match.group(1).strip().strip('"').strip("'").strip(".")
+
+def code_from_email(text, code_kind):
+    if code_kind == "verification":
+        patterns = [
+            r"account verification code is:\\s*([A-Za-z0-9_-]+)",
+            r"verification code is:\\s*([A-Za-z0-9_-]+)",
+        ]
+    else:
+        patterns = [
+            r"password reset code is:\\s*([A-Za-z0-9_-]+)",
+            r"reset code is:\\s*([A-Za-z0-9_-]+)",
+        ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+def find_recent_email_code(query, code_kind):
+    threads = paged(lambda page: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+    if not threads:
+        threads = paged(lambda page: apis.gmail.show_inbox_threads(
+            access_token=tokens["gmail"],
+            page_index=page,
+            page_limit=20,
+            sort_by="-created_at",
+        ))
+    candidates = []
+    for thread in threads:
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None:
+            continue
+        detail = apis.gmail.show_thread(
+            access_token=tokens["gmail"],
+            email_thread_id=thread_id,
+        )
+        for email in detail.get("emails", []):
+            subject = email.get("subject") or ""
+            body = email.get("body") or ""
+            text = subject + "\\n" + body
+            code = code_from_email(text, code_kind)
+            if code:
+                candidates.append((email.get("created_at") or "", code, subject))
+    if not candidates:
+        return ""
+    candidates.sort(reverse=True)
+    return candidates[0][1]
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+if not contacts and relationship in {{"son", "daughter"}}:
+    contacts = paged(lambda page: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship="child",
+        page_index=page,
+        page_limit=20,
+    ))
+
+candidate_messages = []
+for contact in contacts:
+    phone_number = contact.get("phone_number")
+    if not phone_number:
+        continue
+    messages = paged(lambda page, phone_number=phone_number: apis.phone.search_text_messages(
+        access_token=tokens["phone"],
+        phone_number=phone_number,
+        page_index=page,
+        page_limit=20,
+    ))
+    for message in messages:
+        sent_at = str(message.get("sent_at") or "")
+        if not sent_at.startswith(yesterday):
+            continue
+        sender_phone = ((message.get("sender") or {{}}).get("phone_number") or "")
+        if sender_phone != phone_number:
+            continue
+        text = str(message.get("message") or "")
+        if "created" not in text.lower() or "account" not in text.lower():
+            continue
+        app_name = app_from_text(text)
+        temp_password = temp_password_from_text(text)
+        if app_name and temp_password:
+            candidate_messages.append((sent_at, contact, message, app_name, temp_password))
+
+if not candidate_messages:
+    raise Exception(f"No yesterday app-account-creation phone message found for {{relationship}}.")
+candidate_messages.sort(reverse=True, key=lambda item: item[0])
+sent_at, contact, message, app_name, temporary_password = candidate_messages[0]
+if app_name not in supported_apps:
+    raise Exception(f"Unsupported app-account verification target: {{app_name}}")
+
+app_api = getattr(apis, app_name)
+email = profile["email"]
+verify_result = app_api.send_verification_code(email=email)
+verification_code = find_recent_email_code(app_label(app_name) + " Account Verficiation Code", "verification")
+if not verification_code:
+    verification_code = find_recent_email_code(app_label(app_name) + " verification code", "verification")
+if not verification_code:
+    raise Exception(f"No {{app_name}} verification code found in Gmail.")
+app_api.verify_account(email=email, verification_code=verification_code)
+
+reset_result = app_api.send_password_reset_code(email=email)
+reset_code = find_recent_email_code(app_label(app_name) + " Password Reset Code", "password_reset")
+if not reset_code:
+    reset_code = find_recent_email_code(app_label(app_name) + " password reset code", "password_reset")
+if not reset_code:
+    raise Exception(f"No {{app_name}} password reset code found in Gmail.")
+app_api.reset_password(
+    email=email,
+    password_reset_code=reset_code,
+    new_password=new_password,
+)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "relationship": relationship,
+    "app_name": app_name,
+    "message_id": message.get("text_message_id"),
+    "message_sent_at": sent_at,
+    "temporary_password_observed": bool(temporary_password),
+    "verification_result": verify_result,
+    "reset_result": reset_result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_phone_message_app_account_verify_reset",
     )
 
 
@@ -10503,6 +10736,14 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         if relationship_type in {"sibling"}:
             relationship_type = "siblings"
         return {"relationship_type": relationship_type}
+    if intent_type == "appworld_phone_message_app_account_verify_reset":
+        relationship = str(slots.get("relationship") or "").strip().lower()
+        relationship = RELATION_ALIASES.get(relationship, relationship)
+        return {
+            "relationship": relationship,
+            "password": str(slots.get("password") or "").strip(),
+            "date_window": str(slots.get("date_window") or "yesterday").strip().lower(),
+        }
     if intent_type == "appworld_pay_csv_debts_via_venmo_or_splitwise":
         private_value = slots.get("private")
         privacy = str(slots.get("privacy") or "").strip().lower()
@@ -11241,6 +11482,8 @@ Supported intent types and slots:
    slots: message_kind string, one of text or voice; date_window string, one of yesterday, the_day_before_yesterday, or this_week.
 5. appworld_venmo_signup_missing_relationship_accounts
    slots: relationships list using singular values from [parent, roommate], password string, message string.
+6. appworld_phone_message_app_account_verify_reset
+   slots: relationship string, one of son, daughter, or child; password string; date_window string, normally yesterday.
 6. appworld_splitwise_record_venmo_receipt_payments
    slots: note string.
 7. appworld_todoist_reassign_accepted_takeover_tasks
@@ -11431,6 +11674,9 @@ JSON: {"intent_type":"appworld_splitwise_accept_known_phone_invitations","slots"
 
 Task: I need my roommates to have a venmo account. Last time I checked none had one. Make an account for whoever that does not have it yet, using their email address and -kO6&A as password. Then send them a phone text message, "I made an account on venmo for you. You should have received an email for activation. Please do it soon. The temporary password is -kO6&A. Change it too.".
 JSON: {"intent_type":"appworld_venmo_signup_missing_relationship_accounts","slots":{"relationships":["roommate"],"password":"-kO6&A","message":"I made an account on venmo for you. You should have received an email for activation. Please do it soon. The temporary password is -kO6&A. Change it too."}}
+
+Task: My son sent me a message yesterday on phone about an app account creation. Please do as per his message. Use password UEHA7Gv for the new account.
+JSON: {"intent_type":"appworld_phone_message_app_account_verify_reset","slots":{"relationship":"son","password":"UEHA7Gv","date_window":"yesterday"}}
 
 Task: I owed people some money. They put the associated expenses on Splitwise yesterday. I paid some of them up on Venmo today. Please record payments on Splitwise for each in their respective groups. Each payment should have a note, "Sent on Venmo, see receipt.", and an attached Venmo receipt of it as a proof.
 JSON: {"intent_type":"appworld_splitwise_record_venmo_receipt_payments","slots":{"note":"Sent on Venmo, see receipt."}}

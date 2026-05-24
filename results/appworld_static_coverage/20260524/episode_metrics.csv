@@ -302,9 +302,9 @@ test_challenge,a5b0084_3,a5b0084,0,0,0,0,unsupported,,,spotify_music,9d2e8edb1ae
 test_challenge,f86d850_1,f86d850,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,399fcfe147ade50a
 test_challenge,f86d850_2,f86d850,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,c8d3c68ebd6a279e
 test_challenge,f86d850_3,f86d850,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ca78c57b45e4d8d9
-test_challenge,aaa25aa_1,aaa25aa,0,0,0,0,unsupported,,,phone_message,2872288a2a9f88a2
-test_challenge,aaa25aa_2,aaa25aa,0,0,0,0,unsupported,,,phone_message,6d9c7f07db4f84e4
-test_challenge,aaa25aa_3,aaa25aa,0,0,0,0,unsupported,,,phone_message,409724310d995a38
+test_challenge,aaa25aa_1,aaa25aa,1,1,0,0,appworld_phone_message_app_account_verify_reset,,,,2872288a2a9f88a2
+test_challenge,aaa25aa_2,aaa25aa,1,1,0,0,appworld_phone_message_app_account_verify_reset,,,,6d9c7f07db4f84e4
+test_challenge,aaa25aa_3,aaa25aa,1,1,0,0,appworld_phone_message_app_account_verify_reset,,,,409724310d995a38
 test_challenge,cb4ee7a_1,cb4ee7a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,4ca690987cf25ec6
 test_challenge,cb4ee7a_2,cb4ee7a,0,0,0,0,unsupported,,,spotify_music,2d478bcedacc5f2c
 test_challenge,cb4ee7a_3,cb4ee7a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ac0e3b26e97462b7

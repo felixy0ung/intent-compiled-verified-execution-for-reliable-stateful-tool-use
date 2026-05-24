@@ -5,6 +5,7 @@ test_challenge,0d22252,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_sav
 test_challenge,5238afc,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
 test_challenge,9bf2c8a,3,3,3,1.0,1.0,appworld_amazon_move_product_type_between_saved_lists,
+test_challenge,aaa25aa,3,3,3,1.0,1.0,appworld_phone_message_app_account_verify_reset,
 test_challenge,099174d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,0de03ad,3,0,0,0.0,0.0,,gmail_email
 test_challenge,143527e,3,0,0,0.0,0.0,,spotify_music
@@ -83,7 +84,6 @@ test_challenge,a676f2a,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,a7179fa,3,0,0,0.0,0.0,,gmail_email
 test_challenge,a8f302f,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,a97e35d,3,0,0,0.0,0.0,,gmail_email
-test_challenge,aaa25aa,3,0,0,0.0,0.0,,phone_message
 test_challenge,ac62177,3,0,0,0.0,0.0,,gmail_email
 test_challenge,adb1060,3,0,0,0.0,0.0,,gmail_email
 test_challenge,af84964,3,0,0,0.0,0.0,,"gmail_email,splitwise_vacation_or_expense"
