@@ -1166,6 +1166,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_forward_anniversary_announcement_email",
+                (SlotSpec("recipient_email"),),
+            ),
+            compiler=compile_gmail_forward_anniversary_announcement_email,
+            handler=handle_gmail_forward_anniversary_announcement_email,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_star_threads_by_relationship",
                 (SlotSpec("relationship"),),
             ),
@@ -2576,6 +2584,23 @@ def compile_gmail_delete_archived_threads_by_calendar_window(
     frame = IntentFrame("appworld_gmail_delete_archived_threads_by_calendar_window")
     window = match.group("window").lower().replace(" ", "_")
     frame.set_slot("window", window, source="regex")
+    return frame
+
+
+def compile_gmail_forward_anniversary_announcement_email(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"I just made an announcement about our company's anniversary celebration but I forgot (?P<email>[^\s]+@[^\s]+)\. Please forward the announcement email \(not the entire thread\) to them\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_forward_anniversary_announcement_email")
+    frame.set_slot("recipient_email", match.group("email").strip(), source="regex")
     return frame
 
 
@@ -8918,6 +8943,113 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_forward_anniversary_announcement_email(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    recipient_email = str(frame.get("recipient_email") or "").strip().lower()
+    if not re.fullmatch(r"[^@\s]+@[^@\s]+\.[^@\s]+", recipient_email):
+        frame.abstain_reason = "missing_or_invalid_gmail_forward_recipient_email"
+        return None
+    code = common_appworld_prelude(["gmail"]) + f"""
+recipient_email = {json.dumps(recipient_email)}
+
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+threads = paged(lambda page: apis.gmail.show_outbox_threads(
+    access_token=tokens["gmail"],
+    query="anniversary celebration announcement",
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+if not threads:
+    threads = paged(lambda page: apis.gmail.show_outbox_threads(
+        access_token=tokens["gmail"],
+        query="anniversary celebration",
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+if not threads:
+    threads = paged(lambda page: apis.gmail.show_outbox_threads(
+        access_token=tokens["gmail"],
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+
+candidates = []
+seen_thread_ids = set()
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None or thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    for email in detail.get("emails", []):
+        sender = email.get("sender") or {{}}
+        sender_email = str(sender.get("email") or "").strip().lower()
+        if sender_email != user.email.lower():
+            continue
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        haystack = text_key(subject + " " + body)
+        subject_key = text_key(subject)
+        if "anniversary" not in haystack or "celebration" not in haystack:
+            continue
+        if "anniversary celebration" not in subject_key and "announce" not in haystack:
+            continue
+        recipient_emails = {{
+            str(recipient.get("email") or "").strip().lower()
+            for recipient in email.get("recipients", []) or []
+            if str(recipient.get("email") or "").strip()
+        }}
+        candidates.append({{
+            "email_thread_id": thread_id,
+            "email_id": email["email_id"],
+            "created_at": email.get("created_at") or detail.get("created_at") or "",
+            "subject": subject,
+            "recipient_emails": sorted(recipient_emails),
+        }})
+
+if not candidates:
+    raise Exception("Could not find a sent anniversary celebration announcement email to forward.")
+candidates.sort(key=lambda item: item["created_at"], reverse=True)
+target = candidates[0]
+if recipient_email in target["recipient_emails"]:
+    raise Exception(f"Recipient {{recipient_email}} already appears on the selected announcement email.")
+
+result = apis.gmail.forward_email_from_thread(
+    access_token=tokens["gmail"],
+    email_thread_id=target["email_thread_id"],
+    email_id=target["email_id"],
+    email_addresses=[recipient_email],
+    draft_not_send=False,
+)
+if "sent_email_id" not in result and "sent_email_thread_id" not in result:
+    raise Exception(f"Unable to forward announcement email: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "recipient_email": recipient_email,
+    "source_email_thread_id": target["email_thread_id"],
+    "source_email_id": target["email_id"],
+    "candidate_count": len(candidates),
+    "forward_result": result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_forward_anniversary_announcement_email",
+    )
+
+
 def handle_gmail_star_threads_by_relationship(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -13947,6 +14079,8 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
     if intent_type == "appworld_gmail_delete_archived_threads_by_calendar_window":
         window = str(slots.get("window") or "").strip().lower().replace(" ", "_")
         return {"window": window}
+    if intent_type == "appworld_gmail_forward_anniversary_announcement_email":
+        return {"recipient_email": str(slots.get("recipient_email") or "").strip().lower()}
     if intent_type == "appworld_gmail_star_threads_by_relationship":
         relationship = str(slots.get("relationship", "")).strip().lower()
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
@@ -14439,6 +14573,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_forward_anniversary_announcement_email":
+        required = [
+            "announcement about our company's anniversary celebration",
+            "forward the announcement email",
+            "not the entire thread",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -14724,6 +14869,8 @@ Supported intent types and slots:
    slots: target_state string, one of read or unread; window string, one of before_the_last_calendar_month, in_the_current_calendar_month, or before_the_current_calendar_year.
 20. appworld_gmail_delete_archived_threads_by_calendar_window
    slots: window string, one of before_this_calendar_month, this_calendar_month, or this_or_the_last_calendar_month.
+21. appworld_gmail_forward_anniversary_announcement_email
+   slots: recipient_email string.
 20. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
 20. appworld_gmail_label_notification_threads_by_app
@@ -15034,6 +15181,9 @@ JSON: {"intent_type":"appworld_gmail_mark_threads_read_state_by_calendar_window"
 
 Task: Delete all my archived gmail threads that are from before this calendar month.
 JSON: {"intent_type":"appworld_gmail_delete_archived_threads_by_calendar_window","slots":{"window":"before_this_calendar_month"}}
+
+Task: I just made an announcement about our company's anniversary celebration but I forgot br_ritt@gmail.com. Please forward the announcement email (not the entire thread) to them.
+JSON: {"intent_type":"appworld_gmail_forward_anniversary_announcement_email","slots":{"recipient_email":"br_ritt@gmail.com"}}
 
 Task: Label all email threads in my Gmail inbox from notifications@<app>.com with the label of the respective app. Ignore spam and archived ones.
 JSON: {"intent_type":"appworld_gmail_label_notification_threads_by_app","slots":{}}

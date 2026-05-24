@@ -65,6 +65,7 @@ appworld_file_prefix_and_move_old_files,3,"source_directory,prefix_format,old_de
 appworld_gmail_attach_job_search_files_and_send,2,"days_back,file_name",19,93,112,0,0,0,0,"file_system,gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_delete_archived_threads_by_calendar_window,1,window,16,73,89,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_download_flight_ticket_attachment,2,"destination,directory_path",20,97,117,0,0,0,0,"file_system,gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_gmail_forward_anniversary_announcement_email,1,recipient_email,15,99,114,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_label_notification_threads_by_app,0,none,13,59,72,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_mark_threads_read_state_by_calendar_window,2,"target_state,window",17,77,94,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_relabel_priority_threads,5,"source_label_1,source_label_2,target_label_1,target_label_2,remove_label",21,122,143,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded

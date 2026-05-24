@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 75/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 78/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -71,6 +71,9 @@ AppWorld leaderboard submission.
 - Held-out AppWorld Gmail archived-thread calendar-delete slice: one general Gmail
   machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and
   0 unsafe changes.
+- Held-out AppWorld Gmail anniversary-announcement forward slice: one general Gmail
+  machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and
+  0 unsafe changes.
 - Held-out AppWorld Gmail scheduled-draft send-now slice: one general Gmail machine
   covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe
   changes.
@@ -92,7 +95,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 105 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 106 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -144,6 +147,8 @@ AppWorld leaderboard submission.
   `results/appworld_gmail_relabel_priority_20260525/20260525_040633/`
 - AppWorld held-out Gmail archived-thread calendar-delete slice:
   `results/appworld_gmail_delete_archived_window_20260525/20260525_041422/`
+- AppWorld held-out Gmail anniversary-announcement forward slice:
+  `results/appworld_gmail_forward_anniversary_announcement_20260525/20260525_042330/`
 - AppWorld held-out Gmail scheduled-draft send-now slice:
   `results/appworld_gmail_send_scheduled_now_20260525/20260525_034758/`
 - AppWorld held-out Gmail read-state calendar-window slice:

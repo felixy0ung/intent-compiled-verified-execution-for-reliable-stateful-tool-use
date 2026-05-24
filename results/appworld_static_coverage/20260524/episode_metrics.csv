@@ -479,9 +479,9 @@ test_challenge,7264edc_3,7264edc,0,0,0,0,unsupported,,,gmail_email,40dad28f8a26b
 test_challenge,f691597_1,f691597,0,0,0,0,unsupported,,,gmail_email,40f8120599a7ca76
 test_challenge,f691597_2,f691597,0,0,0,0,unsupported,,,gmail_email,0093c667aed2314d
 test_challenge,f691597_3,f691597,0,0,0,0,unsupported,,,gmail_email,3352f43860287480
-test_challenge,a132254_1,a132254,0,0,0,0,unsupported,,,gmail_email,ff4700d2b7af9cca
-test_challenge,a132254_2,a132254,0,0,0,0,unsupported,,,gmail_email,14fbcbf3a228f729
-test_challenge,a132254_3,a132254,0,0,0,0,unsupported,,,gmail_email,e96b1850cff91ec1
+test_challenge,a132254_1,a132254,1,1,0,0,appworld_gmail_forward_anniversary_announcement_email,,,,ff4700d2b7af9cca
+test_challenge,a132254_2,a132254,1,1,0,0,appworld_gmail_forward_anniversary_announcement_email,,,,14fbcbf3a228f729
+test_challenge,a132254_3,a132254,1,1,0,0,appworld_gmail_forward_anniversary_announcement_email,,,,e96b1850cff91ec1
 test_challenge,09ac073_1,09ac073,1,1,0,0,appworld_gmail_thread_cleanup,,,,6986c0ea851f81c2
 test_challenge,09ac073_2,09ac073,1,1,0,0,appworld_gmail_thread_cleanup,,,,a3a88ebd22fc97e7
 test_challenge,09ac073_3,09ac073,1,1,0,0,appworld_gmail_thread_cleanup,,,,7a13d7932c1c4e63

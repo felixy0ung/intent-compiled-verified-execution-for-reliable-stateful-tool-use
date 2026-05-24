@@ -56,6 +56,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_phone_recommendation_purchase_20260525": {"20260525_011413"},
     "appworld_gmail_delete_archived_window_20260525": {"20260525_041422"},
     "appworld_gmail_flight_ticket_download_20260525": {"20260525_033611"},
+    "appworld_gmail_forward_anniversary_announcement_20260525": {"20260525_042330"},
     "appworld_gmail_job_search_attach_send_20260525": {"20260525_023325"},
     "appworld_gmail_label_notification_threads_20260525": {"20260525_021446"},
     "appworld_gmail_mark_read_state_20260525": {"20260525_035609"},

@@ -1,38 +1,38 @@
 {
   "audit_type": "static_public_instruction_compile_coverage",
   "not_a_success_or_leaderboard_metric": true,
-  "registered_appworld_machines": 105,
+  "registered_appworld_machines": 106,
   "total_tasks": 585,
   "overall": {
     "tasks": 585,
-    "compiled": 243,
-    "dispatchable": 243,
+    "compiled": 246,
+    "dispatchable": 246,
     "abstained": 0,
     "incomplete": 0,
-    "unsupported": 342,
-    "compiled_rate": 0.4154,
-    "dispatchable_rate": 0.4154,
-    "unsupported_rate": 0.5846,
+    "unsupported": 339,
+    "compiled_rate": 0.4205,
+    "dispatchable_rate": 0.4205,
+    "unsupported_rate": 0.5795,
     "scenarios": 195,
-    "compiled_scenarios": 81,
-    "dispatchable_scenarios": 81,
-    "dispatchable_scenario_rate": 0.4154
+    "compiled_scenarios": 82,
+    "dispatchable_scenarios": 82,
+    "dispatchable_scenario_rate": 0.4205
   },
   "by_split": {
     "test_challenge": {
       "tasks": 417,
-      "compiled": 75,
-      "dispatchable": 75,
+      "compiled": 78,
+      "dispatchable": 78,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 342,
-      "compiled_rate": 0.1799,
-      "dispatchable_rate": 0.1799,
-      "unsupported_rate": 0.8201,
+      "unsupported": 339,
+      "compiled_rate": 0.1871,
+      "dispatchable_rate": 0.1871,
+      "unsupported_rate": 0.8129,
       "scenarios": 139,
-      "compiled_scenarios": 25,
-      "dispatchable_scenarios": 25,
-      "dispatchable_scenario_rate": 0.1799
+      "compiled_scenarios": 26,
+      "dispatchable_scenarios": 26,
+      "dispatchable_scenario_rate": 0.1871
     },
     "test_normal": {
       "tasks": 168,
@@ -107,7 +107,7 @@
     ],
     [
       "gmail_email",
-      92
+      89
     ],
     [
       "splitwise_vacation_or_expense",
