@@ -1,0 +1,204 @@
+{
+  "guardrail_baseline": {
+    "benchmark": "MiniStore real-LLM diagnostic, Qwen2.5-3B",
+    "baseline_definition": "PCTU is the ReAct+schema/proof/verifier guardrail baseline: the model still owns the action loop, but every mutating action must include a JSON contract with evidence and expected postconditions, and a runtime verifier rejects schema, grounding, precondition, and postcondition failures.",
+    "react": {
+      "n": 8.0,
+      "success": 0.375,
+      "goal_achieved": 1,
+      "invalid": 1.125,
+      "unsafe": 1.125,
+      "verifier_rejections": 0,
+      "llm_calls": 5.5,
+      "token_proxy": 2477.75
+    },
+    "pctu_guardrail": {
+      "n": 8.0,
+      "success": 0.25,
+      "goal_achieved": 0.25,
+      "invalid": 0,
+      "unsafe": 0,
+      "verifier_rejections": 7,
+      "llm_calls": 7.25,
+      "token_proxy": 3169.375
+    },
+    "icve": {
+      "n": 8.0,
+      "success": 1,
+      "goal_achieved": 1,
+      "invalid": 0,
+      "unsafe": 0,
+      "verifier_rejections": 0.5,
+      "llm_calls": 2.25,
+      "token_proxy": 603.875
+    }
+  },
+  "toolsandbox_guardrail_representative": {
+    "benchmark": "ToolSandbox insufficient-information full suite, DeepSeek-chat",
+    "n": 28,
+    "react": {
+      "n": 28.0,
+      "success": 0.3214,
+      "unsafe": 0.6071,
+      "invalid": 1.2143,
+      "verifier_rejections": 0.0,
+      "repair_calls": 0.0,
+      "llm_calls": 7.5,
+      "token_proxy": 7299.6429
+    },
+    "pctu_guardrail": {
+      "n": 28.0,
+      "success": 0.75,
+      "unsafe": 0.1786,
+      "invalid": 1.0357,
+      "verifier_rejections": 2.2143,
+      "repair_calls": 0.0,
+      "llm_calls": 6.7857,
+      "token_proxy": 12567.5357
+    },
+    "icve": {
+      "n": 28.0,
+      "success": 1.0,
+      "unsafe": 0.0,
+      "invalid": 0.0,
+      "verifier_rejections": 0.0,
+      "repair_calls": 1.0,
+      "llm_calls": 0.0,
+      "token_proxy": 0.0
+    }
+  },
+  "failure_mode_shift": {
+    "benchmark": "ToolSandbox insufficient-information, Qwen2.5-3B",
+    "n": 28,
+    "react": {
+      "success": 0.5,
+      "unsafe": 0.4286,
+      "invalid": 2.1786,
+      "other_or_incomplete": 0.07140000000000002
+    },
+    "icve": {
+      "success": 1.0,
+      "unsafe": 0.0,
+      "invalid": 0.0,
+      "other_or_incomplete": 0.0
+    },
+    "no_abstention": {
+      "success": 0.5,
+      "unsafe": 0.4286,
+      "invalid": 1.5714,
+      "other_or_incomplete": 0.07140000000000002
+    },
+    "unsafe_reduction_react_to_icve": 0.4286,
+    "invalid_reduction_react_to_icve": 2.1786
+  },
+  "coverage_risk": {
+    "benchmark": "AppWorld local test_normal.txt file-level diagnostic",
+    "tasks": 167,
+    "supported": 164,
+    "unsupported_safe_no_action": 3,
+    "overall_success": 164,
+    "supported_success": 164,
+    "unsafe_state_changes": 0,
+    "invalid_tool_calls": 3,
+    "supported_rate": 0.9820359281437125,
+    "overall_success_rate": 0.9820359281437125,
+    "supported_success_rate": 1.0,
+    "top_supported_intents": [
+      [
+        "appworld_venmo_friend_transaction_counterparties",
+        6
+      ],
+      [
+        "appworld_file_delete_downloads_by_extension",
+        3
+      ],
+      [
+        "appworld_file_reorganize_dated_meeting_files",
+        3
+      ],
+      [
+        "appworld_file_update_reunion_rsvps_from_phone",
+        3
+      ],
+      [
+        "appworld_pay_csv_debts_via_venmo_or_splitwise",
+        3
+      ],
+      [
+        "appworld_phone_reply_favorite_recipe_to_relationship",
+        3
+      ],
+      [
+        "appworld_phone_send_message_to_relationship",
+        3
+      ],
+      [
+        "appworld_phone_update_wake_alarm_snooze",
+        3
+      ]
+    ],
+    "challenge_prefix": {
+      "tasks": 24,
+      "solved_before_new_amazon_machines": 3,
+      "solved_after_two_saved_list_machines": 12,
+      "unsupported_safe_no_action": 12,
+      "unsafe_state_changes": 0
+    }
+  },
+  "machine_coverage_cost": {
+    "toolsandbox_static_machines": 13,
+    "appworld_static_machines": 85,
+    "appworld_machines_used_in_full167": 54,
+    "appworld_supported_tasks": 164,
+    "appworld_tasks_per_used_machine": 3.037037037037037,
+    "appworld_handler_loc_median": 73.5,
+    "appworld_handler_loc_mean": 86.77777777777777,
+    "appworld_compiler_loc_median": 18.0,
+    "appworld_total_loc_median": 93.0,
+    "appworld_slots_median": 1.0,
+    "appworld_slots_mean": 1.5740740740740742,
+    "adaptation_time_status": "not_recorded_for_historical_machines",
+    "top_tasks_per_machine": [
+      [
+        "appworld_venmo_friend_transaction_counterparties",
+        6
+      ],
+      [
+        "appworld_file_delete_downloads_by_extension",
+        3
+      ],
+      [
+        "appworld_file_reorganize_dated_meeting_files",
+        3
+      ],
+      [
+        "appworld_file_update_reunion_rsvps_from_phone",
+        3
+      ],
+      [
+        "appworld_pay_csv_debts_via_venmo_or_splitwise",
+        3
+      ],
+      [
+        "appworld_phone_reply_favorite_recipe_to_relationship",
+        3
+      ],
+      [
+        "appworld_phone_send_message_to_relationship",
+        3
+      ],
+      [
+        "appworld_phone_update_wake_alarm_snooze",
+        3
+      ],
+      [
+        "appworld_simple_note_add_today_habit_log",
+        3
+      ],
+      [
+        "appworld_simple_note_count_bucket_list_status",
+        3
+      ]
+    ]
+  }
+}

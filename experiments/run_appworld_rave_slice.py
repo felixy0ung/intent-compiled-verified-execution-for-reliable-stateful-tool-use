@@ -282,9 +282,11 @@ def run_one_task(
     experiment_name: str,
     timeout_seconds: int,
 ) -> dict[str, Any]:
-    task = Task.load(task_id, load_ground_truth=True, ground_truth_mode="minimal")
+    # Load only the public task instruction. Evaluation is performed later through
+    # AppWorld's tracker; the agent must never receive or load oracle data.
+    task = Task.load(task_id, load_ground_truth=False)
     instruction = task.instruction
-    difficulty = task.ground_truth.metadata.get("difficulty") if task.ground_truth else ""
+    difficulty = ""
     task.close()
 
     with AppWorld(

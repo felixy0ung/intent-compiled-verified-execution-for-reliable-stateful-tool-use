@@ -1,0 +1,5 @@
+# ToolSandbox Kill-Criteria Summary
+
+| method | episodes | success_rate | mean_similarity | unsafe_state_changes_per_task | invalid_tool_calls_per_task | verifier_rejections_per_task | repair_calls_per_task | llm_calls_per_task | tool_calls_per_task | token_proxy_per_task | user_llm_calls_per_task | user_token_proxy_per_task | parse_errors_per_task | dynamic_synthesis_records_per_task | dynamic_synthesis_promotions_per_task | dynamic_synthesis_rejections_per_task |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| ToolSandbox PCTU | 28 | 0.75 | 0.75 | 0.1786 | 1.0357 | 2.2143 | 0.0 | 6.7857 | 4.4286 | 12567.5357 | 0.8214 | 612.6429 | 0.0357 | 0.0 | 0.0 | 0.0 |

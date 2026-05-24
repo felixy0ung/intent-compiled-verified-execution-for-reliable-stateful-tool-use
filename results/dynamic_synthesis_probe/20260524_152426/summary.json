@@ -1,0 +1,8 @@
+{
+  "scenarios": 5,
+  "successes": 5,
+  "success_rate": 1.0,
+  "llm_calls": 0,
+  "dynamic_synthesis_promotions": 5,
+  "dynamic_synthesis_rejections": 0
+}

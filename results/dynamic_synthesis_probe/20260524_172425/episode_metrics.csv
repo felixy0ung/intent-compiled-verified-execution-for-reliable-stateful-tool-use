@@ -1,0 +1,6 @@
+method,scenario,categories,success,similarity,milestone_similarity,minefield_similarity,unsafe_state_changes,turn_count,invalid_tool_calls,tool_calls,llm_calls,token_proxy,user_llm_calls,user_token_proxy,verifier_rejections,repair_calls,parse_errors,dynamic_synthesis_records,dynamic_synthesis_proposals,dynamic_synthesis_promotions,dynamic_synthesis_rejections,exception_type,traceback
+ToolSandbox ICVE dynamic synthesis,cellular_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,1,1,1,0,,
+ToolSandbox ICVE dynamic synthesis,wifi_off,SINGLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,3,0,1,0,0,0,0,0,1,0,1,1,1,0,,
+ToolSandbox ICVE dynamic synthesis,turn_on_wifi_low_battery_mode,STATE_DEPENDENCY;MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,7,0,3,0,0,0,0,0,3,0,1,1,1,0,,
+ToolSandbox ICVE dynamic synthesis,turn_on_cellular_low_battery_mode,STATE_DEPENDENCY;MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,7,0,3,0,0,0,0,0,3,0,1,1,1,0,,
+ToolSandbox ICVE dynamic synthesis,turn_on_location_low_battery_mode,STATE_DEPENDENCY;MULTIPLE_TOOL_CALL;SINGLE_USER_TURN;NO_DISTRACTION_TOOLS,1,1.0,1.0,0.0,0,7,0,3,0,0,0,0,0,3,0,1,1,1,0,,

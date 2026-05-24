@@ -1,0 +1,27 @@
+{
+  "cases": 7,
+  "successes": 7,
+  "success_rate": 1.0,
+  "positive_cases": 5,
+  "positive_successes": 5,
+  "rejection_cases": 2,
+  "rejection_successes": 2,
+  "llm_calls": 0,
+  "promoted_machines": 5,
+  "rejections": 2,
+  "induced_machine_types": [
+    "dynamic_setting_bluetooth",
+    "dynamic_setting_dark_mode",
+    "dynamic_setting_privacy_mode",
+    "dynamic_setting_roaming_data",
+    "dynamic_setting_auto_sync"
+  ],
+  "final_state": {
+    "bluetooth": true,
+    "dark_mode": false,
+    "privacy_mode": true,
+    "roaming_data": true,
+    "auto_sync": false
+  },
+  "state_mutations_verified": true
+}

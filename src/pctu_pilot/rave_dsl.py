@@ -12,6 +12,8 @@ class RaveRuntimeOptions:
     enable_completion_detector: bool = True
     enable_rave2_dsl: bool = True
     enable_abstention_verifier: bool = True
+    enable_dynamic_machine_synthesis: bool = False
+    use_static_intent_machines: bool = True
 
 
 @dataclass(frozen=True)

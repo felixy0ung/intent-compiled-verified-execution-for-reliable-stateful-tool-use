@@ -95,6 +95,11 @@ Some full benchmark rows require external packages and data that are not redistr
 here. The repository keeps summary outputs for auditability and provides the runner code
 needed to regenerate them in a properly licensed local setup.
 
+The paper PDF also includes Appendix A, a claim-to-evidence matrix, and Appendix B, a
+compact artifact map. These appendices spell out which claims are supported by which
+results and which claims are intentionally out of scope. In particular, this artifact does
+not claim full AppWorld leaderboard coverage or open-ended state-machine synthesis.
+
 ## Privacy and Security
 
 Before publishing, this repository was built from a whitelist and scanned for common

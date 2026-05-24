@@ -113,6 +113,13 @@ class RaveRuntime:
             raise ValueError("IntentMachine intent_type values must be unique.")
         self.insufficient_info_verifier = insufficient_info_verifier
 
+    def register_machine(self, machine: IntentMachine) -> None:
+        """Register a runtime-synthesized machine after external validation."""
+        if machine.schema.intent_type in self.intent_machine_by_type:
+            return
+        self.intent_machines.append(machine)
+        self.intent_machine_by_type[machine.schema.intent_type] = machine
+
     def compile_frame(
         self,
         request: str,

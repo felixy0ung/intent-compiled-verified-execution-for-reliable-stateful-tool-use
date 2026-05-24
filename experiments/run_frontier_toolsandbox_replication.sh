@@ -2,8 +2,8 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-CONDA_BIN="${CONDA_BIN:-<CONDA_ROOT>/bin/conda}"
-CONDA_ENV_PATH="${CONDA_ENV_PATH:-<CONDA_ROOT>/envs/pctu-sim}"
+CONDA_BIN="${CONDA_BIN:-conda}"
+CONDA_ENV_PATH="${CONDA_ENV_PATH:-pctu-sim}"
 
 : "${FRONTIER_BASE_URL:?Set FRONTIER_BASE_URL, e.g. https://api.openai.com/v1}"
 : "${FRONTIER_MODEL:?Set FRONTIER_MODEL, e.g. gpt-4.1-mini}"

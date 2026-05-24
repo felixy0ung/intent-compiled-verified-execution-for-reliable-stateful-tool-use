@@ -50,7 +50,11 @@ difficulty-3 tasks.
 ## Command
 
 ```bash
-# Source a private DeepSeek environment file that sets the API variables required by AppWorld.
+set -a
+source experiments/deepseek_replication.env
+set +a
+export DEEPSEEK_API_KEY="$FRONTIER_API_KEY"
+export OPENAI_API_KEY="$FRONTIER_API_KEY"
 
 PATH=<CONDA_ROOT>/envs/pctu-appworld-agents/bin:$PATH \
 APPWORLD_ROOT=<PROJECT_ROOT>/appworld_020_root \

@@ -1,0 +1,23 @@
+{
+  "benchmark": "ToolSandbox public stateful tool-use benchmark",
+  "model": "deepseek-chat",
+  "base_url": "https://api.deepseek.com/v1",
+  "scenario_suite": "insufficient_no_distraction",
+  "scenario_count": 5,
+  "scenarios": [
+    "find_current_city_insufficient_information",
+    "find_current_location_insufficient_information",
+    "find_current_city_low_battery_mode_insufficient_information",
+    "find_current_location_low_battery_mode_insufficient_information",
+    "find_min_temperature_weekday_insufficient_information"
+  ],
+  "methods": [
+    "react",
+    "pctu",
+    "rave"
+  ],
+  "user_mode": "local-llm",
+  "rapidapi_fixture": "auto",
+  "rapidapi_fixture_enabled": true,
+  "note": "Use --user-mode local-llm for multi-turn or insufficient-information suites."
+}

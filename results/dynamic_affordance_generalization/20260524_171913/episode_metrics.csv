@@ -1,0 +1,8 @@
+request,action_tool,action_args,action_reason,new_machine,audit_decision,audit_details,success,expected_rejection
+Turn on bluetooth,set_bluetooth_status,"{""on"": true}",dynamic_set_bluetooth_on,dynamic_setting_bluetooth,promoted,affordance_template_induced:bluetooth;api_signature_ok:set_bluetooth_status(on: bool);shadow_action_ok:set_bluetooth_status;counterexample_tests_passed,1,0
+Disable dark mode,set_dark_mode_status,"{""on"": false}",dynamic_set_dark_mode_off,dynamic_setting_dark_mode,promoted,affordance_template_induced:dark_mode;api_signature_ok:set_dark_mode_status(on: bool);shadow_action_ok:set_dark_mode_status;counterexample_tests_passed,1,0
+Enable privacy mode,set_privacy_mode_status,"{""on"": true}",dynamic_set_privacy_mode_on,dynamic_setting_privacy_mode,promoted,affordance_template_induced:privacy_mode;api_signature_ok:set_privacy_mode_status(on: bool);shadow_action_ok:set_privacy_mode_status;counterexample_tests_passed,1,0
+Turn on roaming data,set_roaming_data_status,"{""on"": true}",dynamic_set_roaming_data_on,dynamic_setting_roaming_data,promoted,affordance_template_induced:roaming_data;api_signature_ok:set_roaming_data_status(on: bool);shadow_action_ok:set_roaming_data_status;counterexample_tests_passed,1,0
+Switch off auto sync,set_auto_sync_status,"{""on"": false}",dynamic_set_auto_sync_off,dynamic_setting_auto_sync,promoted,affordance_template_induced:auto_sync;api_signature_ok:set_auto_sync_status(on: bool);shadow_action_ok:set_auto_sync_status;counterexample_tests_passed,1,0
+Enable focus mode,,,,,rejected,set_focus_mode_status_missing_on_parameter,1,1
+What is the stock symbol for Apple?,,,,,rejected,no_regular_setting_api_candidate,1,1

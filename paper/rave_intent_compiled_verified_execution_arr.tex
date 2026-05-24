@@ -1,20 +1,27 @@
 \documentclass[11pt]{article}
 
 \usepackage[review]{acl}
+
+% Standard package includes from the ACL LaTeX template.
+\usepackage{times}
+\usepackage{latexsym}
+
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{url}
+\usepackage{microtype}
+\usepackage{inconsolata}
+\usepackage{graphicx}
+
 \usepackage{booktabs}
 \usepackage{enumitem}
 \usepackage{amsfonts}
-\usepackage{microtype}
 \usepackage{xcolor}
 \usepackage{xspace}
 \usepackage{listings}
 
 \title{Intent-Compiled Verified Execution for Reliable Stateful Tool Use}
 \author{}
-\date{}
 
 \newcommand{\icve}{ICVE\xspace}
 \lstset{
@@ -31,30 +38,20 @@
 \maketitle
 
 \begin{abstract}
-Language agents increasingly operate tools that mutate persistent state, but free-form
-tool-use loops often conflate intent interpretation, evidence acquisition, argument
-grounding, precondition repair, action execution, and completion detection. This creates
-invalid tool calls, unsafe state changes, and costly repair loops. We propose
-\textbf{Intent-Compiled Verified Execution (ICVE)}, a runtime approach that compiles
-state-sensitive intents into typed state machines while allowing uncovered low-risk
-requests to remain ordinary model-proposed tool calls. ICVE acquires evidence
-deterministically, normalizes arguments, repairs preconditions, abstains under
-insufficient information, executes state transitions, and stops once postconditions are
-satisfied. On public ToolSandbox no-distraction single-turn and insufficient-information
-stateful tasks, ICVE eliminates invalid tool calls and unsafe state changes while using
-substantially fewer model calls and tokens than ReAct. The pattern holds across weak,
-main, and stronger local Qwen2.5 model scales, a local non-Qwen Phi-3-mini check, and
-hosted DeepSeek replications. Component ablations show that the typed intent compiler
-and abstention verifier are both necessary for the observed gains. A small real-LLM
-MiniStore study shows the same direction relative to ReAct and proof-carrying tool-use,
-and AppWorld shows the same verified runtime transfers: local Qwen2.5-3B, hosted
-DeepSeek-chat, and hosted DeepSeek-reasoner intent extraction preserve 72/72 success on
-a targeted stateful slice, while deterministic ICVE and DeepSeek-chat intent extraction
-also reach 57/57 on the local official AppWorld 0.2.0 dev split with the packaged
-evaluator, compared with 45/57 for the official DeepSeek ReAct-code agent. On the
-local AppWorld 0.2.0 \texttt{test\_normal.txt} file, deterministic ICVE and
-DeepSeek-chat intent extraction reach 164/167 overall and 164/164 supported success,
-with the three failures limited to guarded abstentions.
+Language agents increasingly operate state-mutating tools, where one wrong argument or
+repeated action can cause invalid calls, unsafe state changes, and costly repair loops.
+We study \textbf{Intent-Compiled Verified Execution (ICVE)}, a runtime-checked framework
+for covered high-risk intents. ICVE compiles a request into a typed intent frame and
+delegates evidence acquisition, slot grounding, precondition repair, abstention,
+execution, and postcondition checking to deterministic state machines. The model still
+identifies intent, but no longer owns mutating control flow for registered task families.
+On public ToolSandbox single-turn and insufficient-information tasks, ICVE changes the
+failure mode: covered mutating requests become checked transitions or guarded abstentions
+with zero invalid or unsafe calls, while using far fewer model calls and tokens than
+ReAct. The pattern holds across local Qwen2.5 scales, a Phi-3-mini check, and hosted
+DeepSeek replications. AppWorld evaluations show the same coverage-risk profile on the
+official dev split and local \texttt{test\_normal.txt}, with unsupported cases reported as
+guarded no-action outcomes.
 \end{abstract}
 
 \section{Introduction}
@@ -69,43 +66,43 @@ make this setting increasingly realistic \citep{yao2022react,schick2023toolforme
 lu2024toolsandbox,appworld2024,wang2025dialogtool}, but they leave open where stateful
 execution should be verified.
 
-Our central claim is that many failures are not reasoning failures alone. They are
-\emph{execution-boundary} failures. The model is asked to perform intent compilation,
-state tracking, evidence lookup, precondition management, and completion detection through
-plain text. Increasing model scale helps but does not remove invalid calls or unsafe
-state changes in insufficient-information settings.
+Our thesis is that many failures are not reasoning failures alone. They are
+\emph{execution-boundary} failures: the model is asked to perform intent compilation,
+state tracking, evidence lookup, precondition management, mutation, and completion
+detection through plain text. Larger models help, but they do not remove invalid calls or
+unsafe state changes in insufficient-information settings.
 
-ICVE changes the execution boundary. The LLM may still propose actions for uncovered
-requests, but risky state-sensitive intents are handled by a runtime compiler that emits
-verified tool traces. The runtime owns typed slots, evidence acquisition, safe
-precondition repair, abstention, state transitions, and postcondition-based stopping.
-The unit of reuse is therefore not a prompt template but a small executable contract:
-once a stateful task family has a machine, weaker or stronger models only choose a frame,
-while the same runtime executes and checks the state transition. This paper constructs
-the machines manually; the claim is an explicit, auditable, reusable boundary once
-registered, not solved machine synthesis.
+ICVE changes that boundary. The LLM may still handle uncovered or low-risk requests, but
+registered state-sensitive intents are routed through a runtime compiler that emits
+runtime-checked tool traces. The reusable unit is not a prompt template but a declared
+intent machine whose runtime owns slots, evidence, repair, abstention, transitions, and
+postcondition stopping. The headline evaluation uses manually declared machines; the
+artifact also includes a restricted affordance-induction prototype for regular boolean
+setting APIs. The claim is an explicit, auditable boundary for covered task families and
+signature-identifiable affordances, not general machine synthesis or universal tool
+safety.
 
-The distinction is not merely stricter schema validation. A function schema can reject an
-ill-typed call, but it does not decide which evidence must be acquired before a mutation,
-whether an earlier transition already satisfied the goal, or whether missing state should
-force abstention. Nor is ICVE only semantic parsing from utterances to API calls: the
-compiled object is an executable state machine whose transition relation is checked
-against a live ledger. Finally, unlike proof-carrying prompting, the runtime does not ask
-the model to author the proof obligation after proposing an action. The proof burden is
-compiled into the machine and reused across turns and models.
+The positioning is deliberately narrow. ICVE is not merely stricter schema validation: a
+function schema can reject an ill-typed call, but it does not decide which evidence must
+be acquired before a mutation, whether an earlier transition already satisfied the goal,
+or whether missing state should force abstention. Nor is ICVE only semantic parsing from
+utterances to API calls: the compiled object is an executable state machine whose
+transition is checked against a live ledger. Unlike proof-carrying prompting, recurring
+proof obligations are encoded in the registered machine rather than regenerated by the
+model. Throughout the paper, ``verified'' means runtime checking against declared machine
+invariants, not a formal proof of arbitrary agent behavior.
 
 This paper makes three contributions:
 \begin{enumerate}[leftmargin=*]
 \item A typed intent/state-machine abstraction for stateful tool use. Each risky task
 family is represented as an \texttt{IntentMachine} with an explicit schema, compiler, and
 handler.
-\item A verified runtime that owns evidence acquisition, argument grounding, precondition
-repair, insufficient-information abstention, and completion detection.
-\item A public-benchmark evaluation, including ToolSandbox, a targeted AppWorld transfer
-slice, and a same-split local official AppWorld dev comparison, showing that
-runtime-owned execution sharply reduces invalid calls and unsafe state changes while
-avoiding the repair overhead that made proof-carrying tool-use unattractive in the same
-setting.
+\item A runtime-checked executor that owns evidence acquisition, argument grounding,
+precondition repair, insufficient-information abstention, and completion detection.
+\item A public-benchmark evaluation on ToolSandbox and AppWorld showing a failure-mode
+shift from invalid or unsafe mutation toward checked transitions and guarded abstention on
+covered families, plus a bounded no-LLM diagnostic showing that regular boolean-setting
+affordances can be induced from previously unseen API signatures.
 \end{enumerate}
 
 \begin{figure}[t]
@@ -177,14 +174,13 @@ families: currency conversion, stock lookup, reverse geocode, current city, last
 contact update, bulk contact relationship update, contact name lookup, location phone
 lookup, holiday timestamp/countdown, weather, distance, and reminder.
 
-The machine interface is also the method's threat boundary. A model may choose the wrong
-intent type or fill a wrong slot; that risk is handled by schema validation, conservative
-compilers, and domain verifiers. The model is not allowed to choose arbitrary
-state-changing calls for a covered intent. For those intents, handlers may only emit
-runtime actions derived from validated slots and ledger observations, and a policy
-verifier can reject or rewrite the action before execution. Thus ICVE's claim is
-conditional and inspectable: correctness depends on the registered machine and verifier,
-not on an opaque promise that the model will reason safely.
+The machine interface is also the method's trust boundary. A model may choose the wrong
+intent type or slot; ICVE mitigates that risk with schema validation, conservative
+compilers, domain verifiers, and abstention. For covered intents, the model cannot choose
+arbitrary state-changing calls: handlers emit only actions derived from validated slots
+and ledger observations, and a policy verifier can reject or rewrite the action. Thus the
+claim is conditional and inspectable: behavior depends on the registered machine and
+verifier, not on an opaque promise that the model will reason safely.
 
 \subsection{Compilation}
 
@@ -197,23 +193,30 @@ runtime tries registered compilers until one returns a frame, and validates that
 against its schema. If no registered machine applies, control falls back only for
 uncovered low-risk requests.
 
-This loop is implemented in a benchmark-agnostic runtime named \texttt{RaveRuntime} in
-the artifact for historical reasons. Domain bindings provide intent machines plus a small
-runtime policy: a state-ledger interface
-for grounded observations and a verifier interface for final-message wording and
-transition rejection. The generic runtime owns the registry, uniqueness checks, frame
-validation, completion/abstention hooks, and handler dispatch. A policy verifier can
-rewrite a proposed \texttt{ToolAction} into a \texttt{FinalAction}, which gives each
-domain binding a single runtime boundary for rejecting unsafe or previously failed
-transitions.
+This loop is implemented in a benchmark-independent runtime named \texttt{RaveRuntime}
+in the artifact for historical reasons. Domain bindings provide intent machines, a
+state-ledger interface, and a verifier for final-message wording and transition
+rejection. The generic runtime owns registry lookup, uniqueness checks, frame validation,
+completion/abstention hooks, and handler dispatch. A policy verifier can rewrite a
+\texttt{ToolAction} into a \texttt{FinalAction}, giving each domain binding one explicit
+boundary for unsafe, unsupported, or previously failed transitions.
 
-\subsection{Verified State-Machine Runtime}
+The artifact also contains an intentionally narrow affordance-template induction path.
+When enabled, the runtime records unsupported requests, discovers regular boolean
+setting affordances from tool names/signatures of the form \verb|get_*_status()| and
+\verb|set_*_status(on: bool)|, proposes a candidate \texttt{IntentMachine}, executes it
+in shadow mode, and promotes it only if tool-signature invariants, emitted-action
+whitelists, and unrelated-request counterexamples pass. This dynamic path is a coverage
+diagnostic for signature-identifiable stateful affordances, not evidence that arbitrary
+state machines can be synthesized.
+
+\subsection{Runtime-Checked State Machines}
 
 The runtime consumes a state ledger rather than trusting raw dialogue text. The ledger
 records user-provided values, successful tool observations, and recent tool errors; a
 ToolSandbox ledger instantiates this interface with settings, contacts, messages, and
 reminders. A state-machine handler consumes the current \texttt{IntentFrame} and ledger,
-then emits exactly one transition:
+then emits at most one transition:
 \begin{verbatim}
 ToolAction  = (tool, args, reason)
 FinalAction = (message, reason)
@@ -229,9 +232,9 @@ information or unavailable tools, it abstains instead of letting the model guess
 Thus the verifier is stricter than a call schema: it checks the transition's evidence,
 preconditions, and completion state, not only the argument types of one invocation.
 
-The design point is that stateful execution is runtime-owned. The model can still be used
-for uncovered or low-risk requests, but registered stateful intents are compiled and
-executed through deterministic state machines.
+The design point is that stateful execution is runtime-owned: registered intents are
+compiled and executed through deterministic machines whose assumptions are visible in
+code, while uncovered or low-risk requests can still use the model directly.
 
 \section{Experimental Setup}
 
@@ -258,7 +261,7 @@ ICVE on the complete local official AppWorld 0.2.0 \texttt{dev.txt} split in a s
 \texttt{pctu-appworld-agents} environment and evaluate with AppWorld's packaged
 evaluator. The deterministic path uses typed compilers only; the real-LLM paths use
 local Qwen2.5-3B, DeepSeek-chat, or DeepSeek-reasoner to produce a typed intent frame
-and then execute that frame through the same verified runtime. AppWorld handlers
+and then execute that frame through the same runtime-checked executor. AppWorld handlers
 interact only through the live \texttt{apis} object; the runtime policy blocks code that
 references task files, ground truth, compiled solutions, or oracle data.
 
@@ -277,21 +280,39 @@ reported as per-episode means on the same fixed slices.
 The experiments answer three questions: whether ICVE reduces invalid or unsafe state
 changes, whether the same boundary transfers across models and environments, and whether
 typed machines plus abstention are necessary beyond intent recognition.
-The anonymous supplement includes source code, task-id lists, evaluator summaries, and
-commands for reproducing the reported rows.
+The anonymous supplement and 4open.science mirror include source code, task-id lists,
+evaluator summaries, and commands for reproducing the reported rows, while excluding
+credentials, raw logs, databases, and downloaded bundles.
 
 \paragraph{Baselines.}
 We compare against ReAct \citep{yao2022react}, a plain JSON tool-use loop with no runtime
-intent compiler; PCTU, a proof-carrying ablation that asks the model to attach action
-preconditions and lets a verifier reject unsafe steps; and ICVE ablations that remove the
-typed DSL or the abstention verifier.
+intent compiler; ReAct+guardrail (PCTU), a stronger proof-carrying baseline that keeps
+the model in charge of the action loop but requires each mutating call to carry a schema,
+evidence, preconditions, and postconditions checked by a runtime verifier; and ICVE
+ablations that remove the typed DSL or the abstention verifier.
+
+\paragraph{Implementation audit.}
+We checked the large ICVE--ReAct gaps against three common experimental artifacts. First,
+the ToolSandbox rows use the same scenario resolver, available tools, model endpoint,
+temperature, message budget, and evaluator for all methods; the ReAct agent receives the
+same tool signatures as ICVE, and its tool calls are executed through the same
+environment-facing code path. Second, AppWorld comparisons are evaluated by AppWorld's
+packaged evaluator on the same task files where applicable; the official dev57 ReAct row
+uses the upstream \texttt{simplified\_react\_code\_agent} with its default 50-step
+budget. Third, the AppWorld runner now loads only the public task instruction before
+execution, and both runtime and prompting policies block references to task files,
+ground-truth data, compiled solutions, or oracle fields. These checks do not make the
+comparison universal; they rule out known wrapper bugs, evaluator mismatch, and hidden
+answer access. The remaining threat is coverage: ICVE is strong where an accurate machine
+is registered, and abstains or falls back outside that coverage.
 
 \section{Results}
 
 \subsection{MiniStore Diagnostic}
 
 MiniStore is a small local stateful environment used as a diagnostic rather than as the
-headline benchmark. It shows why model-authored proof obligations are not enough.
+headline benchmark. It tests whether simply adding a schema/proof/verifier guardrail to
+ReAct is enough.
 
 \begin{table}[h]
 \centering
@@ -302,12 +323,13 @@ headline benchmark. It shows why model-authored proof obligations are not enough
 method & succ. & goal & invalid & unsafe & LLM & tokens \\
 \hline
 ReAct & 0.375 & 1.000 & 1.125 & 1.125 & 5.500 & 2477.750 \\
-PCTU & 0.250 & 0.250 & 0.000 & 0.000 & 7.250 & 3169.375 \\
-ICVE & 1.000 & 1.000 & 0.000 & 0.000 & 2.250 & 603.875 \\
+ReAct+guardrail & 0.250 & 0.250 & 0.000 & 0.000 & 7.250 & 3169.375 \\
+\icve & 1.000 & 1.000 & 0.000 & 0.000 & 2.250 & 603.875 \\
 \hline
 \end{tabular}
-\caption{MiniStore real-LLM diagnostic with Qwen2.5-3B. PCTU suppresses invalid and
-unsafe actions but pays too much proof/repair overhead.}
+\caption{MiniStore real-LLM diagnostic with Qwen2.5-3B. ReAct+guardrail (PCTU)
+suppresses invalid and unsafe actions, but still leaves the model to author proof-bearing
+actions and pays too much proof/repair overhead.}
 \label{tab:ministore}
 \end{table}
 
@@ -383,6 +405,47 @@ mean-count columns: on the 73-episode single-turn suite, ICVE is 1.0000
 insufficient-information suite, ICVE is 1.0000 [$0.8794, 1.0000$] while ReAct and the
 no-abstention ablation are both 0.5000 [$0.3263, 0.6737$].
 
+\begin{table}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{lrrrrr}
+\toprule
+method & succ. & invalid & unsafe & reject & LLM \\
+\midrule
+ReAct & .321 & 1.214 & .607 & .000 & 7.500 \\
+ReAct+guardrail & .750 & 1.036 & .179 & 2.214 & 6.786 \\
+\icve & 1.00 & .00 & .00 & .00 & .00 \\
+\bottomrule
+\end{tabular}
+\caption{DeepSeek-chat ToolSandbox guardrail diagnostic on the full 28-scenario
+insufficient-information suite. ReAct+guardrail (PCTU) improves safety by rejecting
+model-authored contracts, but leaves proof/action authoring in the model loop and retains
+nonzero invalid/unsafe calls and model cost.}
+\label{tab:toolsandbox-guardrail}
+\end{table}
+
+Table~\ref{tab:toolsandbox-guardrail} extends the proof-carrying baseline beyond the
+MiniStore diagnostic to the full DeepSeek-chat insufficient-information suite: guardrails
+reduce but do not eliminate unsafe or invalid termination, whereas ICVE removes the
+mutating loop from the model for covered intents and executes checked transitions without
+agent LLM calls.
+
+\paragraph{Dynamic-synthesis probe.}
+To test whether ICVE can add a machine without pre-registering that family, we disable
+the static registry and enable the affordance-induction prototype described in
+Section~2.2. On five official ToolSandbox setting scenarios
+(\texttt{cellular\_off}, \texttt{wifi\_off}, and three low-battery repair cases), the
+runtime synthesizes one setting machine per task from the available API signatures,
+passes shadow-mode and counterexample checks, and reaches 5/5 success with zero LLM
+calls. We also run a held-out synthetic-affordance diagnostic with no static machines:
+five previously unseen APIs (\texttt{bluetooth}, \texttt{dark\_mode},
+\texttt{privacy\_mode}, \texttt{roaming\_data}, and \texttt{auto\_sync}) are induced and
+mutated correctly, while an invalid \texttt{focus\_mode} setter and an unrelated stock
+query are rejected. The diagnostic is intentionally limited to regular boolean setting
+APIs; it does not claim automatic synthesis for AppWorld purchase or vacation-settlement
+machines.
+
 \subsection{Model Scale}
 
 The effect is not a Qwen2.5-3B-only artifact. Table \ref{tab:model-scale} summarizes weak
@@ -415,37 +478,20 @@ local Qwen2.5 scales; the primary Qwen2.5-3B results appear in Table
 
 \subsection{Cross-Family Diagnostic}
 
-We also ran a small non-Qwen diagnostic with Phi-3-mini. Table
-\ref{tab:phi3-diagnostic} reports 10 core ToolSandbox scenarios and 10
-insufficient-information scenarios. This is not frontier-model evidence, but it addresses
-the narrow concern that the result is only a Qwen-family artifact.
-
-\begin{table*}[t]
-\centering
-\scriptsize
-\setlength{\tabcolsep}{4pt}
-\begin{tabular}{llrrrrr}
-\toprule
-suite & method & n & succ. & invalid & unsafe & tokens \\
-\midrule
-core10 & ReAct & 10 & 0.0000 & 1.8000 & 0.0000 & 6072.0 \\
-core10 & \icve & 10 & 1.0000 & 0.0000 & 0.0000 & 87.9 \\
-insufficient10 & ReAct & 10 & 0.6000 & 1.7000 & 0.3000 & 5216.3 \\
-insufficient10 & ICVE no abstention & 10 & 0.6000 & 0.9000 & 0.4000 & 1123.2 \\
-insufficient10 & \icve & 10 & 1.0000 & 0.0000 & 0.0000 & 0.0 \\
-\bottomrule
-\end{tabular}
-\caption{Phi-3-mini cross-family diagnostic. The typed runtime remains clean on both
-slices, and removing the abstention verifier again permits invalid and unsafe attempts.}
-\label{tab:phi3-diagnostic}
-\end{table*}
+We also ran a small non-Qwen diagnostic with Phi-3-mini: on 10 core ToolSandbox
+scenarios, ReAct reaches 0/10 success with 1.8 invalid calls per task, while ICVE reaches
+10/10 with zero invalid/unsafe calls; on 10 insufficient-information scenarios, ReAct
+reaches 6/10 with 1.7 invalid and 0.3 unsafe calls per task, the no-abstention ablation
+keeps 6/10 and restores unsafe attempts, and ICVE reaches 10/10 with zero
+invalid/unsafe calls. This is not frontier-model evidence, but it addresses the narrow
+concern that the result is only a Qwen-family artifact.
 
 \subsection{Hosted OpenAI-Compatible Replication}
 
 We also replicate the primary ToolSandbox suites with the hosted DeepSeek-chat endpoint.
-Table \ref{tab:deepseek-replication} shows the same qualitative pattern: ICVE reaches
-1.0000 success with zero invalid calls and zero unsafe state changes on both suites, while
-ReAct remains substantially less successful and more expensive. The no-DSL and
+Table \ref{tab:deepseek-replication} shows the same qualitative pattern: ICVE eliminates
+invalid and unsafe outcomes on both covered suites, while ReAct remains substantially less
+successful and more expensive. The no-DSL and
 no-abstention ablations again expose the two mechanisms: typed compilation is needed on
 single-turn stateful tasks, and abstention verification is needed when the user omits
 required information.
@@ -476,7 +522,7 @@ criteria, and the recorded summaries are listed in the artifact manifest.
 
 \subsection{AppWorld}
 
-The same verified runtime transfers to AppWorld on a targeted public state-changing
+The same runtime-checked executor transfers to AppWorld on a targeted public state-changing
 slice. The active rows cover 72 tasks across twenty-four registered AppWorld
 intent machines spanning phone, Venmo, Gmail, Simple Note, Spotify, Amazon, alarms,
 Bucket List, and cross-app sharing tasks.
@@ -512,14 +558,15 @@ repair, and 20/72 for DeepSeek multi-step code.}
 \label{tab:appworld-slice}
 \end{table*}
 
-The AppWorld result separates intent recognition from verified execution. Typed-intent
+The AppWorld result separates intent recognition from checked execution. Typed-intent
 code gives the model the same frame but still asks it to write the mutation code; it
 reaches 0/72 with Qwen2.5-3B and 7/72 with DeepSeek-chat. Direct code and multi-step
 code-observation variants likewise fail or become expensive, while DeepSeek repair reaches
 21/72 but introduces unsafe changes. The error pattern is consistent: models often know
-the requested operation but fail at grounded execution. One unverified DeepSeek-chat
-intent run extracted \texttt{archive} for a delete instruction; the instruction-aware
-slot verifier rewrites the frame before execution. ICVE's residual repair cost is
+the requested operation but fail at grounded execution. One pre-verifier DeepSeek-chat
+intent extraction produced \texttt{archive} for a delete instruction; the
+instruction-aware slot verifier rewrites the frame before execution. ICVE's residual
+repair cost is
 concentrated in Venmo transfers, where public metadata reveals card expiry but not hidden
 balances, so the runtime probes non-expired cards and then stops after success.
 
@@ -528,9 +575,9 @@ We then moved the ICVE binding to the complete local official AppWorld 0.2.0
 intent machines, including navigation-based Spotify artist lookup, Venmo social-feed
 aggregation, file-prefix moves, current-artist follower lookup, and Simple Note markdown
 export. Table~\ref{tab:appworld-dev57} reports AppWorld's packaged evaluator on all 57
-dev tasks. Both deterministic \icve and \icve with DeepSeek-chat intent extraction reach
-57/57 local success and 100.0 task-goal / 100.0 scenario-goal completion, while the
-official DeepSeek ReAct-code agent reaches 79.0 / 73.7 and 45/57. The residual
+dev tasks. Both deterministic \icve and \icve with DeepSeek-chat intent extraction
+complete all 57 local dev tasks with 100.0 task-goal / 100.0 scenario-goal completion,
+while the official DeepSeek ReAct-code agent reaches 79.0 / 73.7 and 45/57. The residual
 0.0351 invalid API attempts per task are two Venmo payment-card probes: public card
 metadata exposes expiry but not balance, so the runtime tries one non-expired
 insufficient-balance card and then succeeds with the next public card. We do not use the
@@ -556,51 +603,42 @@ ReAct-code. The official ReAct-code row uses 6.45M tokens total.}
 \label{tab:appworld-dev57}
 \end{table*}
 
-The official DeepSeek ReAct-code dev57 run completes all tasks in 75.9 minutes, with
-879 LLM calls and 6.45M tokens. For context, its earlier \texttt{dev10\_full50} slice
-reached 90.0 / 75.0 with 174 model calls and 1.40M tokens, while ICVE rows reached
-100.0/100.0. These are same-split local official-dev comparisons, not held-out test or
-leaderboard submissions.
+The official DeepSeek ReAct-code dev57 run uses 879 LLM calls and 6.45M tokens. These are
+same-split local official-dev comparisons, not held-out test or leaderboard submissions.
 
-As a held-out smoke, we then expanded beyond the official dev split to the beginning of
-AppWorld \texttt{test\_normal}. The first-12 smoke initially exposed zero coverage; after
-registering four typed machines, deterministic ICVE reached 12/12 with zero invalid
-tool calls and zero unsafe state changes. We further expanded the smoke to the first 120
-\texttt{test\_normal} tasks. After registering additional Simple Note and Venmo
-machines plus Simple Note-to-Spotify playlist, release-month, reunion-RSVP file,
-phone-sourced Spotify playlist update, roommate dinner-settlement, offline playback, and
-Venmo card-path repair machines, the registry supports 117/120 and succeeds on all
-117/117 supported tasks, giving 117/120 overall success, 0 unsafe state changes, and
-0.0250 invalid/tool per task. The invalid count consists of 3 unsupported or no-action
-abstentions from the unsupported vacation-settlement family. The Venmo named-payment
-family now adds an available public supervisor card before transfer instead of probing
-failing cards, and the roommate payment-request family rotates successful non-expired
-cards to avoid reusing a depleted card first. We report this as held-out-prefix smoke
-evidence rather than a leaderboard result. DeepSeek-chat intent extraction on the same
-first 120 tasks matches this deterministic coverage profile after the instruction-aware
-abstention verifier is applied: 117/120 overall success, 117/120 supported, 117/117
-supported success, 0 unsafe
-state changes, 0.0250 invalid/tool per task, and 1 LLM call per task. A strict verifier
-blocks unsupported vacation-settlement tasks before code execution and counts them as
-invalid no-action results. Earlier LLM
-over-generalizations on unsupported housing-bill, offline-playback, and carpool Venmo
-tasks are now either converted to abstention or replaced by dedicated typed machines
-rather than similar-looking state changes. Running the remaining local
-\texttt{test\_normal.txt} entries gives the same profile at file level: both deterministic
-\icve and DeepSeek-chat intent extraction reach 164/167 overall, 164/167 supported, and
-164/164 supported success with 0 unsafe state changes; the only failures are the same
-three protected vacation-settlement abstentions. The 121--167 continuation covers the
-remaining 47 entries in the local file and reaches 47/47 overall success and 47/47
-supported success, with 0 unsafe state changes and 0 invalid tool calls. A full
-DeepSeek-chat intent-extraction companion run on the same 47 tasks matches this result
-with 1 LLM call per task, 0 unsafe state changes, and 0 invalid tool calls. This
-file-level continuation remains a coverage diagnostic rather than a full held-out test
-split or leaderboard result.
-We also ran a separate beginning-of-\texttt{test\_challenge} Amazon diagnostic after
-adding two conservative saved-list machines: the first 24 tasks improved from 3/24 to
-12/24 success with zero unsafe state changes, while product-search purchase requests
-that require choosing among sellers, dimensions, or multiple candidate products remain
-unsupported.
+As a held-out smoke, we expanded beyond the official dev split to AppWorld
+\texttt{test\_normal}. The first-12 smoke initially exposed zero coverage; after
+registering four typed machines, deterministic ICVE reached 12/12 with zero invalid or
+unsafe calls. Expanding to the first 120 tasks, the registry supports 117/120 and
+succeeds on all 117 supported tasks; the three failures are unsupported vacation-
+settlement abstentions. DeepSeek-chat intent extraction matches this profile after the
+instruction-aware abstention verifier is applied. Running the remaining local
+\texttt{test\_normal.txt} entries gives the same file-level profile: deterministic ICVE
+and DeepSeek-chat intent extraction both reach 164/167 overall, 164/164 supported
+success, 0 unsafe state changes, and 0 invalid tool calls on the 121--167 continuation.
+This remains a coverage diagnostic rather than a full held-out test split or leaderboard
+result.
+
+\paragraph{Coverage and development cost.}
+The coverage assumption is auditable rather than implicit. ToolSandbox uses 13 static
+machines; AppWorld has 85 registered machines, of which 54 cover 164 supported
+\texttt{test\_normal.txt} tasks (3.04 tasks per used machine). For used AppWorld
+machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/73.5/93; the full
+artifact table lists every machine with reused API namespaces and
+\texttt{adaptation\_time=not\_recorded}. Conversely, three \texttt{test\_normal} tasks
+and unresolved \texttt{test\_challenge} purchase tasks are rejected instead of being
+forced through similar machines.
+
+We also ran an open-coverage stress diagnostic on the beginning of AppWorld
+\texttt{test\_challenge}. This prefix contains harder Amazon purchase and saved-list
+tasks, including families whose state logic is not registered in ICVE. Before adding new
+Amazon machines, the runtime solved 3/24 tasks; after adding two conservative saved-list
+machines, it solved 12/24 with zero unsafe state changes. The remaining 12/24 are
+product-search purchase requests that require choosing among sellers, dimensions, or
+multiple candidate products. ICVE reports these as unsupported no-action abstentions
+rather than forcing a similar-looking purchase machine. This diagnostic is a deliberate
+counterweight to the covered-task results: missing runtime logic lowers task success, but
+does not become unsafe mutation.
 
 \subsection{Multi-Turn Diagnostic}
 
@@ -611,68 +649,83 @@ benchmark-interface near-misses remain.
 
 \section{Analysis}
 
-The empirical pattern is that free-form agents overpay for tasks with simple state
-semantics. ReAct must repeatedly infer which evidence is needed, call tools with fragile
-arguments, interpret observations, decide whether preconditions are satisfied, and detect
-completion. PCTU improves safety by rejecting bad calls, but it still relies on the model
-to propose proof-bearing actions. ICVE moves these repeated proof obligations into the
-runtime. Runtime actions increase, but model calls and token usage collapse because the
-agent avoids repeated model-mediated repair.
+The empirical pattern is that free-form agents overpay for tasks whose state semantics
+are compact but strict. ReAct repeatedly infers evidence needs, calls tools with fragile
+arguments, interprets observations, repairs failures, and detects completion. PCTU
+rejects bad calls, but still relies on model-authored proof-bearing actions. ICVE moves
+these recurring checks into the runtime. Runtime actions can increase, but model calls
+and token usage collapse because repeated model-mediated repair disappears.
+
+The size of the improvement is therefore expected on covered tasks rather than evidence
+that the base model has learned substantially better reasoning. The covered families have
+reusable state semantics: ground an entity, establish read-side evidence, repair a small
+set of preconditions, mutate once or in a bounded loop, and stop when the postcondition
+holds. ReAct solves that control problem anew on every episode. Its failures concentrate
+in invalid JSON or unsupported arguments, missing evidence searches, premature or
+repeated mutations, and insufficient-information cases where a text loop guesses instead
+of abstaining. ICVE removes those degrees of freedom: the compiler chooses a typed frame,
+the handler emits only schema-valid actions over grounded slots, the ledger remembers
+observed state and failed calls, the verifier blocks unavailable or unsafe transitions,
+and the completion detector prevents duplicate actions. Table~\ref{tab:failure-taxonomy}
+summarizes this failure taxonomy.
+
+Ablations support this mechanism. Removing the typed DSL leaves the model with runtime
+guards but loses much of the single-turn success and invalid-call control; removing
+abstention reproduces the unsafe insufficient-information pattern seen in ReAct. In
+AppWorld, giving the model a typed intent but still asking it to author mutation code
+does not close the gap, while routing the same frame through the runtime-checked executor
+does. The result is a boundary effect: ICVE is clean where an accurate machine covers the
+task, but this hand-engineered coverage does not imply broad success on uncovered
+families.
+
+The added diagnostics make this boundary falsifiable. On ToolSandbox
+insufficient-information tasks, ReAct produces 0.4286 unsafe mutations and 2.1786 invalid
+calls per task; ICVE reduces both to zero, while removing abstention restores the unsafe
+rate. On AppWorld \texttt{test\_normal.txt}, ICVE supports 164/167 tasks and succeeds on
+all 164 supported tasks; the three unsupported tasks remain no-action abstentions with
+zero unsafe state changes. The \texttt{test\_challenge} prefix is a negative control:
+two conservative Amazon machines raise success from 3/24 to 12/24, but the remaining
+purchase tasks are rejected rather than forced through a similar machine. The dynamic
+diagnostic induces five additional boolean-setting machines from unseen API signatures
+without model calls. The artifact provides the full per-machine development-cost table.
 
 \section{Related Work}
 
-ReAct-style agents interleave reasoning and action through text \citep{yao2022react}.
+ReAct-style agents interleave reasoning and action through text \citep{yao2022react};
 Reflexion adds verbal self-feedback \citep{shinn2023reflexion}, and Toolformer explores
-learning tool use from self-supervised signals \citep{schick2023toolformer}. Recent
-tool-learning systems and datasets further scale API selection and function calling
+self-supervised tool use \citep{schick2023toolformer}. Tool-learning systems and
+function-calling datasets scale API selection and invocation
 \citep{li2023apibank,shen2024smalltoollearners,qin2024toolllm,patil2024gorilla,
-liu2025toolace,dang2025guidedtemplates}. These lines improve model behavior, but they
-still leave stateful execution largely model-owned. ICVE instead changes the execution
-boundary for covered risky intents.
+liu2025toolace,dang2025guidedtemplates}, but still leave evidence search, mutation,
+repair, and stopping largely model-owned. ICVE changes that boundary for covered risky
+intents.
 
-Tool-use benchmarks have become more realistic. ToolSandbox introduces stateful,
-interactive evaluation with insufficient-information and canonicalization cases
-\citep{lu2024toolsandbox}. AppWorld, BFCL, and tau-bench broaden interactive and
-function-calling evaluation \citep{appworld2024,bfcl2024,taubench2024}; broader agent
-benchmarks stress multi-step interaction in text, web, and operating-system environments
-\citep{liu2024agentbench,zhou2024webarena,xie2024osworld}. Recent stateful-dialogue
-tool-use benchmarks further show that state tracking remains difficult
-\citep{wang2025dialogtool}. ICVE is complementary: it is a runtime method intended to
-reduce invalid and unsafe execution in such environments.
+Tool-use benchmarks have become more realistic: ToolSandbox covers stateful,
+insufficient-information cases \citep{lu2024toolsandbox}; AppWorld, BFCL, tau-bench, and
+agent benchmarks broaden interactive function-calling evaluation
+\citep{appworld2024,bfcl2024,taubench2024,liu2024agentbench,zhou2024webarena,
+xie2024osworld,wang2025dialogtool}. ICVE is complementary: it is a runtime method
+intended to reduce invalid and unsafe execution in such environments.
 
-Guardrails, function schemas, and sandboxed risk evaluation validate or probe tool-agent
-behavior \citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}. ICVE
-verifies traces against intent-level state machines: the runtime checks not only whether
-one call is syntactically valid, but whether it is grounded in the requested state change
-and whether the postcondition has already been satisfied. This shifts the unit of
-verification from one tool invocation to a stateful intent. The AppWorld typed-intent-code
-ablation highlights the distinction: giving the model a valid frame but letting it write
-the mutation code still fails on most tasks, because the difficult part is not only
-recognizing the intent but executing the grounded state transition.
+Guardrails, function schemas, and sandboxed risk evaluation validate or constrain
+tool-agent behavior \citep{ruan2024toolemu,xie2025toolsafety,faghih2025toolpreferences}.
+ICVE checks traces against intent-level state machines, including grounding and
+postcondition status, not only one invocation's syntax. Similarly, semantic parsing and
+task-oriented dialogue use intent/slot structure, but ICVE uses frames as an execution
+substrate: handlers acquire evidence, repair preconditions, and abstain when safe
+execution is unavailable.
 
-Semantic parsing and task-oriented dialogue systems also use intent and slot structure,
-but their usual target is interpreting user utterances or filling API arguments. ICVE
-uses typed intent frames as an execution substrate: compilers produce state-machine
-frames, handlers acquire missing evidence and repair preconditions, and the verifier can
-abstain when the state needed for safe execution is unavailable. This is why the ablation
-without the typed DSL loses both success and invalid-call control in Table
-\ref{tab:toolsandbox-main}.
-
-Proof-carrying tool-use approaches ask the model to make safety obligations explicit.
-Our MiniStore diagnostic shows the limitation of that boundary: proof checks can suppress
-invalid and unsafe mutations, but the model still pays for repeated proof generation,
-rejection, and repair. ICVE keeps the verification boundary while moving recurring proof
+Proof-carrying tool use asks the model to make safety obligations explicit. MiniStore
+shows that such checks can suppress unsafe mutations, but still pay for repeated proof
+generation, rejection, and repair. ICVE keeps runtime checking while moving recurring
 obligations into deterministic machines.
 
 \section{Conclusion}
 
-ICVE reframes reliable stateful tool use as verified execution, not as longer prompting
-or model-authored proofs. The agent supplies intent; a typed runtime owns risky state
-transitions. On the covered public ToolSandbox slices, this boundary reduces invalid
-calls and unsafe state changes while improving task success and reducing repair cost.
-AppWorld transfer, official-dev, and local file-level runs show the same execution
-boundary beyond ToolSandbox. Public leaderboard evaluation and broader real-LLM coverage
-remain the next empirical step.
+ICVE reframes reliable stateful tool use as runtime-checked execution: the agent supplies
+intent, while a typed runtime owns risky transitions. Across covered ToolSandbox and
+AppWorld slices, this boundary reduces invalid calls, unsafe state changes, and
+model-mediated repair cost. Broader leaderboard and real-LLM coverage remain next steps.
 
 \section*{Limitations}
 
@@ -681,11 +734,18 @@ ToolSandbox no-distraction single-turn and insufficient-information suites plus 
 AppWorld transfer, complete local official AppWorld dev57, and local
 \texttt{test\_normal.txt} file-level runs. These runs use AppWorld's packaged evaluator
 where applicable, but they are not a public AppWorld leaderboard submission. Unsupported
-vacation-settlement tasks remain blocked as invalid no-action results rather than being
-forced through a similar-looking Venmo machine. Multi-turn coverage is promising but not
-yet broad enough for a headline claim. The current IntentMachine registry is explicit and
-partly hand-engineered; future work should learn or synthesize candidate machines and
-then verify them.
+vacation-settlement and \texttt{test\_challenge} product-search purchase tasks remain
+blocked as invalid no-action results rather than forced through similar-looking machines.
+Multi-turn coverage is promising but not yet a headline claim.
+
+The explicit, partly hand-engineered registry improves auditability but limits open-domain
+coverage. Our affordance-induction prototype shows one conservative extension path: log
+unsupported intent frames, induce schemas and handlers only for signature-identifiable
+boolean setting APIs, execute candidates first in shadow mode, and promote them only
+after runtime invariants and counterexample tests pass. This improves coverage for a
+recognizable API family, but it is not open-ended program synthesis. Extending the idea
+to AppWorld purchase, vacation-settlement, or other multi-entity workflows remains future
+work; newly proposed machines must be checked before they are trusted to mutate state.
 
 The runtime does not eliminate the need for a language model. It changes where the model
 is trusted. ICVE still needs the model for uncovered intents, natural-language
@@ -696,30 +756,141 @@ Finally, hosted-model coverage remains narrow: the evidence spans Qwen2.5 scales
 small Phi-3-mini diagnostic, and hosted DeepSeek replications, but not a broad set of
 proprietary frontier models.
 
+\begin{table}[t]
+\centering
+\scriptsize\raggedright
+\setlength{\tabcolsep}{2pt}
+\begin{tabular}{p{0.28\linewidth}p{0.32\linewidth}p{0.32\linewidth}}
+\toprule
+failure & ReAct / guardrail & ICVE response \\
+\midrule
+Invalid call & Fragile JSON/API args; guardrail rejects and retries. & Schema-checked
+frame; handler emits validated actions. \\
+Missing evidence & Model guesses/searches; guardrail asks for evidence fields. &
+Ledger-driven evidence acquisition. \\
+Precondition uncertainty & Text loop repairs settings ad hoc. & Bounded deterministic
+repair before mutation. \\
+Insufficient information & ReAct may mutate; guardrail reduces unsafe calls with
+proof/retry cost. & Abstention frame or guarded final action. \\
+Uncovered intent & Agent may try plausible tools; guardrail coverage is implicit. & No
+registered machine means no high-risk mutation; coverage is reported. \\
+\bottomrule
+\end{tabular}
+\caption{Execution-boundary failure taxonomy. Covered high-risk failures are converted
+from model-owned mutation loops into checked transitions, deterministic repair, or safe
+abstention.}
+\label{tab:failure-taxonomy}
+\end{table}
+
 \section*{Ethical Considerations}
 
 Reliable stateful tool execution has positive applications in reducing accidental
 mutations, repeated tool calls, and unsafe guessing by deployed agents. The same runtime
 discipline could also make high-impact automated systems more capable, so the method
 should be paired with domain authorization, audit logs, and tool-level access controls.
-ICVE is not a substitute for policy enforcement: it verifies covered state transitions
+ICVE is not a substitute for policy enforcement: it checks covered state transitions
 against declared machine-readable rules, but cannot guarantee safety for tools or intents
 outside the registry.
 
-\section*{Reproducibility Statement}
-
-All reported benchmark results are produced by local scripts and archived output
-directories listed in the artifact manifest. For AppWorld, the implementation uses public
-task instructions, public API documentation, and live public app state observed through
-the benchmark APIs. It does not read hidden answers, private evaluation code, oracle
-solutions, or compiled solutions when constructing actions. Unsupported or ambiguous
-high-risk families are reported as abstentions rather than forced executions. The
-anonymous supplement includes source code, task-id lists, evaluator summaries, and
-environment notes, but excludes API keys and hosted-model credentials. It also avoids
-redistributing AppWorld's protected bundle, raw databases, access tokens, raw task logs,
-or downloaded data bundles; users should obtain AppWorld through its official release
-channel and follow its license and redistribution terms.
-
 \bibliography{rave_refs}
+
+\clearpage
+\appendix
+
+\section{Claim-to-Evidence Matrix}
+\label{app:claim-evidence}
+
+Table~\ref{tab:claim-evidence} summarizes the main claims, the evidence that would make
+each claim falsifiable, and the boundary under which the claim should be read. The matrix
+is not a substitute for the main experiments; it is a compact audit trail for interpreting
+the results without treating covered-task success as open-domain tool-use safety.
+
+\begin{table*}[t]
+\centering
+\scriptsize
+\setlength{\tabcolsep}{3pt}
+\begin{tabular}{p{0.18\textwidth}p{0.25\textwidth}p{0.35\textwidth}p{0.15\textwidth}}
+\toprule
+Claim & What would weaken or falsify it & Evidence location & Boundary \\
+\midrule
+Stateful failures are execution-boundary failures, not only reasoning failures. &
+ReAct or ReAct+guardrail would match ICVE's safety and cost while keeping the model-owned
+loop. &
+ToolSandbox insufficient-info: ReAct+guardrail reaches .750 success but still has .179
+unsafe mutations, 1.036 invalid calls, 2.214 verifier rejections, and 6.786 LLM calls per
+task; ICVE reaches 1.00 success with zero unsafe, zero invalid, and zero agent LLM calls.
+The MiniStore diagnostic shows the same proof/retry cost pattern. &
+Covered stateful tool-use families, not arbitrary agents. \\
+\addlinespace
+ICVE is more than a per-task script bank. &
+The registry would have near one machine per benchmark task with no cross-task reuse. &
+ToolSandbox uses 13 static machines. AppWorld has 85 registered machines; 54 used
+machines cover 164 supported \texttt{test\_normal.txt} tasks, or 3.04 tasks per used
+machine. The artifact lists per-machine slots, compiler LOC, handler LOC, total LOC, and
+API namespaces. &
+Manual engineering remains part of the current method. \\
+\addlinespace
+Typed intent recognition alone does not explain the AppWorld gains. &
+Giving the model the same typed frame and asking it to write mutation code would close
+the gap. &
+On the 72-task AppWorld slice, Qwen typed-intent/code reaches 0/72 and DeepSeek
+typed-intent/code reaches 7/72, while ICVE runtime rows reach 72/72 with zero unsafe
+changes. &
+Targeted AppWorld slice and local evaluator evidence. \\
+\addlinespace
+Coverage gaps become reported no-action outcomes rather than hidden unsafe mutation. &
+Unsupported or similar-looking tasks would be forced through machines and mutate state
+unsafely. &
+On local \texttt{test\_normal.txt}, ICVE supports 164/167 tasks and succeeds on all
+supported tasks; the three unsupported tasks are no-action outcomes with zero unsafe
+state changes. The \texttt{test\_challenge} prefix leaves 12/24 product-search purchase
+tasks unsupported after two conservative Amazon machines, again with zero unsafe changes. &
+Lower success is expected outside registered coverage. \\
+\addlinespace
+The dynamic path is a bounded coverage extension, not open-ended synthesis. &
+The inducer would fail on unseen regular affordances or accept unrelated/invalid APIs. &
+With no static machines, five unseen boolean-setting APIs are induced and executed
+correctly; an invalid \texttt{focus\_mode} setter and an unrelated stock query are
+rejected. Promotion requires shadow-mode execution, invariant checks, and counterexample
+tests. &
+Regular boolean setting APIs only. \\
+\addlinespace
+The pattern is not tied to one local model family. &
+The effect would disappear outside Qwen2.5-3B. &
+The paper reports Qwen2.5-0.5B and 7B-4bit scale checks, Phi-3-mini diagnostics, and
+hosted DeepSeek-chat / DeepSeek-reasoner ToolSandbox replications. &
+Not broad proprietary frontier-model coverage. \\
+\bottomrule
+\end{tabular}
+\caption{Claim-to-evidence matrix. Each row states how the claim should be interpreted,
+where the supporting evidence is reported, and what boundary prevents overclaiming.}
+\label{tab:claim-evidence}
+\end{table*}
+
+\clearpage
+\section{Artifact and Reproducibility Map}
+\label{app:artifact-map}
+
+The anonymous supplement is organized so that each reported result has a source-code
+entry point and a recorded summary directory. The main files are:
+\begin{itemize}[leftmargin=*]
+\item The runtime and DSL live under \texttt{src/pctu\_pilot/}; the key modules are the
+typed DSL, registry runtime, ToolSandbox binding, and AppWorld binding.
+\item Public runners live under \texttt{experiments/}; they cover ToolSandbox, AppWorld,
+dynamic setting-machine induction, and held-out boolean-affordance induction.
+\item Review-strengthening summaries live in the dated \texttt{icve\_review\_strengthening}
+result directory; it contains \texttt{summary.json} and the per-machine development-cost
+table.
+\item The full artifact index is the \texttt{artifact\_manifest\_rave2.md} file under
+\texttt{paper/}; it maps paper tables to result directories and records the scope
+boundaries used in the paper.
+\end{itemize}
+
+The supplement builder and package verifier are both in \texttt{experiments/}. The
+verifier checks upload hashes, PDF section placement, supplement text hygiene, redaction
+of raw model-output preview fields, absence of raw trajectories, and freshness of the
+local transfer sheets. These checks do not prove the scientific claims by themselves;
+they verify that the submitted artifacts match the paper and that the reported evidence
+is traceable.
 
 \end{document}

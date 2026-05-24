@@ -68,8 +68,8 @@ final runs, so the artifact reports reproducible commands, task counts, model-ca
 counts, token proxies, and per-run result directories rather than a single total compute
 number. The largest same-split official AppWorld baseline recorded in the paper, the
 default-50-step DeepSeek ReAct-code dev57 run, completed in 75.9 minutes and used 879 LLM
-calls and 6.45M tokens; RAVE dev57 rows use deterministic execution or one intent
-extraction call per task plus the verified runtime.
+calls and 6.45M tokens; ICVE dev57 rows use deterministic execution or one intent
+extraction call per task plus the runtime-checked executor.
 
 ## Method Code
 
@@ -78,11 +78,20 @@ extraction call per task plus the verified runtime.
 - `src/pctu_pilot/rave_runtime.py`: benchmark-agnostic registry runtime plus
   `RaveStateLedger` and `RaveRuntimePolicy` interfaces.
 - `src/pctu_pilot/toolsandbox_agents.py`: ToolSandbox binding, 13 registered
-  `IntentMachine`s, and concrete `ToolSandboxRuntimePolicy`.
+  `IntentMachine`s, concrete `ToolSandboxRuntimePolicy`, and a restricted dynamic
+  setting-machine synthesis prototype.
 - `src/pctu_pilot/appworld_agents.py`: AppWorld binding with typed `IntentMachine`s for
   the targeted 72-task public slice and the complete local official AppWorld 0.2.0
   `dev.txt` split, plus real-LLM intent/slot-extraction and direct-code baselines.
 - `experiments/run_toolsandbox_kill_criteria.py`: public ToolSandbox runner.
+- `experiments/run_dynamic_synthesis_probe.py`: no-LLM ToolSandbox probe that disables
+  the static registry and promotes dynamically synthesized setting machines only after
+  shadow-mode, invariant, and counterexample checks.
+- `experiments/run_dynamic_affordance_generalization.py`: no-LLM held-out
+  synthetic-affordance diagnostic for inducing boolean setting machines from previously
+  unseen `get_*_status` / `set_*_status(on: bool)` API pairs.
+- `experiments/test_dynamic_machine_synthesis.py`: smoke tests for unsupported-frame
+  logging, dynamic promotion, and unrelated-request rejection.
 - `experiments/run_appworld_rave_slice.py`: targeted public AppWorld slice runner with
   deterministic, `llm-intent`, `llm-code`, `llm-code-repair`, `llm-intent-code`, and
   `llm-react-code` modes, plus per-task flushing and resume support for hosted long
@@ -98,9 +107,18 @@ extraction call per task plus the verified runtime.
   replication template.
 - `experiments/summarize_rave2_statistics.py`: regenerates Wilson intervals and
   safety/cost means from recorded summaries.
+- `experiments/summarize_icve_review_strengthening.py`: regenerates the
+  failure-mode-shift, coverage-risk, and machine-coverage diagnostics used to support
+  the added review-strengthening analysis.
 - `experiments/build_anonymous_supplement.py`: builds the anonymized supplement
   directory and `.tar.gz` archive from a whitelist, excluding raw logs, database
   snapshots, downloaded bundles, local paths, and real API-key environment files.
+- Paper Appendix A provides a claim-to-evidence matrix that maps each main paper claim to
+  falsification criteria, concrete result locations, and the boundary under which the
+  claim should be interpreted.
+- Paper Appendix B provides a compact artifact and reproducibility map that points
+  reviewers to the runtime modules, public runners, review-strengthening summaries, and
+  full artifact index.
 
 ## Primary Results
 
@@ -123,6 +141,25 @@ extraction call per task plus the verified runtime.
 - Hosted DeepSeek-reasoner ToolSandbox replication:
   `results/frontier_toolsandbox_replication_deepseek_reasoner/deepseek-reasoner_single_turn/20260504_122044`
   and `results/frontier_toolsandbox_replication_deepseek_reasoner/deepseek-reasoner_insufficient/20260504_124227`
+- Dynamic affordance-template induction diagnostics:
+  `results/dynamic_synthesis_probe/20260524_172425` covers five official ToolSandbox
+  setting scenarios from an empty static registry, and
+  `results/dynamic_affordance_generalization/20260524_172229` covers five held-out
+  synthetic boolean-setting API pairs plus two rejection cases. The latter records 7/7
+  expected outcomes, 5 promoted machines, 2 rejections, 0 LLM calls, and verified final
+  state mutations for `bluetooth`, `dark_mode`, `privacy_mode`, `roaming_data`, and
+  `auto_sync`.
+- Review-strengthening diagnostics:
+  `results/icve_review_strengthening/20260524` summarizes (i) MiniStore
+  ReAct+schema/proof/verifier guardrail evidence via the PCTU ablation, (ii)
+  ToolSandbox insufficient-information failure-mode shift from unsafe/invalid ReAct
+  outcomes to zero unsafe and zero invalid ICVE outcomes, (iii) AppWorld
+  `test_normal.txt` coverage-risk behavior with unsupported tasks left as no-action
+  abstentions, and (iv) AppWorld machine coverage and development-cost statistics for
+  the "not per-task scripts" analysis. The directory includes a full per-machine
+  `machine_development_costs.csv`/`.md` table with slots, compiler/handler LOC,
+  covered-task counts, shared API namespaces, shared runtime components, and
+  `adaptation_time=not_recorded`.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication
@@ -522,6 +559,9 @@ paths.
 conda run -p <CONDA_ROOT>/envs/pctu-sim \
   python -m py_compile \
   experiments/summarize_rave2_statistics.py \
+  experiments/summarize_icve_review_strengthening.py \
+  experiments/run_dynamic_synthesis_probe.py \
+  experiments/test_dynamic_machine_synthesis.py \
   src/pctu_pilot/rave_dsl.py \
   src/pctu_pilot/rave_runtime.py \
   src/pctu_pilot/appworld_agents.py \
@@ -553,6 +593,17 @@ conda run -p <CONDA_ROOT>/envs/pctu-sim \
   tectonic --keep-logs --keep-intermediates rave_intent_compiled_verified_execution_arr.tex
 ```
 
+```bash
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/test_dynamic_machine_synthesis.py
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/run_dynamic_synthesis_probe.py
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/run_dynamic_affordance_generalization.py
+conda run -p <CONDA_ROOT>/envs/pctu-sim \
+  python experiments/summarize_icve_review_strengthening.py
+```
+
 ## Scope Boundaries
 
 Current claims should be limited to:
@@ -568,6 +619,9 @@ Current claims should be limited to:
 - local Qwen2.5 model scales, a small Phi-3-mini diagnostic, and hosted
   DeepSeek-chat/DeepSeek-reasoner replications,
 - covered high-risk intents registered as ICVE machines.
+- the dynamic-synthesis and affordance-template induction probes only for regular
+  ToolSandbox-style boolean setting APIs, where candidates pass shadow-mode, invariant,
+  and counterexample checks before promotion.
 
 Current claims should **not** include:
 
@@ -576,11 +630,16 @@ Current claims should **not** include:
 - full AppWorld held-out test or leaderboard coverage,
 - public leaderboard-agent comparisons beyond the local official dev57 split,
 - safety for arbitrary tools outside the registered intent machines.
+- automatic synthesis of AppWorld purchase, vacation-settlement, or other multi-entity
+  state machines.
 
 The current frontier/OpenAI-compatible replication template is:
 
 ```bash
-source experiments/frontier_replication.env
+FRONTIER_BASE_URL=https://api.example.com/v1 \
+FRONTIER_MODEL=frontier-model-name \
+FRONTIER_API_KEY=... \
+MAX_SCENARIOS=0 \
 ./experiments/run_frontier_toolsandbox_replication.sh
 ```
 

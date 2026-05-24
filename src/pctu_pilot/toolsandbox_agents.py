@@ -59,6 +59,20 @@ SETTING_SETTERS = {
 }
 
 
+def regular_status_getter_setting(tool_name: str) -> Optional[str]:
+    match = re.fullmatch(r"get_([a-zA-Z][a-zA-Z0-9_]*)_status", tool_name)
+    return match.group(1) if match else None
+
+
+def regular_status_setter_setting(tool_name: str) -> Optional[str]:
+    match = re.fullmatch(r"set_([a-zA-Z][a-zA-Z0-9_]*)_status", tool_name)
+    return match.group(1) if match else None
+
+
+def regular_setting_label(setting: str) -> str:
+    return setting.replace("_", " ")
+
+
 KNOWN_LOCATION_CANONICALS = {
     "grand canyon": {"latitude": 36.23686, "longitude": -112.19147, "label": "Grand Canyon"},
     "golden gate bridge": {
@@ -170,6 +184,10 @@ class RuntimeMetrics:
     repair_calls: int = 0
     proposed_tool_calls: int = 0
     final_messages: int = 0
+    dynamic_synthesis_records: int = 0
+    dynamic_synthesis_proposals: int = 0
+    dynamic_synthesis_promotions: int = 0
+    dynamic_synthesis_rejections: int = 0
 
 
 @dataclass
@@ -198,10 +216,12 @@ class ToolSandboxLedger:
         if error:
             return
 
-        if tool in SETTING_GETTERS and isinstance(parsed, bool):
-            self.settings[SETTING_GETTERS[tool]] = parsed
-        elif tool in SETTING_SETTERS and "on" in args:
-            self.settings[SETTING_SETTERS[tool]] = bool(args["on"])
+        getter_setting = SETTING_GETTERS.get(tool) or regular_status_getter_setting(tool)
+        setter_setting = SETTING_SETTERS.get(tool) or regular_status_setter_setting(tool)
+        if getter_setting is not None and isinstance(parsed, bool):
+            self.settings[getter_setting] = parsed
+        elif setter_setting is not None and "on" in args:
+            self.settings[setter_setting] = bool(args["on"])
             if tool == "set_low_battery_mode_status" and bool(args["on"]):
                 self.settings["cellular"] = False
                 self.settings["wifi"] = False
@@ -351,6 +371,419 @@ class ToolSandboxRuntimePolicy:
                 reason=f"abstain_after_tool_error_{action.reason}",
             )
         return action
+
+
+@dataclass
+class UnsupportedIntentRecord:
+    request: str
+    raw_request: str
+    available_tool_names: tuple[str, ...]
+    reason: str
+
+
+@dataclass
+class DynamicSynthesisAudit:
+    request: str
+    decision: str
+    candidate_intent_type: str = ""
+    details: tuple[str, ...] = ()
+
+
+@dataclass
+class SynthesizedMachineCandidate:
+    intent_type: str
+    target_setting: str
+    machine: IntentMachine
+    source_tools: tuple[str, ...]
+    inferred_from_tools: bool = False
+    validation_details: tuple[str, ...] = ()
+
+
+class ToolSandboxDynamicMachineSynthesizer:
+    """Conservative synthesis for regular ToolSandbox setting APIs.
+
+    This is intentionally narrow: it derives only setting state machines whose API
+    surface has the regular get_*_status / set_*_status(on: bool) shape, validates
+    them in shadow mode, and promotes them only after simple invariants and
+    counterexample checks pass.
+    """
+
+    _SETTING_ALIASES = {
+        "cellular": ("cellular", "cellphone signal", "cell signal"),
+        "wifi": ("wifi", "wi-fi", "internet", "connected"),
+        "location_service": ("location service", "current location"),
+        "low_battery_mode": ("low battery", "low-battery"),
+    }
+    _SETTING_LABELS = {
+        "cellular": "cellular service",
+        "wifi": "wifi",
+        "location_service": "location service",
+        "low_battery_mode": "low battery mode",
+    }
+    _SETTING_TO_GETTER = {value: key for key, value in SETTING_GETTERS.items()}
+    _SETTING_TO_SETTER = {value: key for key, value in SETTING_SETTERS.items()}
+    _ENABLE_REPAIR_SETTINGS = {"cellular", "wifi", "location_service"}
+    _COUNTEREXAMPLES = (
+        "What is the stock symbol for Apple?",
+        "What is the weather at the Grand Canyon?",
+        "Find my boss's phone number.",
+        "Remind me to buy milk tomorrow.",
+        "Send a message to Alice saying hello.",
+    )
+
+    def __init__(self, ledger: ToolSandboxLedger, options: RaveRuntimeOptions) -> None:
+        self.ledger = ledger
+        self.options = options
+        self.unsupported_records: list[UnsupportedIntentRecord] = []
+        self.audit: list[DynamicSynthesisAudit] = []
+
+    def synthesize_and_register(
+        self,
+        runtime: RaveRuntime,
+        request: str,
+        raw_request: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> Optional[SynthesizedMachineCandidate]:
+        self.unsupported_records.append(
+            UnsupportedIntentRecord(
+                request=request,
+                raw_request=raw_request,
+                available_tool_names=tuple(sorted(available_tools)),
+                reason="no_registered_intent_machine",
+            )
+        )
+        candidate = self._propose_candidate(request, available_tools)
+        if candidate is None:
+            self.audit.append(
+                DynamicSynthesisAudit(
+                    request=request,
+                    decision="rejected",
+                    details=("no_regular_setting_api_candidate",),
+                )
+            )
+            return None
+        if candidate.intent_type in runtime.intent_machine_by_type:
+            self.audit.append(
+                DynamicSynthesisAudit(
+                    request=request,
+                    decision="already_registered",
+                    candidate_intent_type=candidate.intent_type,
+                )
+            )
+            return candidate
+
+        ok, details = self._validate_candidate(candidate, request, raw_request, available_tools)
+        if not ok:
+            self.audit.append(
+                DynamicSynthesisAudit(
+                    request=request,
+                    decision="rejected",
+                    candidate_intent_type=candidate.intent_type,
+                    details=tuple(details),
+                )
+            )
+            return None
+
+        promoted = SynthesizedMachineCandidate(
+            intent_type=candidate.intent_type,
+            target_setting=candidate.target_setting,
+            machine=candidate.machine,
+            source_tools=candidate.source_tools,
+            inferred_from_tools=candidate.inferred_from_tools,
+            validation_details=tuple(details),
+        )
+        runtime.register_machine(promoted.machine)
+        self.audit.append(
+            DynamicSynthesisAudit(
+                request=request,
+                decision="promoted",
+                candidate_intent_type=promoted.intent_type,
+                details=promoted.validation_details,
+            )
+        )
+        return promoted
+
+    def _propose_candidate(
+        self,
+        request: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> Optional[SynthesizedMachineCandidate]:
+        target = self._infer_setting(request) or self._infer_setting_from_tools(request, available_tools)
+        operation, desired_on = self._infer_operation(request)
+        if target is None or operation is None:
+            return None
+
+        tools_by_setting = self._discover_regular_setting_tools(available_tools)
+        getter, setter = tools_by_setting.get(
+            target,
+            (
+                self._SETTING_TO_GETTER.get(target, f"get_{target}_status"),
+                self._SETTING_TO_SETTER.get(target, f"set_{target}_status"),
+            ),
+        )
+        if operation == "status" and getter not in available_tools:
+            return None
+        if operation in {"enable", "disable"} and setter not in available_tools:
+            return None
+
+        intent_type = f"dynamic_setting_{target}"
+        schema = IntentSchema(
+            intent_type,
+            (
+                SlotSpec("setting"),
+                SlotSpec("operation"),
+                SlotSpec("desired_on", required=False),
+            ),
+        )
+        machine = IntentMachine(
+            schema=schema,
+            compiler=self._make_setting_compiler(target, intent_type),
+            handler=self._make_setting_handler(target),
+        )
+        source_tools = tuple(
+            tool
+            for tool in (
+                getter,
+                setter,
+                "get_low_battery_mode_status",
+                "set_low_battery_mode_status",
+            )
+            if tool in available_tools
+        )
+        if desired_on is not None:
+            source_tools = tuple(dict.fromkeys((*source_tools, setter)))
+        return SynthesizedMachineCandidate(
+            intent_type=intent_type,
+            target_setting=target,
+            machine=machine,
+            source_tools=source_tools,
+            inferred_from_tools=target not in self._SETTING_TO_GETTER,
+        )
+
+    def _validate_candidate(
+        self,
+        candidate: SynthesizedMachineCandidate,
+        request: str,
+        raw_request: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> tuple[bool, list[str]]:
+        details: list[str] = []
+        target = candidate.target_setting
+        getter = self._getter_name(target, available_tools)
+        setter = self._setter_name(target, available_tools)
+        allowed_tools = {
+            tool
+            for tool in (
+                getter,
+                setter,
+                "get_low_battery_mode_status",
+                "set_low_battery_mode_status",
+            )
+            if tool in available_tools
+        }
+        if candidate.inferred_from_tools:
+            details.append(f"affordance_template_induced:{target}")
+
+        if setter in available_tools:
+            setter_signature = inspect.signature(available_tools[setter])
+            on_param = setter_signature.parameters.get("on")
+            if on_param is None:
+                return False, [f"{setter}_missing_on_parameter"]
+            if on_param.kind not in {
+                inspect.Parameter.POSITIONAL_OR_KEYWORD,
+                inspect.Parameter.KEYWORD_ONLY,
+            }:
+                return False, [f"{setter}_on_parameter_not_keyword_compatible"]
+            if on_param.annotation not in {inspect.Signature.empty, bool, "bool"}:
+                return False, [f"{setter}_on_parameter_not_bool"]
+            details.append(f"api_signature_ok:{setter}(on: bool)")
+
+        frame = candidate.machine.compiler(request, raw_request, available_tools)
+        if frame is None:
+            return False, ["shadow_compile_failed"]
+        frame.validate(candidate.machine.schema)
+        action = candidate.machine.handler(frame, available_tools)
+        if action is None:
+            return False, ["shadow_handler_returned_no_action"]
+        if action.tool not in allowed_tools:
+            return False, [f"shadow_action_outside_allowed_tools:{action.tool}"]
+        if action.tool == setter:
+            if set(action.args) != {"on"} or not isinstance(action.args.get("on"), bool):
+                return False, [f"shadow_setter_args_not_bool_on:{action.tool}"]
+        elif action.args:
+            return False, [f"shadow_getter_has_args:{action.tool}"]
+        details.append(f"shadow_action_ok:{action.tool}")
+
+        for counterexample in self._COUNTEREXAMPLES:
+            if candidate.machine.compiler(counterexample, counterexample, available_tools) is not None:
+                return False, [f"counterexample_matched:{counterexample}"]
+        details.append("counterexample_tests_passed")
+        return True, details
+
+    def _make_setting_compiler(
+        self,
+        target: str,
+        intent_type: str,
+    ) -> Callable[[str, str, dict[str, Callable[..., Any]]], Optional[IntentFrame]]:
+        def compile_setting(
+            request: str,
+            raw_request: str,
+            available_tools: dict[str, Callable[..., Any]],
+        ) -> Optional[IntentFrame]:
+            del raw_request
+            if (self._infer_setting(request) or self._infer_setting_from_tools(request, available_tools)) != target:
+                return None
+            operation, desired_on = self._infer_operation(request)
+            if operation is None:
+                return None
+            getter = self._getter_name(target, available_tools)
+            setter = self._setter_name(target, available_tools)
+            if operation == "status" and getter not in available_tools:
+                return None
+            if operation in {"enable", "disable"} and setter not in available_tools:
+                return None
+            frame = IntentFrame(intent_type)
+            frame.set_slot("setting", target, source="dynamic_api_docs")
+            frame.set_slot("operation", operation, source="dynamic_request_parse")
+            if desired_on is not None:
+                frame.set_slot("desired_on", desired_on, source="dynamic_request_parse", required=False)
+            return frame
+
+        return compile_setting
+
+    def _make_setting_handler(
+        self,
+        target: str,
+    ) -> Callable[[IntentFrame, dict[str, Callable[..., Any]]], Optional[ToolAction]]:
+        def handle_setting(
+            frame: IntentFrame,
+            available_tools: dict[str, Callable[..., Any]],
+        ) -> Optional[ToolAction]:
+            operation = str(frame.get("operation") or "")
+            desired_on = frame.get("desired_on")
+            getter = self._getter_name(target, available_tools)
+            setter = self._setter_name(target, available_tools)
+            if operation == "status":
+                if target not in self.ledger.settings and getter in available_tools:
+                    return ToolAction(tool=getter, args={}, reason=f"dynamic_read_{target}_status")
+                return None
+
+            if not isinstance(desired_on, bool):
+                return None
+            if self.ledger.settings.get(target) is desired_on:
+                return None
+
+            if desired_on is True and target in self._ENABLE_REPAIR_SETTINGS:
+                if "low_battery_mode" not in self.ledger.settings and "get_low_battery_mode_status" in available_tools:
+                    return ToolAction(
+                        tool="get_low_battery_mode_status",
+                        args={},
+                        reason=f"dynamic_read_low_battery_before_enable_{target}",
+                    )
+                if self.ledger.settings.get("low_battery_mode") is True:
+                    if not self.options.enable_precondition_repair:
+                        return None
+                    if "set_low_battery_mode_status" in available_tools:
+                        return ToolAction(
+                            tool="set_low_battery_mode_status",
+                            args={"on": False},
+                            reason=f"dynamic_disable_low_battery_before_enable_{target}",
+                        )
+                    return None
+
+            if setter in available_tools:
+                return ToolAction(
+                    tool=setter,
+                    args={"on": desired_on},
+                    reason=f"dynamic_set_{target}_{'on' if desired_on else 'off'}",
+                )
+            return None
+
+        return handle_setting
+
+    def _infer_setting(self, request: str) -> Optional[str]:
+        normalized = normalize_text(request)
+        for setting, aliases in self._SETTING_ALIASES.items():
+            if any(alias in normalized for alias in aliases):
+                return setting
+        return None
+
+    def _infer_setting_from_tools(
+        self,
+        request: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> Optional[str]:
+        normalized = normalize_text(request)
+        matches = []
+        for setting in self._discover_regular_setting_tools(available_tools):
+            aliases = self._aliases_for_setting(setting)
+            if any(alias in normalized for alias in aliases):
+                matches.append(setting)
+        return matches[0] if len(matches) == 1 else None
+
+    def _discover_regular_setting_tools(
+        self,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> dict[str, tuple[str, str]]:
+        getters = {
+            setting: name
+            for name in available_tools
+            if (setting := regular_status_getter_setting(name)) is not None
+        }
+        setters = {
+            setting: name
+            for name in available_tools
+            if (setting := regular_status_setter_setting(name)) is not None
+        }
+        return {
+            setting: (getters[setting], setters[setting])
+            for setting in sorted(getters.keys() & setters.keys())
+        }
+
+    def _getter_name(
+        self,
+        target: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> str:
+        discovered = self._discover_regular_setting_tools(available_tools).get(target)
+        if discovered is not None:
+            return discovered[0]
+        return self._SETTING_TO_GETTER.get(target, f"get_{target}_status")
+
+    def _setter_name(
+        self,
+        target: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> str:
+        discovered = self._discover_regular_setting_tools(available_tools).get(target)
+        if discovered is not None:
+            return discovered[1]
+        return self._SETTING_TO_SETTER.get(target, f"set_{target}_status")
+
+    def _aliases_for_setting(self, setting: str) -> tuple[str, ...]:
+        aliases = self._SETTING_ALIASES.get(setting)
+        if aliases is not None:
+            return aliases
+        label = regular_setting_label(setting)
+        return (
+            label,
+            setting.replace("_", "-"),
+            setting.replace("_", ""),
+        )
+
+    @staticmethod
+    def _infer_operation(request: str) -> tuple[Optional[str], Optional[bool]]:
+        normalized = normalize_text(request)
+        if any(phrase in normalized for phrase in ("turn off", "disable", "shut off", "switch off")):
+            return "disable", False
+        if any(
+            phrase in normalized
+            for phrase in ("turn on", "enable", "switch on", "get it on", "connected", "fix that", "access")
+        ):
+            return "enable", True
+        if "?" in normalized or normalized.startswith("is ") or " status" in normalized or "check " in normalized:
+            return "status", None
+        return None, None
 
 
 @dataclass
@@ -884,7 +1317,8 @@ class RiskAdaptiveToolSandboxAgent(JsonToolUseAgent):
         self.options = options or RaveRuntimeOptions()
         self.intent_frame: Optional[IntentFrame] = None
         self.runtime_policy = ToolSandboxRuntimePolicy(self.ledger)
-        self.intent_machines = self._build_intent_machines()
+        self.dynamic_synthesizer = ToolSandboxDynamicMachineSynthesizer(self.ledger, self.options)
+        self.intent_machines = self._build_intent_machines() if self.options.use_static_intent_machines else []
         self.rave_runtime = RaveRuntime(self.intent_machines, self._insufficient_info_frame)
         self.intent_machine_by_type = self.rave_runtime.intent_machine_by_type
         self._announced_relationship_phase = False
@@ -1067,14 +1501,19 @@ class RiskAdaptiveToolSandboxAgent(JsonToolUseAgent):
                 args = runtime_result.action.args
                 reason = runtime_result.action.reason
                 return tool, args, reason
+            if self.options.enable_dynamic_machine_synthesis:
+                synthesized = self._try_dynamic_machine_synthesis(request, raw_request, available_tools)
+                if synthesized is not None:
+                    return synthesized
 
         clarification = self._next_clarification_action(request, raw_request, available_tools)
         if clarification is not None:
             return clarification
 
-        setting_action = self._next_setting_action(request, available_tools)
-        if setting_action is not None:
-            return setting_action
+        if self.options.use_static_intent_machines or not self.options.enable_dynamic_machine_synthesis:
+            setting_action = self._next_setting_action(request, available_tools)
+            if setting_action is not None:
+                return setting_action
 
         contact_action = self._next_contact_action(request, raw_request, available_tools)
         if contact_action is not None:
@@ -1085,6 +1524,52 @@ class RiskAdaptiveToolSandboxAgent(JsonToolUseAgent):
             return message_action
 
         return None
+
+    def _try_dynamic_machine_synthesis(
+        self,
+        request: str,
+        raw_request: str,
+        available_tools: dict[str, Callable[..., Any]],
+    ) -> Optional[tuple[str, dict[str, Any], str]]:
+        previous_records = len(self.dynamic_synthesizer.unsupported_records)
+        previous_audits = len(self.dynamic_synthesizer.audit)
+        candidate = self.dynamic_synthesizer.synthesize_and_register(
+            self.rave_runtime,
+            request,
+            raw_request,
+            available_tools,
+        )
+        self.metrics.dynamic_synthesis_records += (
+            len(self.dynamic_synthesizer.unsupported_records) - previous_records
+        )
+        new_audits = self.dynamic_synthesizer.audit[previous_audits:]
+        if candidate is not None:
+            self.metrics.dynamic_synthesis_proposals += 1
+        for audit in new_audits:
+            if audit.decision == "promoted":
+                self.metrics.dynamic_synthesis_promotions += 1
+            elif audit.decision == "rejected":
+                self.metrics.dynamic_synthesis_rejections += 1
+
+        if candidate is None:
+            return None
+        runtime_result = self.rave_runtime.step(
+            request=request,
+            raw_request=raw_request,
+            available_tools=available_tools,
+            hooks=RaveRuntimeHooks.from_policy(
+                self.runtime_policy,
+                enable_abstention=self.options.enable_abstention_verifier,
+            ),
+        )
+        self.intent_frame = runtime_result.frame
+        if runtime_result.action is None:
+            return None
+        if isinstance(runtime_result.action, FinalAction):
+            return "__final__", {
+                "message": runtime_result.action.message,
+            }, runtime_result.action.reason
+        return runtime_result.action.tool, runtime_result.action.args, runtime_result.action.reason
 
     def _compile_intent_frame(
         self,

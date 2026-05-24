@@ -1,5 +1,5 @@
 {
-  "benchmark": "MiniStore RAVE synthetic stateful tool-use pilot",
+  "benchmark": "MiniStore-PCTU synthetic stateful tool-use pilot",
   "seed": 20260427,
   "tasks": 500,
   "methods": [
@@ -10,5 +10,5 @@
     "ReAct + state ledger",
     "Risk-Adaptive Verified Execution"
   ],
-  "note": "This is a controlled pilot simulator for RAVE method debugging. It is not a substitute for ToolSandbox, AppWorld, or another public benchmark."
+  "note": "This is a controlled pilot simulator for method debugging. It is not a substitute for ToolSandbox, AppWorld, or another public benchmark."
 }

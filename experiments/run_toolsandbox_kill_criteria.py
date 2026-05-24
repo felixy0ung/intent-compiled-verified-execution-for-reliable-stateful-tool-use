@@ -81,6 +81,13 @@ RAVE_ABLATION_METHODS = {
         "name": "ToolSandbox RAVE - no abstention verifier",
         "options": {"enable_abstention_verifier": False},
     },
+    "rave_dynamic_synthesis": {
+        "name": "ToolSandbox ICVE dynamic synthesis",
+        "options": {
+            "use_static_intent_machines": False,
+            "enable_dynamic_machine_synthesis": True,
+        },
+    },
 }
 
 
@@ -601,6 +608,10 @@ def run_one(
         "verifier_rejections": metrics.verifier_rejections,
         "repair_calls": metrics.repair_calls,
         "parse_errors": metrics.parse_errors,
+        "dynamic_synthesis_records": metrics.dynamic_synthesis_records,
+        "dynamic_synthesis_proposals": metrics.dynamic_synthesis_proposals,
+        "dynamic_synthesis_promotions": metrics.dynamic_synthesis_promotions,
+        "dynamic_synthesis_rejections": metrics.dynamic_synthesis_rejections,
         "exception_type": exception_type,
         "traceback": traceback_text[-2000:],
     }
@@ -654,6 +665,9 @@ def summarize(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "user_llm_calls_per_task": mean(subset, "user_llm_calls"),
                 "user_token_proxy_per_task": mean(subset, "user_token_proxy"),
                 "parse_errors_per_task": mean(subset, "parse_errors"),
+                "dynamic_synthesis_records_per_task": mean(subset, "dynamic_synthesis_records"),
+                "dynamic_synthesis_promotions_per_task": mean(subset, "dynamic_synthesis_promotions"),
+                "dynamic_synthesis_rejections_per_task": mean(subset, "dynamic_synthesis_rejections"),
             }
         )
     return summary

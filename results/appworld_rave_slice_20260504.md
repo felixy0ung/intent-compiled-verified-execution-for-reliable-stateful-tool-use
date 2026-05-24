@@ -106,7 +106,7 @@ DeepSeek-chat repair and multi-step observation are mixed on the same family: re
 at 0/3 while increasing invalid/repair attempts to 2.0 per task and token proxy to
 11297.7 per task; multi-step observation reaches 1/3 with no invalid calls, but uses 5.0
 LLM calls and 15855.7 token proxy per task. This is a useful sanity check that the
-baseline can sometimes make progress, but it still trails the verified runtime's 3/3.
+baseline can sometimes make progress, but it still trails the ICVE runtime's 3/3.
 
 After adding incremental flushing/resume support to the runner, we also ran DeepSeek-chat
 hosted repair/ReAct on a six-task slice covering `57c3486_*` and `652485c_*`:
@@ -130,7 +130,7 @@ followed-artist song liking, and cross-app playlist sharing:
 | DeepSeek-chat multi-step code-observation twelve-task slice | `results/appworld_llm_react_code_deepseek_chat_incremental12/20260505_084238` | 12 | 5/12 | 0.0000 | 0.7500 | 4.1667 | 11947.5 |
 
 This larger hosted slice again shows partial baseline competence, but also persistent
-failure and high model cost on several stateful families that the verified runtime solves
+failure and high model cost on several stateful families that the runtime-checked executor solves
 deterministically.
 
 ## Interpretation
@@ -138,8 +138,8 @@ deterministically.
 This is a real public stateful benchmark slice on AppWorld, but it is intentionally
 small and has been superseded by the 72-task active slice. The expanded 66-task slice spans twenty-two public state-changing task families. The local
 Qwen2.5-3B and hosted DeepSeek runs use a real LLM only for typed intent/slot extraction;
-the state-changing execution is still performed by RAVE's verified AppWorld runtime.
-Qwen2.5-3B, verified `deepseek-chat`, and `deepseek-reasoner` preserve 66/66 success on this
+the state-changing execution is still performed by the ICVE AppWorld runtime.
+Qwen2.5-3B, `deepseek-chat`, and `deepseek-reasoner` preserve 66/66 success on this
 slice.
 
 The unverified DeepSeek-chat intent run
@@ -150,7 +150,7 @@ began with `Delete`. The instruction-aware slot verifier repairs that high-risk 
 slot before execution and restores 60/60 with zero unsafe changes.
 
 This result strengthens the second-benchmark evidence from "deterministic compiler
-transfer" to "real-LLM intent extraction plus verified runtime transfer." It is still not
+transfer" to "real-LLM intent extraction plus runtime-checked execution." It is still not
 a full AppWorld leaderboard run or broad AppWorld controller.
 
 The latest official AppWorld repository-agent runner was also tested in
@@ -175,8 +175,8 @@ and state-transition logic.
 
 The typed-intent-only code ablation controls for the intent parser: DeepSeek first
 extracts a typed intent frame, but then writes the AppWorld code itself instead of
-using the verified RAVE handler. DeepSeek reaches only 7/66 on this historical slice; local
-Qwen2.5-3B reaches 0/66. This suggests that the verified state-machine runtime, not just
+using the ICVE handler. DeepSeek reaches only 7/66 on this historical slice; local
+Qwen2.5-3B reaches 0/66. This suggests that the runtime-checked state machine, not just
 typed intent recognition, is carrying the AppWorld result.
 
 The local Qwen2.5-3B code-repair and multi-step code-observation baselines also reach
@@ -186,7 +186,7 @@ code-observation uses 4.4697 LLM calls and 9243.8 token proxy per task while inc
 invalid/repair attempts to 3.8182 per task. Repair and observation do not recover the
 weak model's code-generation failures.
 
-The DeepSeek repair baseline is stronger than direct code but still trails the verified runtime: it can use
+The DeepSeek repair baseline is stronger than direct code but still trails the ICVE runtime: it can use
 execution feedback to patch broken code, which improves success on spam-delete,
 Gmail draft deletion, Spotify-follow, and some phone/Venmo tasks, but it still reaches
 only 19/66 and suffers from brittle assumptions, much higher repair/token cost, and
@@ -195,7 +195,7 @@ unsafe state changes on the Gmail thread cleanup family.
 The multi-step code-observation baseline is closer to a ReAct-style AppWorld controller:
 it can inspect live state and issue multiple code cells. It improves over direct-code but
 still reaches only 18/66 success, with substantially higher LLM/token cost than the
-verified runtime.
+ICVE runtime.
 
 The Venmo transfer family incurs RAVE repair cost because AppWorld hides payment-card
 balances, so the runtime must probe non-expired cards until one succeeds.

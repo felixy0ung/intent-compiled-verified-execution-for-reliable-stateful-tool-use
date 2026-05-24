@@ -136,7 +136,7 @@ def execute_appworld_code_safely(execute_code: Any, code: str) -> str:
 
 
 class AppWorldLLMIntentAgent:
-    """Real-LLM intent/slot extractor with the same verified AppWorld runtime."""
+    """Real-LLM intent/slot extractor with the same runtime-checked AppWorld executor."""
 
     def __init__(
         self,
@@ -639,7 +639,7 @@ class AppWorldLLMIntentCodeAgent:
                 ChatMessage(
                     "user",
                     "Use this typed intent frame as the source of task parameters, "
-                    "but write the AppWorld code yourself without a verified runtime.\n\n"
+                    "but write the AppWorld code yourself without using the ICVE runtime.\n\n"
                     f"Task instruction:\n{instruction}\n\n"
                     f"Typed intent frame:\n{json.dumps({'intent_type': intent_type, 'slots': normalized_slots}, sort_keys=True)}\n\n"
                     "Return Python code only.",
@@ -10919,7 +10919,7 @@ def verify_or_repair_llm_intent_frame(
 
 def appworld_intent_system_prompt() -> str:
     return """
-You extract a typed intent frame for a verified AppWorld runtime. Return exactly one JSON object and no prose.
+You extract a typed intent frame for a runtime-checked AppWorld executor. Return exactly one JSON object and no prose.
 
 Supported JSON format:
 {"intent_type":"...", "slots":{...}}

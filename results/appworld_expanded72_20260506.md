@@ -81,7 +81,7 @@ The DeepSeek-chat code baselines are also combined to the same 72-task dataset:
 
 ## Interpretation
 
-This strengthens the local AppWorld evidence: the same verified runtime now covers 24
+This strengthens the local AppWorld evidence: the same runtime-checked executor now covers 24
 registered AppWorld intent machines and 72 public state-changing tasks. The new tasks are
 not ground-truth scripted; they are implemented through the typed RAVE runtime and live
 AppWorld APIs.
