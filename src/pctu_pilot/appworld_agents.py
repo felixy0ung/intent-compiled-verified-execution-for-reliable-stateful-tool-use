@@ -1183,6 +1183,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_answer_last_order_question_yes_no",
+                (
+                    SlotSpec("product_type"),
+                    SlotSpec("question"),
+                ),
+            ),
+            compiler=compile_amazon_answer_last_order_question_yes_no,
+            handler=handle_amazon_answer_last_order_question_yes_no,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_delete_gmail_empty_drafts",
                 (SlotSpec("condition"),),
             ),
@@ -4198,6 +4209,25 @@ def compile_amazon_update_last_month_order_review(
     frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
     frame.set_slot("target_rating", int(match.group("rating")), source="regex")
     frame.set_slot("title", match.group("title").strip(), source="regex")
+    return frame
+
+
+def compile_amazon_answer_last_order_question_yes_no(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Based on the question I posted about my last (?P<product_type>.+?) order on amazon, "
+        r"(?P<question>.+?) Say yes or no\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_answer_last_order_question_yes_no")
+    frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+    frame.set_slot("question", compact_text(match.group("question")).rstrip("?"), source="regex")
     return frame
 
 
@@ -9380,6 +9410,120 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_update_last_month_order_review",
+    )
+
+
+def handle_amazon_answer_last_order_question_yes_no(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_type = frame.get("product_type")
+    question = str(frame.get("question") or "").strip()
+    if not product_type or not question:
+        frame.abstain_reason = "missing_amazon_last_order_question_answer_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_type = {json.dumps(normalize_amazon_product_type(product_type))}
+target_question = {json.dumps(question)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = re.sub(r"\\bfading\\b", "fade", value)
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def product_matches(item, product):
+    target_words = word_set(target_product_type)
+    item_text = " ".join([
+        str(item.get("product_name") or ""),
+        str(product.get("color") or ""),
+        str(product.get("name") or ""),
+        str(product.get("product_type") or ""),
+        str(product.get("description") or ""),
+    ])
+    if normalize_text(product.get("product_type")) == normalize_text(target_product_type):
+        return True
+    return bool(target_words) and target_words <= word_set(item_text)
+
+def question_matches(question_text):
+    target_words = word_set(target_question)
+    question_words = word_set(question_text)
+    return bool(target_words) and target_words <= question_words
+
+def classify_answer(answer_text):
+    text = normalize_text(answer_text)
+    if re.search(r"\\b(yes|yeah|yep|for sure|definitely|i have)\\b", text):
+        return "yes"
+    if re.search(r"\\b(no|nope|not|never|haven t|have not|doesn t|does not)\\b", text):
+        return "no"
+    return ""
+
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="-created_at",
+))
+orders = sorted(orders, key=lambda order: str(order.get("created_at") or ""), reverse=True)
+candidates = []
+for order in orders:
+    for item in order.get("order_items", []):
+        product = apis.amazon.show_product(product_id=item["product_id"])
+        if not product_matches(item, product):
+            continue
+        questions = paged(lambda page, product_id=item["product_id"]: apis.amazon.show_product_questions(
+            product_id=product_id,
+            user_email=profile["email"],
+            page_index=page,
+            page_limit=20,
+            sort_by="-created_at",
+        ))
+        for question in questions:
+            if not question_matches(question.get("question")):
+                continue
+            answers = paged(lambda page, question_id=question["question_id"]: apis.amazon.show_product_question_answers(
+                question_id=question_id,
+                page_index=page,
+                page_limit=20,
+                sort_by="-created_at",
+            ))
+            labels = [classify_answer(answer.get("answer", "")) for answer in answers]
+            labels = [label for label in labels if label]
+            candidates.append({{
+                "order_id": order["order_id"],
+                "order_created_at": order.get("created_at", ""),
+                "product_id": item["product_id"],
+                "question_id": question["question_id"],
+                "question": question.get("question"),
+                "labels": labels,
+            }})
+if not candidates:
+    raise Exception(f"No matching Amazon question found for last {{target_product_type}} order.")
+candidates.sort(key=lambda row: (str(row.get("order_created_at") or ""), int(row["order_id"]), int(row["product_id"]), int(row["question_id"])), reverse=True)
+selected = candidates[0]
+labels = selected["labels"]
+if not labels:
+    raise Exception(f"Matching Amazon question {{selected['question_id']}} has no yes/no answers.")
+label_set = set(labels)
+if len(label_set) != 1:
+    raise Exception(f"Conflicting yes/no answers for question {{selected['question_id']}}: {{labels}}")
+answer = labels[0]
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "product_type": target_product_type,
+    "product_id": selected["product_id"],
+    "order_id": selected["order_id"],
+    "question_id": selected["question_id"],
+    "answer": answer,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_answer_last_order_question_yes_no",
     )
 
 
@@ -15142,6 +15286,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "target_rating": int(slots.get("target_rating") or slots.get("rating") or 0),
             "title": str(slots.get("title") or slots.get("review_title") or "").strip(),
         }
+    if intent_type == "appworld_amazon_answer_last_order_question_yes_no":
+        return {
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "question": str(slots.get("question") or "").strip().rstrip("?"),
+        }
     if intent_type == "appworld_delete_gmail_empty_drafts":
         condition = str(slots.get("condition", "")).strip().lower()
         if condition in {"and", "both", "all"}:
@@ -15777,6 +15926,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_answer_last_order_question_yes_no":
+        if not re.fullmatch(
+            r"based on the question i posted about my last .+? order on amazon, .+? say yes or no\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_star_threads_by_relationship":
         if not raw.startswith("star all my gmail threads"):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -16064,6 +16222,8 @@ Supported intent types and slots:
    slots: product_type string; question string.
 18. appworld_amazon_update_last_month_order_review
    slots: product_color string; product_type string; target_rating integer from 1 to 5; title string.
+18. appworld_amazon_answer_last_order_question_yes_no
+   slots: product_type string; question string without the trailing "Say yes or no".
 18. appworld_delete_gmail_empty_drafts
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
@@ -16388,6 +16548,9 @@ JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots
 Task: Change my amazon review about the grey t-shirt I ordered last calendar month. Make it 1 star with the title "Shrunk and Misshaped After First Wash!".
 JSON: {"intent_type":"appworld_amazon_update_last_month_order_review","slots":{"product_color":"grey","product_type":"t-shirt","target_rating":1,"title":"Shrunk and Misshaped After First Wash!"}}
 
+Task: Based on the question I posted about my last t-shirt order on amazon, has anyone experienced color fading after the first wash? Say yes or no.
+JSON: {"intent_type":"appworld_amazon_answer_last_order_question_yes_no","slots":{"product_type":"t-shirt","question":"has anyone experienced color fading after the first wash"}}
+
 Task: Delete all my Gmail drafts that have empty subject and body.
 JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"both"}}
 
@@ -16707,6 +16870,8 @@ Relevant APIs for this slice:
 - apis.amazon.show_orders(access_token=..., page_index=0, page_limit=20, sort_by="-created_at")
 - apis.amazon.show_product_reviews(product_id=..., user_email=..., page_index=0, page_limit=20)
 - apis.amazon.update_product_review(access_token=..., review_id=..., rating=..., title=...)
+- apis.amazon.show_product_questions(product_id=..., user_email=..., page_index=0, page_limit=20)
+- apis.amazon.show_product_question_answers(question_id=..., page_index=0, page_limit=20)
 - apis.venmo.search_users(access_token=..., query=..., page_limit=20)
 - apis.venmo.search_friends(access_token=..., query=..., page_index=0, page_limit=20)
 - apis.venmo.add_friend(access_token=..., user_email=...)

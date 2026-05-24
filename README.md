@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 105/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 108/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -74,6 +74,10 @@ AppWorld leaderboard submission.
 - Held-out AppWorld Amazon last-month review-update slice: one general Amazon machine
   updates the existing review for the requested color and apparel type across 3
   `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
+- Held-out AppWorld Amazon last-order question-answer slice: one general Amazon
+  answer-only machine resolves the user's latest matching product question and answers
+  yes/no from visible answers across 3 `test_challenge` tasks with 3/3 success,
+  0 invalid calls, and 0 unsafe changes.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice: one general
   cross-app machine covers 3 `test_challenge` tasks with 3/3 success, 0 invalid calls,
   and 0 unsafe changes.
@@ -120,7 +124,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 114 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 115 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -174,6 +178,8 @@ AppWorld leaderboard submission.
   `results/appworld_amazon_post_last_order_question_20260525/20260525_052247/`
 - AppWorld held-out Amazon last-month review-update slice:
   `results/appworld_amazon_update_last_month_review_20260525/20260525_053844/`
+- AppWorld held-out Amazon last-order question-answer slice:
+  `results/appworld_amazon_answer_last_order_question_20260525/20260525_055112/`
 - AppWorld held-out Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420/`
 - AppWorld held-out Spotify draft recommendation update/send slice:

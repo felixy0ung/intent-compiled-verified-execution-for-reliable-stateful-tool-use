@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 105/417 `test_challenge` instructions to complete frames. The same
+  instructions and 108/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -271,6 +271,15 @@ extraction call per task plus the runtime-checked executor.
   identify the existing review and update its rating/title, reaching 3/3 success with
   0 invalid calls and 0 unsafe state changes. This is a narrow held-out slice, not a
   full `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon last-order question-answer slice:
+  `results/appworld_amazon_answer_last_order_question_20260525/20260525_055112`
+  records three local `test_challenge` answer-only tasks whose public instructions ask
+  whether visible answers to the user's latest matching Amazon product question imply
+  yes or no. One general Amazon ICVE machine grounds the latest matching order,
+  retrieves the user's visible product question and visible answers, normalizes yes/no
+  evidence, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
+  This is answer-only coverage evidence, not a full `test_challenge` or leaderboard
+  result.
 - Held-out AppWorld Gmail-to-Spotify song-recommendation reply slice:
   `results/appworld_spotify_liked_song_email_recommendations_20260525/20260525_013420`
   records three local `test_challenge` tasks whose public instructions ask to reply over
