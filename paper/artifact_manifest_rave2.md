@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 57/417 `test_challenge` instructions to complete frames. The same
+  instructions and 60/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -279,6 +279,16 @@ extraction call per task plus the runtime-checked executor.
   private transactions, and sends the requested group email, reaching 3/3 success with
   0 invalid calls and 0 unsafe state changes. This is a narrow held-out slice, not a
   full `test_challenge` or leaderboard result.
+- Held-out AppWorld shared-subscription password + phone-text slice:
+  `results/appworld_shared_subscription_password_text_20260525/20260525_032327` records
+  three local `test_challenge` tasks whose public instructions ask to change a shared
+  Amazon Prime or Spotify Premium account password and notify roommates or siblings by
+  phone text. One general Amazon/Spotify + Gmail + phone ICVE machine requests a
+  password-reset code for the target app, grounds the code through runtime-visible Gmail
+  evidence, resets the account password, and sends the new password to all target
+  relationship contacts, reaching 3/3 success with 0 invalid calls and 0 unsafe state
+  changes. This is a narrow held-out slice, not a full `test_challenge` or leaderboard
+  result.
 - Multi-turn diagnostic:
   `results/toolsandbox_qwen25_05b_rave2_multiturn_completion_patch_full/20260504_131011`
   and hosted replication

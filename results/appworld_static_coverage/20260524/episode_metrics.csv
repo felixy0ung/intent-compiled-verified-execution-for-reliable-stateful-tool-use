@@ -296,9 +296,9 @@ test_challenge,1a79e37_3,1a79e37,0,0,0,0,unsupported,,,amazon_purchase_or_produc
 test_challenge,f3a6713_1,f3a6713,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,56e331cf5606e295
 test_challenge,f3a6713_2,f3a6713,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ea939d5be12ecb38
 test_challenge,f3a6713_3,f3a6713,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,123d6922028f7a88
-test_challenge,a5b0084_1,a5b0084,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,be1aa0f2ff21f20e
-test_challenge,a5b0084_2,a5b0084,0,0,0,0,unsupported,,,spotify_music,934c43b7e8b85574
-test_challenge,a5b0084_3,a5b0084,0,0,0,0,unsupported,,,spotify_music,9d2e8edb1ae1a890
+test_challenge,a5b0084_1,a5b0084,1,1,0,0,appworld_shared_subscription_password_reset_and_text,,,,be1aa0f2ff21f20e
+test_challenge,a5b0084_2,a5b0084,1,1,0,0,appworld_shared_subscription_password_reset_and_text,,,,934c43b7e8b85574
+test_challenge,a5b0084_3,a5b0084,1,1,0,0,appworld_shared_subscription_password_reset_and_text,,,,9d2e8edb1ae1a890
 test_challenge,f86d850_1,f86d850,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,399fcfe147ade50a
 test_challenge,f86d850_2,f86d850,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,c8d3c68ebd6a279e
 test_challenge,f86d850_3,f86d850,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ca78c57b45e4d8d9

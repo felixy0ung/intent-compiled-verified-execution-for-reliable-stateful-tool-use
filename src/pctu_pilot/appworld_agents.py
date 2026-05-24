@@ -777,6 +777,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_shared_subscription_password_reset_and_text",
+                (
+                    SlotSpec("app_name"),
+                    SlotSpec("subscription_name"),
+                    SlotSpec("relationships"),
+                    SlotSpec("new_password"),
+                ),
+            ),
+            compiler=compile_shared_subscription_password_reset_and_text,
+            handler=handle_shared_subscription_password_reset_and_text,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_venmo_change_password",
                 (SlotSpec("new_password"),),
             ),
@@ -1826,6 +1839,31 @@ def compile_phone_message_app_account_verify_reset(
     frame.set_slot("relationship", relationship, source="regex")
     frame.set_slot("password", match.group("password").strip(), source="regex")
     frame.set_slot("date_window", match.group("window").lower(), source="regex")
+    return frame
+
+
+def compile_shared_subscription_password_reset_and_text(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"I share my (?P<app>amazon|spotify) (?P<subscription>prime|premium) account "
+        r"with my (?P<relations>roommates|siblings)\. I am having trouble logging in\. "
+        r"Change its password to (?P<password>.+?) and share it with them via phone text message\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationships = extract_relationships(match.group("relations"))
+    if not relationships:
+        return None
+    frame = IntentFrame("appworld_shared_subscription_password_reset_and_text")
+    frame.set_slot("app_name", match.group("app").lower(), source="regex")
+    frame.set_slot("subscription_name", match.group("subscription").lower(), source="regex")
+    frame.set_slot("relationships", relationships, source="regex")
+    frame.set_slot("new_password", match.group("password").strip(), source="regex")
     return frame
 
 
@@ -4313,6 +4351,132 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_phone_message_app_account_verify_reset",
+    )
+
+
+def handle_shared_subscription_password_reset_and_text(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    app_name = str(frame.get("app_name") or "").strip().lower()
+    subscription_name = str(frame.get("subscription_name") or "").strip().lower()
+    relationships = frame.get("relationships", [])
+    new_password = str(frame.get("new_password") or "").strip()
+    if (
+        app_name not in {"amazon", "spotify"}
+        or subscription_name not in {"prime", "premium"}
+        or not relationships
+        or not new_password
+    ):
+        frame.abstain_reason = "missing_shared_subscription_password_reset_slots"
+        return None
+    code = common_appworld_prelude(["phone", "gmail", app_name]) + f"""
+app_name = {json.dumps(app_name)}
+subscription_name = {json.dumps(subscription_name)}
+relationships = {json.dumps(relationships)}
+new_password = {json.dumps(new_password)}
+app_api = getattr(apis, app_name)
+
+def code_from_email(text):
+    patterns = [
+        r"password reset code is:\\s*([A-Za-z0-9_-]+)",
+        r"reset code is:\\s*([A-Za-z0-9_-]+)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, flags=re.IGNORECASE)
+        if match:
+            return match.group(1).strip()
+    return ""
+
+def find_recent_password_reset_code():
+    app_label = app_name
+    queries = [
+        f"{{app_label}} Password Reset Code",
+        f"{{app_label}} password reset code",
+        "Password Reset Code",
+    ]
+    for query in queries:
+        page_index = 0
+        while page_index < 3:
+            threads = apis.gmail.show_inbox_threads(
+                access_token=tokens["gmail"],
+                query=query,
+                page_index=page_index,
+                page_limit=20,
+                sort_by="-created_at",
+            )
+            for thread in threads:
+                thread_id = thread.get("email_thread_id")
+                if thread_id is None:
+                    continue
+                detail = apis.gmail.show_thread(
+                    access_token=tokens["gmail"],
+                    email_thread_id=thread_id,
+                )
+                for email in detail.get("emails", []):
+                    subject = str(email.get("subject") or "")
+                    body = str(email.get("body") or "")
+                    text = subject + "\\n" + body
+                    if app_label not in text.lower():
+                        continue
+                    code = code_from_email(text)
+                    if code:
+                        return code
+            if len(threads) < 20:
+                break
+            page_index += 1
+    return ""
+
+email = profile["email"]
+reset_request = app_api.send_password_reset_code(email=email)
+reset_code = find_recent_password_reset_code()
+if not reset_code:
+    raise Exception(f"No {{app_name}} password reset code found in Gmail.")
+app_api.reset_password(
+    email=email,
+    password_reset_code=reset_code,
+    new_password=new_password,
+)
+
+message = (
+    f"I changed the {{app_name}} {{subscription_name}} account password to {{new_password}}."
+)
+sent_to = []
+seen_phone_numbers = set()
+for relationship in relationships:
+    contacts = paged(lambda page, relationship=relationship: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship=relationship,
+        page_index=page,
+        page_limit=20,
+    ))
+    for contact in contacts:
+        phone_number = str(contact.get("phone_number") or "").strip()
+        if not phone_number or phone_number in seen_phone_numbers:
+            continue
+        seen_phone_numbers.add(phone_number)
+        apis.phone.send_text_message(
+            access_token=tokens["phone"],
+            phone_number=phone_number,
+            message=message,
+        )
+        sent_to.append(phone_number)
+if not sent_to:
+    raise Exception(f"No phone contacts found for relationships: {{relationships}}")
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "app_name": app_name,
+    "subscription_name": subscription_name,
+    "relationships": relationships,
+    "password_reset_requested": bool(reset_request),
+    "sent_to": sent_to,
+    "message": message,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_shared_subscription_password_reset_and_text",
     )
 
 
@@ -12845,6 +13009,31 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "password": str(slots.get("password") or "").strip(),
             "date_window": str(slots.get("date_window") or "yesterday").strip().lower(),
         }
+    if intent_type == "appworld_shared_subscription_password_reset_and_text":
+        relationships_value = slots.get("relationships") or slots.get("relationship") or []
+        if isinstance(relationships_value, str):
+            relationships = extract_relationships(relationships_value)
+        else:
+            relationships = []
+            for item in relationships_value if isinstance(relationships_value, list) else []:
+                key = str(item).lower().strip()
+                relationship = RELATION_ALIASES.get(key, key)
+                if relationship and relationship not in relationships:
+                    relationships.append(relationship)
+        return {
+            "app_name": str(slots.get("app_name") or slots.get("app") or "").strip().lower(),
+            "subscription_name": str(
+                slots.get("subscription_name")
+                or slots.get("subscription")
+                or ""
+            ).strip().lower(),
+            "relationships": relationships,
+            "new_password": str(
+                slots.get("new_password")
+                or slots.get("password")
+                or ""
+            ).strip(),
+        }
     if intent_type == "appworld_pay_csv_debts_via_venmo_or_splitwise":
         private_value = slots.get("private")
         privacy = str(slots.get("privacy") or "").strip().lower()
@@ -13631,6 +13820,19 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_shared_subscription_password_reset_and_text":
+        required = [
+            "i share my ",
+            " account with my ",
+            "having trouble logging in",
+            "change its password to ",
+            "via phone text message",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_venmo_send_to_named_user_with_optional_signup":
         required = [
             "send $",
@@ -13770,6 +13972,8 @@ Supported intent types and slots:
    slots: relationships list using singular values from [parent, roommate], password string, message string.
 6. appworld_phone_message_app_account_verify_reset
    slots: relationship string, one of son, daughter, or child; password string; date_window string, normally yesterday.
+6. appworld_shared_subscription_password_reset_and_text
+   slots: app_name string one of amazon or spotify; subscription_name string one of prime or premium; relationships list using singular values from [roommate, sibling]; new_password string.
 6. appworld_venmo_change_password
    slots: new_password string.
 6. appworld_splitwise_record_venmo_receipt_payments
@@ -13987,6 +14191,9 @@ JSON: {"intent_type":"appworld_venmo_signup_missing_relationship_accounts","slot
 
 Task: My son sent me a message yesterday on phone about an app account creation. Please do as per his message. Use password UEHA7Gv for the new account.
 JSON: {"intent_type":"appworld_phone_message_app_account_verify_reset","slots":{"relationship":"son","password":"UEHA7Gv","date_window":"yesterday"}}
+
+Task: I share my spotify premium account with my siblings. I am having trouble logging in. Change its password to +68qUnL and share it with them via phone text message.
+JSON: {"intent_type":"appworld_shared_subscription_password_reset_and_text","slots":{"app_name":"spotify","subscription_name":"premium","relationships":["sibling"],"new_password":"+68qUnL"}}
 
 Task: Change my venmo password to aQAdQp
 JSON: {"intent_type":"appworld_venmo_change_password","slots":{"new_password":"aQAdQp"}}

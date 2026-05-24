@@ -50,10 +50,10 @@ The static public-instruction audit covers all local AppWorld `test_normal.txt` 
 `test_challenge.txt` IDs without executing tools or loading ground truth. It compiles
 168/168
 `test_normal` instructions and
-57/417
+60/417
 `test_challenge` instructions to complete intent frames. Unsupported `test_challenge`
 rows cluster mainly in amazon_purchase_or_product_search
-(206 tasks) and
+(205 tasks) and
 gmail_email
 (107 tasks), making the coverage boundary
 auditable rather than implicit.
@@ -61,7 +61,7 @@ auditable rather than implicit.
 ## Machine Coverage and Development Cost
 
 The ToolSandbox binding has 13 static intent machines.
-The AppWorld binding has 99 static intent machines; the
+The AppWorld binding has 100 static intent machines; the
 full168 diagnostic uses 55 machine types for
 168 supported tasks, or
 3.05 tasks per used machine. For used AppWorld

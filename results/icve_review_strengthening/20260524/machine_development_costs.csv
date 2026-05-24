@@ -69,6 +69,7 @@ appworld_gmail_thread_cleanup,2,"action,exception_mode",18,63,81,0,0,0,0,"gmail,
 appworld_phone_message_app_account_verify_reset,3,"relationship,password,date_window",20,185,205,0,0,0,0,"gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_phone_message_non_venmo_contacts,3,"relationships,excluded_app,message",18,48,66,0,0,0,0,"phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_remove_expired_payment_cards,0,none,12,46,58,0,0,0,0,supervisor,"schema,compiler,handler,ledger,policy",not_recorded
+appworld_shared_subscription_password_reset_and_text,4,"app_name,subscription_name,relationships,new_password",23,121,144,0,0,0,0,"gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_simple_note_export_markdown,1,destination_directory,17,50,67,0,0,0,0,"file_system,simple_note,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_add_artist_playcount_songs_to_queue,2,"artist_name,min_play_count",17,47,64,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_spotify_count_recent_release_library_songs,2,"years_back,include_current_year",37,50,87,0,0,0,0,"spotify,supervisor","schema,compiler,handler,ledger,policy",not_recorded
