@@ -76,6 +76,7 @@ appworld_amazon_order_trip_supplies_by_deadline,5,"product_types,quantity,trip_d
 appworld_amazon_post_question_last_ordered_product,2,"product_type,question",16,72,88,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_purchase_phone_recommendation,4,"recommender_first_name,product_type,address_name,card_name",19,250,269,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_replace_last_product_adjacent_size,5,"product_type,size_direction,preferred_color,address_name,card_name",25,218,243,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_request_cart_cost_on_venmo,2,"relationship,person_first_name",22,97,119,0,0,0,0,"amazon,phone,supervisor,venmo","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_return_recent_orders,2,"order_count,deliverer_name",16,80,96,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_return_same_product_except_size_this_week,3,"product_name,keep_size,deliverer_name",19,130,149,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_text_wishlist_itemized_costs,1,relationship,19,58,77,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded

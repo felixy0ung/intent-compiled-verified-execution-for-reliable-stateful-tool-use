@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 207/417 `test_challenge` instructions to complete frames. The same
+  instructions and 210/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -502,6 +502,16 @@ extraction call per task plus the runtime-checked executor.
   recipients, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
   This is narrow held-out coverage evidence, not a full `test_challenge` or leaderboard
   result.
+- Held-out AppWorld Amazon-cart Venmo request slice:
+  `results/appworld_amazon_cart_venmo_request_20260525/20260525_123431` records three
+  local `test_challenge` tasks whose public instructions say the current Amazon cart is
+  for a named friend or roommate and ask to request the cart cost on Venmo while ignoring
+  tax and delivery fees. One general Amazon + phone + Venmo ICVE machine reads the
+  runtime-visible Amazon cart product prices and quantities without placing an order,
+  resolves the named contact and Venmo account, creates one payment request for the cart
+  product subtotal, and reaches 3/3 success with 0 invalid calls and 0 unsafe state
+  changes. This is narrow held-out coverage evidence, not a full `test_challenge` or
+  leaderboard result.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice:
   `results/appworld_membership_paid_total_answer_20260525/20260525_063804` records
   three local `test_challenge` answer-only tasks whose public instructions ask how much

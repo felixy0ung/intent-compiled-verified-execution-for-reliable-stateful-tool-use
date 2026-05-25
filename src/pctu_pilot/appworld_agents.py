@@ -1142,6 +1142,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_request_cart_cost_on_venmo",
+                (
+                    SlotSpec("relationship"),
+                    SlotSpec("person_first_name"),
+                ),
+            ),
+            compiler=compile_amazon_request_cart_cost_on_venmo,
+            handler=handle_amazon_request_cart_cost_on_venmo,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_order_saved_collections",
                 (
                     SlotSpec("containers"),
@@ -4539,6 +4550,30 @@ def compile_amazon_answer_cart_wishlist_total(
     ):
         return None
     return IntentFrame("appworld_amazon_answer_cart_wishlist_total")
+
+
+def compile_amazon_request_cart_cost_on_venmo(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Everything in my amazon cart is for my (?P<relationship>friend|roommate), "
+        r"(?P<first_name>[A-Z][A-Za-z'-]+)\. Request them money for it on venmo\. "
+        r"Ignore tax and delivery fees from the cart cost\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationship = RELATION_ALIASES.get(
+        match.group("relationship").lower(),
+        match.group("relationship").lower(),
+    )
+    frame = IntentFrame("appworld_amazon_request_cart_cost_on_venmo")
+    frame.set_slot("relationship", relationship, source="regex")
+    frame.set_slot("person_first_name", match.group("first_name").strip(), source="regex")
+    return frame
 
 
 def compile_amazon_order_saved_collections(
@@ -10098,6 +10133,109 @@ print(json.dumps({
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_answer_cart_wishlist_total",
+    )
+
+
+def handle_amazon_request_cart_cost_on_venmo(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    first_name = str(frame.get("person_first_name") or "").strip()
+    if relationship not in {"friend", "roommate"} or not first_name:
+        frame.abstain_reason = "missing_amazon_cart_venmo_request_slots"
+        return None
+    code = common_appworld_prelude(["amazon", "phone", "venmo"]) + f"""
+relationship = {json.dumps(relationship)}
+first_name = {json.dumps(first_name)}
+first_name_lower = first_name.lower()
+
+cart = apis.amazon.show_cart(access_token=tokens["amazon"])
+cart_items = list(cart.get("cart_items", []))
+if not cart_items:
+    raise Exception("Amazon cart is empty.")
+cart_total = 0.0
+item_summaries = []
+for item in cart_items:
+    quantity = int(item.get("quantity") or 1)
+    price = float(item.get("price") or 0)
+    if quantity <= 0 or price < 0:
+        raise Exception(f"Invalid cart item price/quantity: {{item}}")
+    line_total = price * quantity
+    cart_total += line_total
+    item_summaries.append({{
+        "product_id": item.get("product_id"),
+        "quantity": quantity,
+        "price": price,
+        "line_total": line_total,
+    }})
+amount = round(cart_total + 1e-9, 2)
+if amount <= 0:
+    raise Exception(f"Computed non-positive Amazon cart subtotal: {{amount}}")
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    query=first_name,
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+matching_contacts = [
+    contact for contact in contacts
+    if str(contact.get("first_name") or "").strip().lower() == first_name_lower
+]
+if not matching_contacts:
+    contacts = paged(lambda page: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship=relationship,
+        page_index=page,
+        page_limit=20,
+    ))
+    matching_contacts = [
+        contact for contact in contacts
+        if str(contact.get("first_name") or "").strip().lower() == first_name_lower
+    ]
+if len(matching_contacts) != 1:
+    raise Exception(f"Expected exactly one {{relationship}} named {{first_name}}, found {{len(matching_contacts)}}.")
+email = str(matching_contacts[0].get("email") or "").strip().lower()
+if not email:
+    raise Exception(f"Contact {{first_name}} has no email address.")
+
+venmo_users = apis.venmo.search_users(
+    access_token=tokens["venmo"],
+    query=email,
+    page_limit=20,
+)
+matching_users = [
+    user for user in venmo_users
+    if str(user.get("email") or "").strip().lower() == email
+]
+if len(matching_users) != 1:
+    raise Exception(f"Expected exactly one Venmo user for {{email}}, found {{matching_users}}.")
+result = apis.venmo.create_payment_request(
+    access_token=tokens["venmo"],
+    user_email=matching_users[0]["email"],
+    amount=amount,
+    description="Amazon cart",
+    private=False,
+)
+if "payment_request_id" not in result:
+    raise Exception(f"Unable to create Venmo payment request: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "relationship": relationship,
+    "person_first_name": first_name,
+    "receiver_email": matching_users[0]["email"],
+    "amount": amount,
+    "cart_item_count": len(cart_items),
+    "payment_request_id": result.get("payment_request_id"),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_request_cart_cost_on_venmo",
     )
 
 
@@ -20044,6 +20182,17 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         return {"relationship": RELATION_ALIASES.get(relationship, relationship)}
     if intent_type == "appworld_amazon_answer_cart_wishlist_total":
         return {}
+    if intent_type == "appworld_amazon_request_cart_cost_on_venmo":
+        relationship = str(slots.get("relationship") or "").strip().lower()
+        relationship = RELATION_ALIASES.get(relationship, relationship)
+        return {
+            "relationship": relationship,
+            "person_first_name": str(
+                slots.get("person_first_name")
+                or slots.get("first_name")
+                or ""
+            ).strip(),
+        }
     if intent_type == "appworld_amazon_order_saved_collections":
         containers_value = slots.get("containers") or slots.get("source_containers") or []
         if isinstance(containers_value, str):
@@ -20853,6 +21002,7 @@ def verify_or_repair_llm_intent_frame(
     raw = instruction.strip().lower()
     strict_compiler_intents = {
         "appworld_splitwise_record_trip_expenses_from_simple_note",
+        "appworld_amazon_request_cart_cost_on_venmo",
         "appworld_venmo_request_money_from_contact",
         "appworld_venmo_settle_roommate_dinner",
         "appworld_file_update_reunion_rsvps_from_phone",
@@ -21582,6 +21732,8 @@ Supported intent types and slots:
    slots: relationship string, one of husband, wife, or partner.
 18. appworld_amazon_answer_cart_wishlist_total
    slots: empty object.
+18. appworld_amazon_request_cart_cost_on_venmo
+   slots: relationship string, one of friend or roommate; person_first_name string.
 18. appworld_amazon_order_saved_collections
    slots: containers list using values from [cart, wish_list]; address_name string, one of Home or Work; card_name string, optional.
 18. appworld_amazon_cart_buy_cheapest_per_type_move_rest
@@ -21948,6 +22100,9 @@ JSON: {"intent_type":"appworld_amazon_text_wishlist_itemized_costs","slots":{"re
 
 Task: How much does my amazon cart and wishlist cost in total, ignoring potential tax and delivery fees?
 JSON: {"intent_type":"appworld_amazon_answer_cart_wishlist_total","slots":{}}
+
+Task: Everything in my amazon cart is for my friend, Denise. Request them money for it on venmo. Ignore tax and delivery fees from the cart cost.
+JSON: {"intent_type":"appworld_amazon_request_cart_cost_on_venmo","slots":{"relationship":"friend","person_first_name":"Denise"}}
 
 Task: Buy everything on my amazon wishlist, and have it delivered to my work address.
 JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"containers":["wish_list"],"address_name":"Work","card_name":""}}

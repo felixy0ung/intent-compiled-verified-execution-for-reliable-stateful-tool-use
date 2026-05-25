@@ -77,6 +77,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_cart_cheapest_per_type_20260525": {"20260525_094418"},
     "appworld_amazon_order_receipt_archive_20260525": {"20260525_095958"},
     "appworld_amazon_all_receipts_download_20260525": {"20260525_100831"},
+    "appworld_amazon_cart_venmo_request_20260525": {"20260525_123431"},
     "appworld_amazon_trip_supplies_deadline_20260525": {"20260525_102345"},
     "appworld_gmail_amazon_promo_codes_20260525": {"20260525_104850"},
     "appworld_gmail_file_email_20260525": {"20260525_120329"},

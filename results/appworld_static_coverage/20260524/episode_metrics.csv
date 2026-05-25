@@ -347,9 +347,9 @@ test_challenge,b08d5ef_3,b08d5ef,0,0,0,0,unsupported,,,amazon_purchase_or_produc
 test_challenge,92fe421_1,92fe421,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,f2f4cb2663fd3e39
 test_challenge,92fe421_2,92fe421,0,0,0,0,unsupported,,,venmo_payment_or_request,ed9ef744051ca1be
 test_challenge,92fe421_3,92fe421,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,4de88f519aead414
-test_challenge,2e9b91e_1,2e9b91e,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,26db45c8b4268ccf
-test_challenge,2e9b91e_2,2e9b91e,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,9341db4e993bfe03
-test_challenge,2e9b91e_3,2e9b91e,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,291b17a6e7143a69
+test_challenge,2e9b91e_1,2e9b91e,1,1,0,0,appworld_amazon_request_cart_cost_on_venmo,,,,26db45c8b4268ccf
+test_challenge,2e9b91e_2,2e9b91e,1,1,0,0,appworld_amazon_request_cart_cost_on_venmo,,,,9341db4e993bfe03
+test_challenge,2e9b91e_3,2e9b91e,1,1,0,0,appworld_amazon_request_cart_cost_on_venmo,,,,291b17a6e7143a69
 test_challenge,fa327a6_1,fa327a6,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,ace5f1bf7f25d256
 test_challenge,fa327a6_2,fa327a6,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,28abf942515e989e
 test_challenge,fa327a6_3,fa327a6,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,aceac58400a75217

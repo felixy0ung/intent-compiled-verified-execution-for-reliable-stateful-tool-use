@@ -13,6 +13,7 @@ test_challenge,23d431c,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,245cb43,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,258796c,3,3,3,1.0,1.0,appworld_amazon_answer_verified_battery_life_hours,
 test_challenge,277d81d,3,3,3,1.0,1.0,appworld_gmail_mark_threads_read_state_by_calendar_window,
+test_challenge,2e9b91e,3,3,3,1.0,1.0,appworld_amazon_request_cart_cost_on_venmo,
 test_challenge,3650990,3,3,3,1.0,1.0,appworld_amazon_answer_returned_product_yes_no,
 test_challenge,365e0a3,3,3,3,1.0,1.0,appworld_membership_paid_total,
 test_challenge,383a053,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
@@ -71,7 +72,6 @@ test_challenge,fddb6b6,3,3,3,1.0,1.0,appworld_gmail_forward_caterer_bill_to_mana
 test_challenge,099174d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,18670a5,3,0,0,0.0,0.0,,gmail_email
 test_challenge,1a79e37,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,2e9b91e,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,2ff4dfb,3,0,0,0.0,0.0,,gmail_email
 test_challenge,30e8586,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,321ec38,3,0,0,0.0,0.0,,gmail_email
