@@ -1,38 +1,38 @@
 {
   "audit_type": "static_public_instruction_compile_coverage",
   "not_a_success_or_leaderboard_metric": true,
-  "registered_appworld_machines": 127,
+  "registered_appworld_machines": 128,
   "total_tasks": 585,
   "overall": {
     "tasks": 585,
-    "compiled": 312,
-    "dispatchable": 312,
+    "compiled": 318,
+    "dispatchable": 318,
     "abstained": 0,
     "incomplete": 0,
-    "unsupported": 273,
-    "compiled_rate": 0.5333,
-    "dispatchable_rate": 0.5333,
-    "unsupported_rate": 0.4667,
+    "unsupported": 267,
+    "compiled_rate": 0.5436,
+    "dispatchable_rate": 0.5436,
+    "unsupported_rate": 0.4564,
     "scenarios": 195,
-    "compiled_scenarios": 104,
-    "dispatchable_scenarios": 104,
-    "dispatchable_scenario_rate": 0.5333
+    "compiled_scenarios": 106,
+    "dispatchable_scenarios": 106,
+    "dispatchable_scenario_rate": 0.5436
   },
   "by_split": {
     "test_challenge": {
       "tasks": 417,
-      "compiled": 144,
-      "dispatchable": 144,
+      "compiled": 150,
+      "dispatchable": 150,
       "abstained": 0,
       "incomplete": 0,
-      "unsupported": 273,
-      "compiled_rate": 0.3453,
-      "dispatchable_rate": 0.3453,
-      "unsupported_rate": 0.6547,
+      "unsupported": 267,
+      "compiled_rate": 0.3597,
+      "dispatchable_rate": 0.3597,
+      "unsupported_rate": 0.6403,
       "scenarios": 139,
-      "compiled_scenarios": 48,
-      "dispatchable_scenarios": 48,
-      "dispatchable_scenario_rate": 0.3453
+      "compiled_scenarios": 50,
+      "dispatchable_scenarios": 50,
+      "dispatchable_scenario_rate": 0.3597
     },
     "test_normal": {
       "tasks": 168,
@@ -61,6 +61,10 @@
     ],
     [
       "appworld_amazon_order_saved_collections",
+      6
+    ],
+    [
+      "appworld_amazon_order_filtered_product",
       6
     ],
     [
@@ -94,16 +98,12 @@
     [
       "appworld_venmo_settle_roommate_dinner",
       3
-    ],
-    [
-      "appworld_simple_note_fill_liked_song_release_months",
-      3
     ]
   ],
   "top_unsupported_buckets": [
     [
       "amazon_purchase_or_product_search",
-      149
+      143
     ],
     [
       "gmail_email",

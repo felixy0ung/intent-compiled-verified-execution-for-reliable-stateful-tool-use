@@ -1,0 +1,17 @@
+{
+  "benchmark": "AppWorld public dev/train stateful slice",
+  "method": "rave_appworld_slice",
+  "agent": "deterministic",
+  "model": "",
+  "experiment_name": "rave_appworld_slice_20260525_081222",
+  "task_ids": [
+    "690d51b_1",
+    "690d51b_2",
+    "690d51b_3",
+    "b0934aa_1",
+    "b0934aa_2",
+    "b0934aa_3"
+  ],
+  "appworld_root": "appworld_020_root",
+  "note": "This is a targeted public AppWorld slice, not a full AppWorld leaderboard run. It does not use ground-truth solution code or ground-truth public_data to construct actions."
+}

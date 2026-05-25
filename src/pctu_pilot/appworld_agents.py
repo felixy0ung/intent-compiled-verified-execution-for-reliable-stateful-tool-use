@@ -1219,6 +1219,22 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_order_filtered_product",
+                (
+                    SlotSpec("product_type"),
+                    SlotSpec("max_price", required=False),
+                    SlotSpec("min_product_rating", required=False),
+                    SlotSpec("min_product_reviews", required=False),
+                    SlotSpec("quantity"),
+                    SlotSpec("address_name"),
+                    SlotSpec("card_name"),
+                ),
+            ),
+            compiler=compile_amazon_order_filtered_product,
+            handler=handle_amazon_order_filtered_product,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_post_question_last_ordered_product",
                 (
                     SlotSpec("product_type"),
@@ -4424,6 +4440,48 @@ def compile_amazon_order_preferred_color_size_product(
     frame.set_slot("address_name", "Home", source="default")
     frame.set_slot("card_name", "", source="default")
     return frame
+
+
+def compile_amazon_order_filtered_product(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    text = raw_request.strip()
+    match = re.fullmatch(
+        r"Buy me a (?P<product_type>.+?) on amazon within \$(?P<max_price>\d+(?:\.\d+)?) "
+        r"\(excluding tax\) and have it delivered to my (?P<address>home|work) address\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
+        frame.set_slot("min_product_rating", None, source="default", required=False)
+        frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("quantity", 1, source="default")
+        frame.set_slot("address_name", match.group("address").title(), source="regex")
+        frame.set_slot("card_name", "", source="default")
+        return frame
+    match = re.fullmatch(
+        r"Buy me a (?P<product_type>.+?) on amazon under \$(?P<max_price>\d+(?:\.\d+)?) "
+        r"\(excluding tax\), over (?P<min_rating>\d+(?:\.\d+)?) rating, and over "
+        r"(?P<min_reviews>\d+) reviews, and have it delivered to (?P<address>home|work) address\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
+        frame.set_slot("min_product_rating", float(match.group("min_rating")), source="regex", required=False)
+        frame.set_slot("min_product_reviews", int(match.group("min_reviews")), source="regex", required=False)
+        frame.set_slot("quantity", 1, source="default")
+        frame.set_slot("address_name", match.group("address").title(), source="regex")
+        frame.set_slot("card_name", "", source="default")
+        return frame
+    return None
 
 
 def compile_amazon_post_question_last_ordered_product(
@@ -10380,6 +10438,235 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_preferred_color_size_product",
+    )
+
+
+def handle_amazon_order_filtered_product(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_type = normalize_amazon_product_type(frame.get("product_type") or "")
+    max_price_value = frame.get("max_price")
+    min_rating_value = frame.get("min_product_rating")
+    min_reviews_value = frame.get("min_product_reviews")
+    quantity = int(frame.get("quantity") or 0)
+    address_name = frame.get("address_name") or "Home"
+    card_name = frame.get("card_name") or ""
+    if not product_type or quantity < 1:
+        frame.abstain_reason = "missing_amazon_filtered_product_order_slots"
+        return None
+    max_price = float(max_price_value) if max_price_value is not None else None
+    min_rating = float(min_rating_value) if min_rating_value is not None else None
+    min_reviews = int(min_reviews_value) if min_reviews_value is not None else None
+    code = common_appworld_prelude(["amazon"]) + f"""
+target_product_type = {json.dumps(product_type)}
+max_price = {repr(max_price)}
+min_rating = {repr(min_rating)}
+min_reviews = {repr(min_reviews)}
+quantity = {quantity}
+address_name = {json.dumps(str(address_name))}
+card_name = {json.dumps(str(card_name))}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    comparable = set()
+    for word in normalize_text(value).split():
+        if len(word) <= 1 or word in {{"and"}}:
+            continue
+        if word.endswith("ies"):
+            word = word[:-3] + "y"
+        elif word.endswith(("ches", "shes", "ses", "xes", "zes")):
+            word = word[:-2]
+        elif word.endswith("s") and not word.endswith("ss"):
+            word = word[:-1]
+        comparable.add(word)
+    return comparable
+
+def product_type_matches(product):
+    product_type = normalize_text(product.get("product_type"))
+    target = normalize_text(target_product_type)
+    if product_type == target:
+        return True
+    target_words = word_set(target_product_type)
+    text = " ".join([
+        str(product.get("name") or ""),
+        str(product.get("description") or ""),
+        str(product.get("product_type") or ""),
+    ])
+    return bool(target_words) and target_words <= word_set(text)
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if normalize_text(address.get("name")) == normalize_text(address_name):
+            return address
+    for supervisor_address in apis.supervisor.show_addresses():
+        if normalize_text(supervisor_address.get("name")) != normalize_text(address_name):
+            continue
+        add_result = apis.amazon.add_address(
+            access_token=tokens["amazon"],
+            name=supervisor_address["name"],
+            street_address=supervisor_address["street_address"],
+            city=supervisor_address["city"],
+            state=supervisor_address["state"],
+            country=supervisor_address["country"],
+            zip_code=supervisor_address["zip_code"],
+        )
+        if "address_id" not in add_result:
+            raise Exception(f"Unable to add Amazon address named {{address_name}}: {{add_result}}")
+        for address in apis.amazon.show_addresses(access_token=tokens["amazon"]):
+            if int(address.get("address_id") or -1) == int(add_result["address_id"]):
+                return address
+        return apis.amazon.show_addresses(access_token=tokens["amazon"])[-1]
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = [
+        card
+        for card in apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+        if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+    ]
+    candidates = []
+    for card in cards:
+        if card_name and normalize_text(card_name) not in normalize_text(card.get("card_name")):
+            continue
+        candidates.append(card)
+    existing_card_numbers = {{str(card.get("card_number")) for card in cards}}
+    supervisor_cards = sorted(
+        [
+            card
+            for card in apis.supervisor.show_payment_cards()
+            if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+        ],
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            str(card.get("card_number") or ""),
+        ),
+        reverse=True,
+    )
+    for supervisor_card in supervisor_cards:
+        if str(supervisor_card.get("card_number")) in existing_card_numbers:
+            continue
+        if card_name and normalize_text(card_name) not in normalize_text(supervisor_card.get("card_name")):
+            continue
+        add_result = apis.amazon.add_payment_card(
+            access_token=tokens["amazon"],
+            card_name=supervisor_card["card_name"],
+            owner_name=supervisor_card["owner_name"],
+            card_number=supervisor_card["card_number"],
+            expiry_year=supervisor_card["expiry_year"],
+            expiry_month=supervisor_card["expiry_month"],
+            cvv_number=supervisor_card["cvv_number"],
+        )
+        if "payment_card_id" in add_result:
+            added = dict(supervisor_card)
+            added["payment_card_id"] = add_result["payment_card_id"]
+            candidates.append(added)
+            existing_card_numbers.add(str(supervisor_card.get("card_number")))
+    if not candidates:
+        raise Exception(f"No Amazon payment card matched {{card_name or 'any card'}}.")
+    return sorted(
+        candidates,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+search_kwargs = {{
+    "product_type": target_product_type,
+    "page_index": 0,
+    "page_limit": 20,
+    "sort_by": "-rating",
+}}
+if max_price is not None:
+    search_kwargs["max_price"] = max_price
+if min_rating is not None:
+    search_kwargs["min_product_rating"] = min_rating
+products = paged(lambda page: apis.amazon.search_products(
+    **{{**search_kwargs, "page_index": page}}
+))
+candidates = []
+for product in products:
+    if not product_type_matches(product):
+        continue
+    if max_price is not None and float(product.get("price") or 0) >= max_price:
+        continue
+    if min_rating is not None and float(product.get("rating") or 0) <= min_rating:
+        continue
+    if min_reviews is not None and int(product.get("num_product_reviews") or 0) <= min_reviews:
+        continue
+    if int(product.get("inventory_quantity") or 0) < quantity:
+        continue
+    candidates.append((
+        float(product.get("rating") or 0),
+        int(product.get("num_product_reviews") or 0),
+        -float(product.get("price") or 0),
+        -float(product.get("delivery_days") or 0),
+        -int(product["product_id"]),
+        product,
+    ))
+if not candidates:
+    raise Exception(
+        f"No in-stock Amazon {{target_product_type}} matched max_price={{max_price}}, "
+        f"min_rating={{min_rating}}, min_reviews={{min_reviews}}."
+    )
+candidates.sort(reverse=True)
+selected_product = candidates[0][-1]
+
+apis.amazon.clear_cart(access_token=tokens["amazon"])
+add_result = apis.amazon.add_product_to_cart(
+    access_token=tokens["amazon"],
+    product_id=selected_product["product_id"],
+    quantity=quantity,
+    clear_cart_first=False,
+)
+if "not" in str(add_result.get("message", "")).lower() and "success" not in str(add_result.get("message", "")).lower():
+    raise Exception(f"Unable to add product {{selected_product['product_id']}} to cart: {{add_result}}")
+
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+for card in pick_payment_cards():
+    payment_card_id = card["payment_card_id"]
+    result = apis.amazon.place_order(
+        access_token=tokens["amazon"],
+        payment_card_id=payment_card_id,
+        address_id=address["address_id"],
+    )
+    if "order_id" in result:
+        break
+    failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+if "order_id" not in result:
+    raise Exception(f"Unable to place Amazon filtered-product order: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "product_type": target_product_type,
+    "product_id": selected_product["product_id"],
+    "price": selected_product.get("price"),
+    "rating": selected_product.get("rating"),
+    "num_product_reviews": selected_product.get("num_product_reviews"),
+    "quantity": quantity,
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_order_filtered_product",
     )
 
 
@@ -16666,6 +16953,7 @@ def common_appworld_prelude(app_names: list[str]) -> str:
     return f"""
 import json
 import re
+from pendulum import DateTime
 
 passwords = {{row["account_name"]: row["password"] for row in apis.supervisor.show_account_passwords()}}
 profile = apis.supervisor.show_profile()
@@ -17253,6 +17541,19 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "relative_size": compact_text(str(slots.get("relative_size") or slots.get("size") or "")).lower(),
             "color_preferences": color_preferences,
             "quantity": int(slots.get("quantity") or 0),
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "card_name": str(slots.get("card_name") or "").strip(),
+        }
+    if intent_type == "appworld_amazon_order_filtered_product":
+        max_price_value = slots.get("max_price")
+        min_rating_value = slots.get("min_product_rating") or slots.get("min_rating")
+        min_reviews_value = slots.get("min_product_reviews") or slots.get("min_reviews")
+        return {
+            "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "max_price": float(max_price_value) if max_price_value is not None else None,
+            "min_product_rating": float(min_rating_value) if min_rating_value is not None else None,
+            "min_product_reviews": int(min_reviews_value) if min_reviews_value is not None else None,
+            "quantity": int(slots.get("quantity") or 1),
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
@@ -17981,6 +18282,24 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_order_filtered_product":
+        if not (
+            re.fullmatch(
+                r"buy me a .+? on amazon within \$\d+(?:\.\d+)? "
+                r"\(excluding tax\) and have it delivered to my (home|work) address\.?",
+                raw,
+            )
+            or re.fullmatch(
+                r"buy me a .+? on amazon under \$\d+(?:\.\d+)? "
+                r"\(excluding tax\), over \d+(?:\.\d+)? rating, and over "
+                r"\d+ reviews, and have it delivered to (home|work) address\.?",
+                raw,
+            )
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_post_question_last_ordered_product":
         if not re.fullmatch(
             r"post a question about the last .+? i ordered on amazon, \".+\"\.?",
@@ -18375,6 +18694,8 @@ Supported intent types and slots:
    slots: product_type string; size_direction string, one of larger or smaller; preferred_color string; address_name string, default Home; card_name string, optional.
 18. appworld_amazon_order_preferred_color_size_product
    slots: product_name string; relative_size string; color_preferences list in preference order; quantity integer; address_name string, default Home; card_name string, optional.
+18. appworld_amazon_order_filtered_product
+   slots: product_type string; max_price number or null; min_product_rating number or null; min_product_reviews integer or null; quantity integer; address_name string, one of Home or Work; card_name string, optional.
 18. appworld_amazon_post_question_last_ordered_product
    slots: product_type string; question string.
 18. appworld_amazon_update_last_month_order_review
@@ -18726,6 +19047,12 @@ JSON: {"intent_type":"appworld_amazon_replace_last_product_adjacent_size","slots
 
 Task: Make an order for two same-colored Hanes Men's ComfortSoft Short Sleeve T-Shirt in extra-large size on Amazon. My color preference is, red > black > navy blue. Pick the most preferred color that is available.
 JSON: {"intent_type":"appworld_amazon_order_preferred_color_size_product","slots":{"product_name":"Hanes Men's ComfortSoft Short Sleeve T-Shirt","relative_size":"extra-large","color_preferences":["red","black","navy blue"],"quantity":2,"address_name":"Home","card_name":""}}
+
+Task: Buy me a kitchen timer on amazon within $10 (excluding tax) and have it delivered to my home address.
+JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"kitchen timer","max_price":10,"min_product_rating":null,"min_product_reviews":null,"quantity":1,"address_name":"Home","card_name":""}}
+
+Task: Buy me a board game on amazon under $20 (excluding tax), over 3.9 rating, and over 4 reviews, and have it delivered to home address.
+JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"board game","max_price":20,"min_product_rating":3.9,"min_product_reviews":4,"quantity":1,"address_name":"Home","card_name":""}}
 
 Task: Post a question about the last t-shirt I ordered on amazon, "Has anyone experienced the color fade after the first wash?".
 JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots":{"product_type":"t-shirt","question":"Has anyone experienced the color fade after the first wash?"}}

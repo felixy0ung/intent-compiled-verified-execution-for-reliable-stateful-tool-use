@@ -6,7 +6,7 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 127
+- Registered AppWorld machines: 128
 - Used by full168 supported tasks: 55
 - Supported tasks: 168
 - Tasks per used machine: 3.05
@@ -76,15 +76,16 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_amazon_answer_returned_product_yes_no | 2 | 17 | 81 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_answer_spending_total | 1 | 15 | 60 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_answer_verified_battery_life_hours | 1 | 16 | 160 | 0 | amazon,supervisor | not_recorded |
-| appworld_amazon_buy_last_product_variants | 4 | 27 | 173 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_buy_last_product_variants | 4 | 27 | 223 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_product_type_between_saved_lists | 3 | 18 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_rating_filtered_products | 4 | 20 | 58 | 0 | amazon,supervisor | not_recorded |
-| appworld_amazon_order_preferred_color_size_product | 6 | 39 | 172 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_order_filtered_product | 7 | 40 | 218 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_order_preferred_color_size_product | 6 | 39 | 222 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_product_type_from_saved_list | 4 | 19 | 114 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_saved_collections | 3 | 26 | 126 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_post_question_last_ordered_product | 2 | 16 | 72 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_purchase_phone_recommendation | 4 | 19 | 250 | 0 | amazon,phone,supervisor | not_recorded |
-| appworld_amazon_replace_last_product_adjacent_size | 5 | 25 | 218 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_replace_last_product_adjacent_size | 5 | 25 | 268 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_return_recent_orders | 2 | 16 | 80 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_return_same_product_except_size_this_week | 3 | 19 | 130 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_text_wishlist_itemized_costs | 1 | 19 | 58 | 0 | amazon,phone,supervisor | not_recorded |

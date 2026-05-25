@@ -19,6 +19,7 @@ test_challenge,4d12842,3,3,3,1.0,1.0,appworld_gmail_delete_archived_threads_by_c
 test_challenge,5238afc,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
 test_challenge,6588a51,3,3,3,1.0,1.0,appworld_amazon_post_question_last_ordered_product,
+test_challenge,690d51b,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,6a5e690,3,3,3,1.0,1.0,appworld_gmail_send_future_scheduled_drafts_now,
 test_challenge,7238049,3,3,3,1.0,1.0,appworld_venmo_send_to_named_user_with_optional_signup,
 test_challenge,7434096,3,3,3,1.0,1.0,appworld_amazon_return_same_product_except_size_this_week,
@@ -38,6 +39,7 @@ test_challenge,a132254,3,3,3,1.0,1.0,appworld_gmail_forward_anniversary_announce
 test_challenge,a53a8fd,3,3,3,1.0,1.0,appworld_gmail_attach_job_search_files_and_send,
 test_challenge,a5b0084,3,3,3,1.0,1.0,appworld_shared_subscription_password_reset_and_text,
 test_challenge,aaa25aa,3,3,3,1.0,1.0,appworld_phone_message_app_account_verify_reset,
+test_challenge,b0934aa,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,b71318e,3,3,3,1.0,1.0,appworld_venmo_pay_coworkers_and_email,
 test_challenge,ba46d91,3,3,3,1.0,1.0,appworld_membership_remaining_duration,
 test_challenge,cdf61bd,3,3,3,1.0,1.0,appworld_amazon_update_last_month_order_review,
@@ -69,7 +71,6 @@ test_challenge,5800354,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,59bcfc8,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,6474048,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,66b7899,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,690d51b,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,69ba40f,3,0,0,0.0,0.0,,gmail_email
 test_challenge,6d59d90,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,7264edc,3,0,0,0.0,0.0,,gmail_email
@@ -98,7 +99,6 @@ test_challenge,adb1060,3,0,0,0.0,0.0,,gmail_email
 test_challenge,af84964,3,0,0,0.0,0.0,,"gmail_email,splitwise_vacation_or_expense"
 test_challenge,b05f69a,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,b08d5ef,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,b0934aa,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,b3bdcc1,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,b4707e8,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,b68eb83,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
