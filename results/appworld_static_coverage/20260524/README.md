@@ -11,25 +11,25 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 | --- | ---: |
 | registered_appworld_machines | 128 |
 | total_tasks | 585 |
-| compiled | 321 |
-| dispatchable | 321 |
-| unsupported | 264 |
-| compiled_rate | 0.5487 |
-| dispatchable_rate | 0.5487 |
-| dispatchable_scenarios | 107 / 195 |
+| compiled | 327 |
+| dispatchable | 327 |
+| unsupported | 258 |
+| compiled_rate | 0.5590 |
+| dispatchable_rate | 0.5590 |
+| dispatchable_scenarios | 109 / 195 |
 
 ## By Split
 
 | split | tasks | compiled | dispatchable | unsupported | dispatchable rate | dispatchable scenarios |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| test_challenge | 417 | 153 | 153 | 264 | 0.3669 | 51 / 139 |
+| test_challenge | 417 | 159 | 159 | 258 | 0.3813 | 53 / 139 |
 | test_normal | 168 | 168 | 168 | 0 | 1.0000 | 56 / 56 |
 
 ## Top Dispatchable Intents
 
 | intent_type | tasks |
 | --- | ---: |
-| appworld_amazon_order_filtered_product | 9 |
+| appworld_amazon_order_filtered_product | 15 |
 | appworld_venmo_friend_transaction_counterparties | 6 |
 | appworld_amazon_order_product_type_from_saved_list | 6 |
 | appworld_amazon_order_saved_collections | 6 |
@@ -46,7 +46,7 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | bucket | tasks |
 | --- | ---: |
-| amazon_purchase_or_product_search | 140 |
+| amazon_purchase_or_product_search | 134 |
 | gmail_email | 83 |
 | splitwise_vacation_or_expense | 28 |
 | spotify_music | 12 |
@@ -61,7 +61,7 @@ Full rows are in `coverage_roadmap.csv`.
 
 | split | bucket | tasks | scenarios | roadmap family |
 | --- | --- | ---: | ---: | --- |
-| test_challenge | amazon_purchase_or_product_search | 140 | 48 | Amazon search-and-purchase machines |
+| test_challenge | amazon_purchase_or_product_search | 134 | 46 | Amazon search-and-purchase machines |
 | test_challenge | gmail_email | 83 | 28 | Gmail thread-and-draft machines |
 | test_challenge | splitwise_vacation_or_expense | 28 | 10 | Splitwise expense-settlement machines |
 | test_challenge | spotify_music | 12 | 5 | Spotify search-and-library machines |
@@ -69,7 +69,7 @@ Full rows are in `coverage_roadmap.csv`.
 
 ## Scenario Coverage
 
-- Fully dispatchable scenarios: 107
+- Fully dispatchable scenarios: 109
 - Partially dispatchable scenarios: 0
 - Full per-scenario rows are in `scenario_coverage.csv`.
 

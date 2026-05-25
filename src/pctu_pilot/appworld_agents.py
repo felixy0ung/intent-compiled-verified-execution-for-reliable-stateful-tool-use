@@ -1225,6 +1225,9 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
                     SlotSpec("max_price", required=False),
                     SlotSpec("min_product_rating", required=False),
                     SlotSpec("min_product_reviews", required=False),
+                    SlotSpec("min_seller_rating", required=False),
+                    SlotSpec("rating_threshold_inclusive", required=False),
+                    SlotSpec("prefer_highest_seller", required=False),
                     SlotSpec("quantity"),
                     SlotSpec("address_name"),
                     SlotSpec("card_name"),
@@ -4460,6 +4463,9 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
         frame.set_slot("min_product_rating", None, source="default", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
+        frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
@@ -4477,6 +4483,9 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
         frame.set_slot("min_product_rating", float(match.group("min_rating")), source="regex", required=False)
         frame.set_slot("min_product_reviews", int(match.group("min_reviews")), source="regex", required=False)
+        frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
+        frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
@@ -4494,9 +4503,52 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("max_price", None, source="default", required=False)
         frame.set_slot("min_product_rating", float(match.group("min_rating")), source="regex", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
+        frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
+        return frame
+    match = re.fullmatch(
+        r"Buy me (?P<quantity>\d+) (?P<product_type>.+?) on amazon of at least "
+        r"(?P<min_product_rating>\d+(?:\.\d+)?) product rating and "
+        r"(?P<min_seller_rating>\d+(?:\.\d+)?) seller rating for my "
+        r"(?P<address>home|work) address\. They do not have to be identical\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("max_price", None, source="default", required=False)
+        frame.set_slot("min_product_rating", float(match.group("min_product_rating")), source="regex", required=False)
+        frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("min_seller_rating", float(match.group("min_seller_rating")), source="regex", required=False)
+        frame.set_slot("rating_threshold_inclusive", True, source="regex", required=False)
+        frame.set_slot("prefer_highest_seller", False, source="default", required=False)
+        frame.set_slot("quantity", int(match.group("quantity")), source="regex")
+        frame.set_slot("address_name", match.group("address").title(), source="regex")
+        frame.set_slot("card_name", "", source="default")
+        return frame
+    match = re.fullmatch(
+        r"Buy me a (?P<product_type>.+?) on amazon from its highest-rated seller "
+        r"using my (?P<card_name>.+?) card for my (?P<address>home|work) address\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("max_price", None, source="default", required=False)
+        frame.set_slot("min_product_rating", None, source="default", required=False)
+        frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
+        frame.set_slot("prefer_highest_seller", True, source="regex", required=False)
+        frame.set_slot("quantity", 1, source="default")
+        frame.set_slot("address_name", match.group("address").title(), source="regex")
+        frame.set_slot("card_name", compact_text(match.group("card_name")).lower(), source="regex")
         return frame
     return None
 
@@ -10466,6 +10518,9 @@ def handle_amazon_order_filtered_product(
     max_price_value = frame.get("max_price")
     min_rating_value = frame.get("min_product_rating")
     min_reviews_value = frame.get("min_product_reviews")
+    min_seller_rating_value = frame.get("min_seller_rating")
+    rating_threshold_inclusive = bool(frame.get("rating_threshold_inclusive"))
+    prefer_highest_seller = bool(frame.get("prefer_highest_seller"))
     quantity = int(frame.get("quantity") or 0)
     address_name = frame.get("address_name") or "Home"
     card_name = frame.get("card_name") or ""
@@ -10475,11 +10530,15 @@ def handle_amazon_order_filtered_product(
     max_price = float(max_price_value) if max_price_value is not None else None
     min_rating = float(min_rating_value) if min_rating_value is not None else None
     min_reviews = int(min_reviews_value) if min_reviews_value is not None else None
+    min_seller_rating = float(min_seller_rating_value) if min_seller_rating_value is not None else None
     code = common_appworld_prelude(["amazon"]) + f"""
 target_product_type = {json.dumps(product_type)}
 max_price = {repr(max_price)}
 min_rating = {repr(min_rating)}
 min_reviews = {repr(min_reviews)}
+min_seller_rating = {repr(min_seller_rating)}
+rating_threshold_inclusive = {repr(rating_threshold_inclusive)}
+prefer_highest_seller = {repr(prefer_highest_seller)}
 quantity = {quantity}
 address_name = {json.dumps(str(address_name))}
 card_name = {json.dumps(str(card_name))}
@@ -10608,46 +10667,94 @@ if max_price is not None:
     search_kwargs["max_price"] = max_price
 if min_rating is not None:
     search_kwargs["min_product_rating"] = min_rating
+if min_seller_rating is not None:
+    search_kwargs["min_seller_rating"] = min_seller_rating
 products = paged(lambda page: apis.amazon.search_products(
     **{{**search_kwargs, "page_index": page}}
 ))
+seller_cache = {{}}
+
+def seller_for_product(product):
+    seller_id = int(product.get("seller_id") or 0)
+    if seller_id not in seller_cache:
+        seller_cache[seller_id] = apis.amazon.show_seller(seller_id=seller_id)
+    return seller_cache[seller_id]
+
+def below_minimum(value, threshold):
+    if threshold is None:
+        return False
+    value = float(value or 0)
+    if rating_threshold_inclusive:
+        return value < threshold
+    return value <= threshold
+
 candidates = []
 for product in products:
     if not product_type_matches(product):
         continue
     if max_price is not None and float(product.get("price") or 0) >= max_price:
         continue
-    if min_rating is not None and float(product.get("rating") or 0) <= min_rating:
+    if below_minimum(product.get("rating"), min_rating):
         continue
     if min_reviews is not None and int(product.get("num_product_reviews") or 0) <= min_reviews:
         continue
-    if int(product.get("inventory_quantity") or 0) < quantity:
+    inventory_quantity = int(product.get("inventory_quantity") or 0)
+    if inventory_quantity < 1:
         continue
-    candidates.append((
-        float(product.get("rating") or 0),
-        int(product.get("num_product_reviews") or 0),
-        -float(product.get("price") or 0),
-        -float(product.get("delivery_days") or 0),
-        -int(product["product_id"]),
-        product,
-    ))
+    seller = seller_for_product(product)
+    seller_rating = float(seller.get("rating") or 0)
+    if below_minimum(seller_rating, min_seller_rating):
+        continue
+    if prefer_highest_seller:
+        sort_key = (
+            seller_rating,
+            float(product.get("rating") or 0),
+            int(product.get("num_product_reviews") or 0),
+            -float(product.get("price") or 0),
+            -float(product.get("delivery_days") or 0),
+            -int(product["product_id"]),
+        )
+    else:
+        sort_key = (
+            float(product.get("rating") or 0),
+            seller_rating,
+            int(product.get("num_product_reviews") or 0),
+            -float(product.get("price") or 0),
+            -float(product.get("delivery_days") or 0),
+            -int(product["product_id"]),
+        )
+    candidates.append((sort_key, product, seller, inventory_quantity))
 if not candidates:
     raise Exception(
         f"No in-stock Amazon {{target_product_type}} matched max_price={{max_price}}, "
-        f"min_rating={{min_rating}}, min_reviews={{min_reviews}}."
+        f"min_rating={{min_rating}}, min_reviews={{min_reviews}}, "
+        f"min_seller_rating={{min_seller_rating}}."
     )
 candidates.sort(reverse=True)
-selected_product = candidates[0][-1]
+remaining_quantity = quantity
+selected_items = []
+for _, product, seller, inventory_quantity in candidates:
+    if remaining_quantity <= 0:
+        break
+    item_quantity = min(remaining_quantity, inventory_quantity)
+    selected_items.append((product, seller, item_quantity))
+    remaining_quantity -= item_quantity
+if remaining_quantity > 0:
+    raise Exception(
+        f"Only found {{quantity - remaining_quantity}} in-stock {{target_product_type}} units "
+        f"matching the requested filters; need {{quantity}}."
+    )
 
 apis.amazon.clear_cart(access_token=tokens["amazon"])
-add_result = apis.amazon.add_product_to_cart(
-    access_token=tokens["amazon"],
-    product_id=selected_product["product_id"],
-    quantity=quantity,
-    clear_cart_first=False,
-)
-if "not" in str(add_result.get("message", "")).lower() and "success" not in str(add_result.get("message", "")).lower():
-    raise Exception(f"Unable to add product {{selected_product['product_id']}} to cart: {{add_result}}")
+for product, seller, item_quantity in selected_items:
+    add_result = apis.amazon.add_product_to_cart(
+        access_token=tokens["amazon"],
+        product_id=product["product_id"],
+        quantity=item_quantity,
+        clear_cart_first=False,
+    )
+    if "not" in str(add_result.get("message", "")).lower() and "success" not in str(add_result.get("message", "")).lower():
+        raise Exception(f"Unable to add product {{product['product_id']}} to cart: {{add_result}}")
 
 address = pick_address()
 failed_payment_attempts = []
@@ -10669,10 +10776,18 @@ if "order_id" not in result:
 apis.supervisor.complete_task(answer=None)
 print(json.dumps({{
     "product_type": target_product_type,
-    "product_id": selected_product["product_id"],
-    "price": selected_product.get("price"),
-    "rating": selected_product.get("rating"),
-    "num_product_reviews": selected_product.get("num_product_reviews"),
+    "items": [
+        {{
+            "product_id": product["product_id"],
+            "seller_id": product.get("seller_id"),
+            "seller_rating": seller.get("rating"),
+            "price": product.get("price"),
+            "rating": product.get("rating"),
+            "num_product_reviews": product.get("num_product_reviews"),
+            "quantity": item_quantity,
+        }}
+        for product, seller, item_quantity in selected_items
+    ],
     "quantity": quantity,
     "address_id": address["address_id"],
     "payment_card_id": payment_card_id,
@@ -17565,11 +17680,17 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         max_price_value = slots.get("max_price")
         min_rating_value = slots.get("min_product_rating") or slots.get("min_rating")
         min_reviews_value = slots.get("min_product_reviews") or slots.get("min_reviews")
+        min_seller_rating_value = slots.get("min_seller_rating") or slots.get("seller_rating")
         return {
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
             "max_price": float(max_price_value) if max_price_value is not None else None,
             "min_product_rating": float(min_rating_value) if min_rating_value is not None else None,
             "min_product_reviews": int(min_reviews_value) if min_reviews_value is not None else None,
+            "min_seller_rating": (
+                float(min_seller_rating_value) if min_seller_rating_value is not None else None
+            ),
+            "rating_threshold_inclusive": bool(slots.get("rating_threshold_inclusive")),
+            "prefer_highest_seller": bool(slots.get("prefer_highest_seller")),
             "quantity": int(slots.get("quantity") or 1),
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
@@ -18315,6 +18436,17 @@ def verify_or_repair_llm_intent_frame(
             or re.fullmatch(
                 r"buy me a .+? on amazon with a rating over \d+(?:\.\d+)? "
                 r"and have it delivered to my (home|work) address\.?",
+                raw,
+            )
+            or re.fullmatch(
+                r"buy me \d+ .+? on amazon of at least \d+(?:\.\d+)? product rating "
+                r"and \d+(?:\.\d+)? seller rating for my (home|work) address\. "
+                r"they do not have to be identical\.?",
+                raw,
+            )
+            or re.fullmatch(
+                r"buy me a .+? on amazon from its highest-rated seller using my .+? card "
+                r"for my (home|work) address\.?",
                 raw,
             )
         ):

@@ -44,8 +44,8 @@ of 168 tasks and succeeds on 168 overall
 unsafe state changes are 0 and invalid tool calls are
 0. The `test_challenge` prefix is a negative-control
 diagnostic: after the current conservative Amazon machines,
-15/24
-compile, 9/24
+21/24
+compile, 3/24
 remain unsupported no-action, and unsafe state changes remain
 0.
 
@@ -53,10 +53,10 @@ The static public-instruction audit covers all local AppWorld `test_normal.txt` 
 `test_challenge.txt` IDs without executing tools or loading ground truth. It compiles
 168/168
 `test_normal` instructions and
-153/417
+159/417
 `test_challenge` instructions to complete intent frames. Unsupported `test_challenge`
 rows cluster mainly in amazon_purchase_or_product_search
-(140 tasks) and
+(134 tasks) and
 gmail_email
 (83 tasks), making the coverage boundary
 auditable rather than implicit.
