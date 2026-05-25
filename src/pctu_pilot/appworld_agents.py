@@ -1514,6 +1514,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_forward_trip_expenses_thread_with_attachment",
+                (
+                    SlotSpec("sender_first_name"),
+                    SlotSpec("recipient_first_name"),
+                    SlotSpec("attachment_path"),
+                    SlotSpec("note_prefix"),
+                ),
+            ),
+            compiler=compile_gmail_forward_trip_expenses_thread_with_attachment,
+            handler=handle_gmail_forward_trip_expenses_thread_with_attachment,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_reply_weekly_manager_tasks_by_star_state",
                 (
                     SlotSpec("subject_prefix"),
@@ -3031,6 +3044,30 @@ def compile_gmail_forward_caterer_bill_to_manager_with_note(
     if not match:
         return None
     frame = IntentFrame("appworld_gmail_forward_caterer_bill_to_manager_with_note")
+    frame.set_slot("note_prefix", match.group("note").strip(), source="regex")
+    return frame
+
+
+def compile_gmail_forward_trip_expenses_thread_with_attachment(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'(?P<sender>[A-Z][a-z]+), (?P<recipient>[A-Z][a-z]+) and I went on a trip recently\. '
+        r'Yesterday, (?P=sender) emailed me their expenses in a pdf\. '
+        r'Forward that thread to (?P=recipient) with an additional attachment of '
+        r'"(?P<path>~/documents/personal/[^"]+\.pdf)" from my file system, and a note prefixed to its body, '
+        r'"(?P<note>[^"]+)"\.?',
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_forward_trip_expenses_thread_with_attachment")
+    frame.set_slot("sender_first_name", match.group("sender").strip(), source="regex")
+    frame.set_slot("recipient_first_name", match.group("recipient").strip(), source="regex")
+    frame.set_slot("attachment_path", match.group("path").strip(), source="regex")
     frame.set_slot("note_prefix", match.group("note").strip(), source="regex")
     return frame
 
@@ -14296,6 +14333,233 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_forward_trip_expenses_thread_with_attachment(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    sender_first_name = str(frame.get("sender_first_name") or "").strip()
+    recipient_first_name = str(frame.get("recipient_first_name") or "").strip()
+    attachment_path = str(frame.get("attachment_path") or "").strip()
+    note_prefix = str(frame.get("note_prefix") or "").strip()
+    if not sender_first_name or not recipient_first_name or not note_prefix:
+        frame.abstain_reason = "missing_gmail_trip_expense_forward_slots"
+        return None
+    if not re.fullmatch(r"~/documents/personal/[\w.\-]+\.pdf", attachment_path):
+        frame.abstain_reason = "missing_or_invalid_trip_expense_attachment_path"
+        return None
+    code = common_appworld_prelude(["gmail", "phone", "file_system"]) + f"""
+sender_first_name = {json.dumps(sender_first_name)}
+recipient_first_name = {json.dumps(recipient_first_name)}
+attachment_path = {json.dumps(attachment_path)}
+note_prefix = {json.dumps(note_prefix)}
+
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def path_basename(path):
+    return str(path).rstrip("/").split("/")[-1]
+
+def contact_email_by_first_name(first_name):
+    first_name_key = str(first_name or "").strip().lower()
+    contacts = paged(lambda page: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        query=first_name,
+        page_index=page,
+        page_limit=20,
+    ))
+    matches = []
+    seen_emails = set()
+    for contact in contacts:
+        if str(contact.get("first_name") or "").strip().lower() != first_name_key:
+            continue
+        email = str(contact.get("email") or "").strip().lower()
+        if not email or email in seen_emails:
+            continue
+        seen_emails.add(email)
+        matches.append({{
+            "contact_id": contact.get("contact_id"),
+            "email": email,
+            "first_name": contact.get("first_name"),
+            "last_name": contact.get("last_name"),
+        }})
+    if len(matches) != 1:
+        raise Exception(f"Expected exactly one contact email for first name {{first_name}}, found {{matches}}.")
+    return matches[0]["email"]
+
+sender_email = contact_email_by_first_name(sender_first_name)
+recipient_email = contact_email_by_first_name(recipient_first_name)
+
+file_info = apis.file_system.show_file(
+    access_token=tokens["file_system"],
+    file_path=attachment_path,
+)
+if path_basename(attachment_path).lower() != path_basename(file_info.get("path") or attachment_path).lower():
+    raise Exception(f"Unexpected file metadata for {{attachment_path}}: {{file_info}}")
+
+now = DateTime.now()
+yesterday = now.subtract(days=1).to_date_string()
+queries = [
+    f"{{sender_first_name}} expenses pdf",
+    f"{{sender_first_name}} expense pdf",
+    "expenses pdf",
+    "expense pdf",
+    "expenses",
+    sender_first_name,
+]
+
+threads = []
+seen_thread_ids = set()
+for query in queries:
+    for thread in paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        attachment=True,
+        from_email=sender_email,
+        min_created_at=yesterday,
+        max_created_at=yesterday,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )):
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None or thread_id in seen_thread_ids:
+            continue
+        seen_thread_ids.add(thread_id)
+        threads.append(thread)
+
+if not threads:
+    for thread in paged(lambda page: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        attachment=True,
+        from_email=sender_email,
+        min_created_at=yesterday,
+        max_created_at=yesterday,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )):
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None or thread_id in seen_thread_ids:
+            continue
+        seen_thread_ids.add(thread_id)
+        threads.append(thread)
+
+candidates = []
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None:
+        continue
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    for email in detail.get("emails", []):
+        sender = email.get("sender") or {{}}
+        email_sender = str(sender.get("email") or "").strip().lower()
+        if email_sender != sender_email:
+            continue
+        created_date = str(email.get("created_at") or detail.get("created_at") or "")[:10]
+        if created_date != yesterday:
+            continue
+        attachments = email.get("attachments") or []
+        pdf_attachments = [
+            attachment for attachment in attachments
+            if str(attachment.get("file_name") or "").strip().lower().endswith(".pdf")
+        ]
+        if not pdf_attachments:
+            continue
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        sender_name = str(sender.get("name") or "")
+        attachment_names = " ".join(str(item.get("file_name") or "") for item in attachments)
+        haystack = text_key(" ".join([subject, body, sender_name, email_sender, attachment_names]))
+        if "expense" not in haystack:
+            continue
+        candidates.append({{
+            "email_thread_id": thread_id,
+            "email_id": email.get("email_id"),
+            "created_at": email.get("created_at") or detail.get("created_at") or "",
+            "subject": subject,
+            "pdf_attachment_names": [str(item.get("file_name") or "") for item in pdf_attachments],
+        }})
+
+if not candidates:
+    raise Exception(json.dumps({{
+        "error": "Could not find yesterday's trip expense PDF thread.",
+        "sender_first_name": sender_first_name,
+        "sender_email": sender_email,
+        "candidate_thread_count": len(threads),
+    }}, sort_keys=True))
+candidates.sort(key=lambda item: (item["created_at"], str(item["email_thread_id"])), reverse=True)
+target = candidates[0]
+
+forward = apis.gmail.forward_email_thread(
+    access_token=tokens["gmail"],
+    email_thread_id=target["email_thread_id"],
+    email_addresses=[recipient_email],
+    draft_not_send=True,
+)
+draft_id = forward.get("draft_id")
+if draft_id is None:
+    raise Exception(f"Forward did not create a draft: {{forward}}")
+
+draft = apis.gmail.show_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+)
+old_body = str(draft.get("body") or "")
+new_body = note_prefix + "\\n\\n" + old_body
+apis.gmail.update_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    body=new_body,
+)
+attachment_result = apis.gmail.upload_attachments_to_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    attachment_file_paths=[attachment_path],
+    overwrite=True,
+    file_system_access_token=tokens["file_system"],
+)
+updated = apis.gmail.show_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+)
+updated_attachment_names = {{
+    str(attachment.get("file_name") or "").strip().lower()
+    for attachment in updated.get("attachments", []) or []
+}}
+if path_basename(attachment_path).lower() not in updated_attachment_names:
+    raise Exception(f"Draft attachment missing after update: {{updated_attachment_names}}")
+sent = apis.gmail.send_email_from_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    file_system_access_token=tokens["file_system"],
+)
+if "sent_email_id" not in sent:
+    raise Exception(f"Unable to send trip expense thread forward: {{sent}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "sender_email": sender_email,
+    "recipient_email": recipient_email,
+    "attachment_path": attachment_path,
+    "source_email_thread_id": target["email_thread_id"],
+    "source_email_id": target["email_id"],
+    "candidate_count": len(candidates),
+    "draft_id": draft_id,
+    "sent_email_id": sent.get("sent_email_id"),
+    "sent_email_thread_id": sent.get("sent_email_thread_id"),
+    "attachment_result": attachment_result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_forward_trip_expenses_thread_with_attachment",
+    )
+
+
 def handle_gmail_reply_weekly_manager_tasks_by_star_state(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -19744,6 +20008,30 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
                 slots.get("note_prefix") or slots.get("note") or slots.get("message") or ""
             ).strip()
         }
+    if intent_type == "appworld_gmail_forward_trip_expenses_thread_with_attachment":
+        return {
+            "sender_first_name": str(
+                slots.get("sender_first_name")
+                or slots.get("sender")
+                or ""
+            ).strip(),
+            "recipient_first_name": str(
+                slots.get("recipient_first_name")
+                or slots.get("recipient")
+                or ""
+            ).strip(),
+            "attachment_path": str(
+                slots.get("attachment_path")
+                or slots.get("file_path")
+                or ""
+            ).strip(),
+            "note_prefix": str(
+                slots.get("note_prefix")
+                or slots.get("note")
+                or slots.get("message")
+                or ""
+            ).strip(),
+        }
     if intent_type == "appworld_gmail_reply_weekly_manager_tasks_by_star_state":
         return {
             "subject_prefix": str(slots.get("subject_prefix") or slots.get("prefix") or "").strip(),
@@ -20289,6 +20577,20 @@ def verify_or_repair_llm_intent_frame(
             "company celebration",
             "caterers have emailed me the bill",
             "forward it to my manager",
+            "note prefixed to its body",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_forward_trip_expenses_thread_with_attachment":
+        required = [
+            "went on a trip recently",
+            "yesterday",
+            "emailed me their expenses in a pdf",
+            "forward that thread",
+            "additional attachment",
             "note prefixed to its body",
         ]
         if not all(part in raw for part in required):
@@ -20956,19 +21258,21 @@ Supported intent types and slots:
    slots: recipient_email string.
 25. appworld_gmail_forward_caterer_bill_to_manager_with_note
    slots: note_prefix string.
-26. appworld_gmail_reply_weekly_manager_tasks_by_star_state
+26. appworld_gmail_forward_trip_expenses_thread_with_attachment
+   slots: sender_first_name string; recipient_first_name string; attachment_path string under ~/documents/personal/ ending in .pdf; note_prefix string.
+27. appworld_gmail_reply_weekly_manager_tasks_by_star_state
    slots: subject_prefix string; done_reply string; not_done_reply string.
-27. appworld_gmail_star_threads_by_relationship
+28. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
-28. appworld_gmail_label_notification_threads_by_app
+29. appworld_gmail_label_notification_threads_by_app
    slots: empty object.
-29. appworld_gmail_relabel_priority_threads
+30. appworld_gmail_relabel_priority_threads
    slots: source_label_1 string, source_label_2 string, target_label_1 string, target_label_2 string, remove_label string; labels are one of priority-1, priority-2, priority-3, P1, P2, P3, pr-1, pr-2, or pr-3.
-30. appworld_gmail_attach_job_search_files_and_send
+31. appworld_gmail_attach_job_search_files_and_send
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
-31. appworld_gmail_download_flight_ticket_attachment
+32. appworld_gmail_download_flight_ticket_attachment
    slots: destination string; directory_path string ending in /.
-32. appworld_remove_expired_payment_cards
+33. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
@@ -21373,6 +21677,9 @@ JSON: {"intent_type":"appworld_gmail_forward_anniversary_announcement_email","sl
 
 Task: I helped organize my company celebration recently. The caterers have emailed me the bill. Forward it to my manager with a note prefixed to its body, "Bill for our last celebration.".
 JSON: {"intent_type":"appworld_gmail_forward_caterer_bill_to_manager_with_note","slots":{"note_prefix":"Bill for our last celebration."}}
+
+Task: Denise, Glenn and I went on a trip recently. Yesterday, Denise emailed me their expenses in a pdf. Forward that thread to Glenn with an additional attachment of "~/documents/personal/expenses_james.pdf" from my file system, and a note prefixed to its body, "Can you please take care of splitting expenses? PFA for both of our expenses.".
+JSON: {"intent_type":"appworld_gmail_forward_trip_expenses_thread_with_attachment","slots":{"sender_first_name":"Denise","recipient_first_name":"Glenn","attachment_path":"~/documents/personal/expenses_james.pdf","note_prefix":"Can you please take care of splitting expenses? PFA for both of our expenses."}}
 
 Task: My manager assigns me tasks at the beginning of every week with a subject starting with "TODO". At the end of each week, I reply to them "Done." or "Not Done.". For this week, I have starred the emails/tasks which I finished working on, and left the others unstarred. I am closing off this week now, please reply accordingly, and unstar those threads. I may have non-todo emails starred, please keep them as is.
 JSON: {"intent_type":"appworld_gmail_reply_weekly_manager_tasks_by_star_state","slots":{"subject_prefix":"TODO","done_reply":"Done.","not_done_reply":"Not Done."}}

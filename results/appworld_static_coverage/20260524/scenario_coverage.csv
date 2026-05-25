@@ -21,6 +21,7 @@ test_challenge,4242c97,3,3,3,1.0,1.0,appworld_amazon_order_preferred_color_size_
 test_challenge,4441ee9,3,3,3,1.0,1.0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,
 test_challenge,476b213,3,3,3,1.0,1.0,appworld_membership_last_payment_card_name,
 test_challenge,4815c06,3,3,3,1.0,1.0,appworld_amazon_order_exact_products_restore_cart,
+test_challenge,4ac4a8d,3,3,3,1.0,1.0,appworld_gmail_forward_trip_expenses_thread_with_attachment,
 test_challenge,4d12842,3,3,3,1.0,1.0,appworld_gmail_delete_archived_threads_by_calendar_window,
 test_challenge,5238afc,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_saved_list,
 test_challenge,5e27cd7,3,3,3,1.0,1.0,appworld_delete_gmail_empty_drafts,
@@ -76,7 +77,6 @@ test_challenge,33e202d,3,0,0,0.0,0.0,,gmail_email
 test_challenge,36705ae,3,0,0,0.0,0.0,,gmail_email
 test_challenge,3fcc458,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
 test_challenge,432dc7a,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,4ac4a8d,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
 test_challenge,5800354,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,59bcfc8,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,66b7899,3,0,0,0.0,0.0,,amazon_purchase_or_product_search

@@ -446,9 +446,9 @@ test_challenge,baeb104_3,baeb104,0,0,0,0,unsupported,,,splitwise_vacation_or_exp
 test_challenge,e70b117_1,e70b117,0,0,0,0,unsupported,,,gmail_email,c11516f3316e3787
 test_challenge,e70b117_2,e70b117,0,0,0,0,unsupported,,,gmail_email,642f8915733e46c5
 test_challenge,e70b117_3,e70b117,0,0,0,0,unsupported,,,gmail_email,7f7975222dff6d4e
-test_challenge,4ac4a8d_1,4ac4a8d,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,31de6656bb0ddcda
-test_challenge,4ac4a8d_2,4ac4a8d,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,2d34b66ee75ef3aa
-test_challenge,4ac4a8d_3,4ac4a8d,0,0,0,0,unsupported,,,splitwise_vacation_or_expense,58c039a5ac45d15f
+test_challenge,4ac4a8d_1,4ac4a8d,1,1,0,0,appworld_gmail_forward_trip_expenses_thread_with_attachment,,,,31de6656bb0ddcda
+test_challenge,4ac4a8d_2,4ac4a8d,1,1,0,0,appworld_gmail_forward_trip_expenses_thread_with_attachment,,,,2d34b66ee75ef3aa
+test_challenge,4ac4a8d_3,4ac4a8d,1,1,0,0,appworld_gmail_forward_trip_expenses_thread_with_attachment,,,,58c039a5ac45d15f
 test_challenge,8f79e35_1,8f79e35,0,0,0,0,unsupported,,,gmail_email,b8abf3ad04d7269c
 test_challenge,8f79e35_2,8f79e35,0,0,0,0,unsupported,,,gmail_email,b8abf3ad04d7269c
 test_challenge,8f79e35_3,8f79e35,0,0,0,0,unsupported,,,gmail_email,b8abf3ad04d7269c
