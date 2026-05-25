@@ -1,0 +1,7 @@
+method,agent,model,task_id,difficulty,intent_type,supported,success,pass_count,fail_count,num_tests,invalid_tool_calls,failed_api_attempts,unsafe_state_changes,api_calls,code_exec_calls,llm_calls,prompt_tokens,completion_tokens,token_proxy,reason,execution_failed,parse_error,raw_model_output_preview,output_preview,failed_requirements
+rave_appworld_slice,deterministic,,6474048_1,,appworld_amazon_order_filtered_product,1,1,8,0,8,0,0,0,12,1,0,0,0,921,appworld_rave_amazon_order_filtered_product,0,,,,
+rave_appworld_slice,deterministic,,6474048_2,,appworld_amazon_order_filtered_product,1,1,8,0,8,0,0,0,12,1,0,0,0,924,appworld_rave_amazon_order_filtered_product,0,,,,
+rave_appworld_slice,deterministic,,6474048_3,,appworld_amazon_order_filtered_product,1,1,8,0,8,0,0,0,12,1,0,0,0,923,appworld_rave_amazon_order_filtered_product,0,,,,
+rave_appworld_slice,deterministic,,245cb43_1,,appworld_amazon_order_filtered_product,1,1,8,0,8,0,0,0,24,1,0,0,0,919,appworld_rave_amazon_order_filtered_product,0,,,,
+rave_appworld_slice,deterministic,,245cb43_2,,appworld_amazon_order_filtered_product,1,1,8,0,8,0,0,0,31,1,0,0,0,919,appworld_rave_amazon_order_filtered_product,0,,,,
+rave_appworld_slice,deterministic,,245cb43_3,,appworld_amazon_order_filtered_product,1,1,8,0,8,0,0,0,22,1,0,0,0,918,appworld_rave_amazon_order_filtered_product,0,,,,

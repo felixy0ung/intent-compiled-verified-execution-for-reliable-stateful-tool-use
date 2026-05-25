@@ -179,9 +179,9 @@ test_challenge,9bf2c8a_3,9bf2c8a,1,1,0,0,appworld_amazon_move_product_type_betwe
 test_challenge,b3bdcc1_1,b3bdcc1,1,1,0,0,appworld_amazon_order_filtered_product,,,,0bd21d8db79b05d8
 test_challenge,b3bdcc1_2,b3bdcc1,1,1,0,0,appworld_amazon_order_filtered_product,,,,19dd69fdb2a332ae
 test_challenge,b3bdcc1_3,b3bdcc1,1,1,0,0,appworld_amazon_order_filtered_product,,,,2e4ca2d3c1835593
-test_challenge,6474048_1,6474048,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,6b34df424d3d0e91
-test_challenge,6474048_2,6474048,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,1b306760e459d247
-test_challenge,6474048_3,6474048,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,b57f4620a97e8098
+test_challenge,6474048_1,6474048,1,1,0,0,appworld_amazon_order_filtered_product,,,,6b34df424d3d0e91
+test_challenge,6474048_2,6474048,1,1,0,0,appworld_amazon_order_filtered_product,,,,1b306760e459d247
+test_challenge,6474048_3,6474048,1,1,0,0,appworld_amazon_order_filtered_product,,,,b57f4620a97e8098
 test_challenge,9871968_1,9871968,1,1,0,0,appworld_amazon_order_saved_collections,,,,b7e22ae0c097f04f
 test_challenge,9871968_2,9871968,1,1,0,0,appworld_amazon_order_saved_collections,,,,2148512aea4a0477
 test_challenge,9871968_3,9871968,1,1,0,0,appworld_amazon_order_saved_collections,,,,b7e22ae0c097f04f
@@ -209,9 +209,9 @@ test_challenge,d9987f6_3,d9987f6,1,1,0,0,appworld_amazon_order_filtered_product,
 test_challenge,b0934aa_1,b0934aa,1,1,0,0,appworld_amazon_order_filtered_product,,,,35360a781f945ea0
 test_challenge,b0934aa_2,b0934aa,1,1,0,0,appworld_amazon_order_filtered_product,,,,d6e97915e24abb4b
 test_challenge,b0934aa_3,b0934aa,1,1,0,0,appworld_amazon_order_filtered_product,,,,8cfaf6cd61dc75de
-test_challenge,245cb43_1,245cb43,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,b6ff857acb2e028b
-test_challenge,245cb43_2,245cb43,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,9c5d97f9c6e318c9
-test_challenge,245cb43_3,245cb43,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,70c2089496114d58
+test_challenge,245cb43_1,245cb43,1,1,0,0,appworld_amazon_order_filtered_product,,,,b6ff857acb2e028b
+test_challenge,245cb43_2,245cb43,1,1,0,0,appworld_amazon_order_filtered_product,,,,9c5d97f9c6e318c9
+test_challenge,245cb43_3,245cb43,1,1,0,0,appworld_amazon_order_filtered_product,,,,70c2089496114d58
 test_challenge,a8f302f_1,a8f302f,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0629c72d9cb8f217
 test_challenge,a8f302f_2,a8f302f,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0629c72d9cb8f217
 test_challenge,a8f302f_3,a8f302f,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0629c72d9cb8f217

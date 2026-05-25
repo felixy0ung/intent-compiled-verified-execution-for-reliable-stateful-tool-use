@@ -79,7 +79,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_amazon_buy_last_product_variants | 4 | 27 | 173 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_product_type_between_saved_lists | 3 | 18 | 58 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_move_rating_filtered_products | 4 | 20 | 58 | 0 | amazon,supervisor | not_recorded |
-| appworld_amazon_order_filtered_product | 10 | 106 | 278 | 0 | amazon,supervisor | not_recorded |
+| appworld_amazon_order_filtered_product | 13 | 168 | 308 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_preferred_color_size_product | 6 | 39 | 172 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_product_type_from_saved_list | 4 | 19 | 114 | 0 | amazon,supervisor | not_recorded |
 | appworld_amazon_order_saved_collections | 3 | 26 | 126 | 0 | amazon,supervisor | not_recorded |

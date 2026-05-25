@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 159/417 `test_challenge` instructions to complete frames. The same
+  instructions and 165/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -380,6 +380,14 @@ extraction call per task plus the runtime-checked executor.
   runtime-visible seller ratings, repairs missing Amazon address or card preconditions
   when needed, and reaches 6/6 success with 0 invalid calls and 0 unsafe state changes.
   This is a narrow held-out slice, not a full `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon dimension-filtered product order slice:
+  `results/appworld_amazon_dimension_filtered_order_20260525/20260525_084518` records
+  six local `test_challenge` tasks whose public instructions ask to buy products that
+  fit length-width constraints, either from open Amazon search or from the user's
+  Amazon wishlist. The same general Amazon ICVE machine checks runtime-visible product
+  dimensions, inventory, address, and payment-card state, and reaches 6/6 success with
+  0 invalid calls and 0 unsafe state changes. This is a narrow held-out slice, not a
+  full `test_challenge` or leaderboard result.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice:
   `results/appworld_membership_paid_total_answer_20260525/20260525_063804` records
   three local `test_challenge` answer-only tasks whose public instructions ask how much
