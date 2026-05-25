@@ -1202,6 +1202,20 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_order_trip_supplies_by_deadline",
+                (
+                    SlotSpec("product_types"),
+                    SlotSpec("quantity"),
+                    SlotSpec("trip_day"),
+                    SlotSpec("address_name"),
+                    SlotSpec("card_name"),
+                ),
+            ),
+            compiler=compile_amazon_order_trip_supplies_by_deadline,
+            handler=handle_amazon_order_trip_supplies_by_deadline,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_return_recent_orders",
                 (
                     SlotSpec("order_count"),
@@ -4481,6 +4495,37 @@ def compile_amazon_download_all_order_receipts(
     frame = IntentFrame("appworld_amazon_download_all_order_receipts")
     frame.set_slot("directory_path", match.group("directory"), source="regex")
     frame.set_slot("file_format", match.group("file_format"), source="regex")
+    return frame
+
+
+def compile_amazon_order_trip_supplies_by_deadline(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"I am going on a trip with friends this (?P<trip_day>Saturday|Sunday)\. "
+        r"For it, I need (?P<quantity>\d+) (?P<first_product_type>.+?) and "
+        r"(?P<second_product_type>.+?), each\. Place an amazon order for them, "
+        r"making sure everything reaches my home by the end of the day before I leave\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    quantity = int(match.group("quantity"))
+    product_types = [
+        normalize_amazon_product_type(match.group("first_product_type")),
+        normalize_amazon_product_type(match.group("second_product_type")),
+    ]
+    if quantity < 1 or any(not product_type for product_type in product_types):
+        return None
+    frame = IntentFrame("appworld_amazon_order_trip_supplies_by_deadline")
+    frame.set_slot("product_types", product_types, source="regex")
+    frame.set_slot("quantity", quantity, source="regex")
+    frame.set_slot("trip_day", match.group("trip_day").lower(), source="regex")
+    frame.set_slot("address_name", "Home", source="default")
+    frame.set_slot("card_name", "", source="default")
     return frame
 
 
@@ -10676,6 +10721,215 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_download_all_order_receipts",
+    )
+
+
+def handle_amazon_order_trip_supplies_by_deadline(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    raw_product_types = frame.get("product_types") or []
+    if not isinstance(raw_product_types, list) or len(raw_product_types) != 2:
+        frame.abstain_reason = "missing_amazon_trip_product_types"
+        return None
+    product_types = [normalize_amazon_product_type(value) for value in raw_product_types]
+    quantity = int(frame.get("quantity") or 0)
+    trip_day = str(frame.get("trip_day") or "").strip().lower()
+    address_name = str(frame.get("address_name") or "Home")
+    card_name = str(frame.get("card_name") or "")
+    if quantity < 1 or any(not value for value in product_types) or trip_day not in {"saturday", "sunday"}:
+        frame.abstain_reason = "missing_amazon_trip_supply_slots"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+product_types = {json.dumps(product_types)}
+quantity = {quantity}
+trip_day = {json.dumps(trip_day)}
+address_name = {json.dumps(address_name)}
+card_name = {json.dumps(card_name)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def word_set(value):
+    return set(normalize_text(value).split())
+
+def singularize_word(word):
+    if word.endswith("ies"):
+        return word[:-3] + "y"
+    if word.endswith("ches") or word.endswith("shes"):
+        return word[:-2]
+    if word.endswith("ses"):
+        return word[:-2]
+    if word.endswith("s") and not word.endswith("ss"):
+        return word[:-1]
+    return word
+
+def normalized_word_set(value):
+    words = set()
+    for word in normalize_text(value).split():
+        words.add(word)
+        words.add(singularize_word(word))
+    return words
+
+def normalize_product_phrase(value):
+    return " ".join(singularize_word(word) for word in normalize_text(value).split())
+
+def product_type_matches(product, target_product_type):
+    target_words = normalized_word_set(target_product_type)
+    if normalize_product_phrase(product.get("product_type")) == normalize_product_phrase(target_product_type):
+        return True
+    text = " ".join([
+        str(product.get("name") or ""),
+        str(product.get("description") or ""),
+        str(product.get("product_type") or ""),
+    ])
+    return bool(target_words) and target_words <= normalized_word_set(text)
+
+def trip_deadline_days():
+    now = DateTime.now()
+    target_weekday = 5 if trip_day == "saturday" else 6
+    days_until = (target_weekday - now.weekday()) % 7
+    if days_until == 0:
+        days_until = 7
+    deadline = now.add(days=days_until - 1).end_of("day")
+    current_end = now.end_of("day")
+    return max(0, int((deadline.date() - current_end.date()).days))
+
+max_delivery_days = trip_deadline_days()
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if normalize_text(address.get("name")) == normalize_text(address_name):
+            return address
+    if normalize_text(address_name) == "home" and len(addresses) == 1:
+        return addresses[0]
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = [
+        card
+        for card in apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+        if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+    ]
+    candidates = []
+    for card in cards:
+        if card_name and normalize_text(card_name) not in normalize_text(card.get("card_name")):
+            continue
+        candidates.append(card)
+    if not candidates:
+        raise Exception(f"No Amazon payment card matched {{card_name or 'any card'}}.")
+    return sorted(
+        candidates,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+def search_candidates(product_type):
+    candidates = []
+    products = paged(lambda page: apis.amazon.search_products(
+        product_type=product_type,
+        page_index=page,
+        page_limit=20,
+        sort_by="+delivery_days",
+    ))
+    if not products:
+        products = paged(lambda page: apis.amazon.search_products(
+            query=product_type,
+            page_index=page,
+            page_limit=20,
+            sort_by="+delivery_days",
+        ))
+    for product in products:
+        details = apis.amazon.show_product(product_id=product["product_id"])
+        if not product_type_matches(details, product_type):
+            continue
+        inventory = int(details.get("inventory_quantity") or 0)
+        delivery_days = int(details.get("delivery_days") or product.get("delivery_days") or 0)
+        if inventory < quantity or delivery_days > max_delivery_days:
+            continue
+        candidates.append(details)
+    candidates.sort(key=lambda product: (
+        int(product.get("delivery_days") or 0),
+        -float(product.get("rating") or 0),
+        float(product.get("price") or 0),
+        int(product["product_id"]),
+    ))
+    if not candidates:
+        raise Exception(
+            f"No in-stock Amazon {{product_type}} can deliver within {{max_delivery_days}} days."
+        )
+    return candidates[0]
+
+selected = []
+seen_product_ids = set()
+for product_type in product_types:
+    product = search_candidates(product_type)
+    product_id = int(product["product_id"])
+    if product_id in seen_product_ids:
+        raise Exception(f"Same Amazon product selected for two product types: {{product_id}}")
+    seen_product_ids.add(product_id)
+    selected.append({{
+        "product_type": product_type,
+        "product_id": product_id,
+        "product_name": product.get("name"),
+        "delivery_days": int(product.get("delivery_days") or 0),
+        "quantity": quantity,
+    }})
+
+apis.amazon.clear_cart(access_token=tokens["amazon"])
+first = True
+for item in selected:
+    result = apis.amazon.add_product_to_cart(
+        access_token=tokens["amazon"],
+        product_id=item["product_id"],
+        quantity=item["quantity"],
+        clear_cart_first=first,
+    )
+    first = False
+    if "not" in str(result.get("message", "")).lower() and "success" not in str(result.get("message", "")).lower():
+        raise Exception(f"Unable to add Amazon trip supply {{item}}: {{result}}")
+
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+for card in pick_payment_cards():
+    payment_card_id = card["payment_card_id"]
+    result = apis.amazon.place_order(
+        access_token=tokens["amazon"],
+        payment_card_id=payment_card_id,
+        address_id=address["address_id"],
+    )
+    if "order_id" in result:
+        break
+    failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+if "order_id" not in result:
+    raise Exception(f"Unable to place Amazon trip-supplies order: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "trip_day": trip_day,
+    "max_delivery_days": max_delivery_days,
+    "selected": selected,
+    "quantity": quantity,
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_order_trip_supplies_by_deadline",
     )
 
 
@@ -18771,6 +19025,20 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "directory_path": directory_path,
             "file_format": str(slots.get("file_format") or "").strip(),
         }
+    if intent_type == "appworld_amazon_order_trip_supplies_by_deadline":
+        product_types_value = slots.get("product_types") or slots.get("products") or []
+        product_types = [
+            normalize_amazon_product_type(value)
+            for value in product_types_value
+            if str(value).strip()
+        ] if isinstance(product_types_value, list) else []
+        return {
+            "product_types": product_types,
+            "quantity": int(slots.get("quantity") or 0),
+            "trip_day": str(slots.get("trip_day") or "").strip().lower(),
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "card_name": str(slots.get("card_name") or "").strip(),
+        }
     if intent_type == "appworld_amazon_return_recent_orders":
         return {
             "order_count": int(slots.get("order_count") or slots.get("count") or 0),
@@ -19593,6 +19861,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_order_trip_supplies_by_deadline":
+        if not re.fullmatch(
+            r"i am going on a trip with friends this (saturday|sunday)\. "
+            r"for it, i need \d+ .+? and .+?, each\. place an amazon order for them, "
+            r"making sure everything reaches my home by the end of the day before i leave\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_return_recent_orders":
         if not re.fullmatch(
             r"initiate returns via [a-z0-9 .&'-]+ for everything in my last \d+ amazon order\.?",
@@ -20094,6 +20373,8 @@ Supported intent types and slots:
    slots: product_name string; quantity integer; address_name string, one of Home or Work; bills_root string, default ~/bills/.
 18. appworld_amazon_download_all_order_receipts
    slots: directory_path string ending with /; file_format string exactly as requested.
+18. appworld_amazon_order_trip_supplies_by_deadline
+   slots: product_types list of two product type strings; quantity integer; trip_day string, saturday or sunday; address_name string, default Home; card_name string, optional.
 18. appworld_amazon_return_recent_orders
    slots: order_count integer; deliverer_name string such as FedEx.
 18. appworld_amazon_return_same_product_except_size_this_week
@@ -20454,6 +20735,9 @@ JSON: {"intent_type":"appworld_amazon_order_product_and_archive_receipt","slots"
 
 Task: Download receipts of all my amazon orders in "~/bills/shopping_amazon/" folder in my file system. Name the files in the format, "ordered-at-yyyy-mm-dd-order-id-<order_id>.txt". Replace <order_id> with the actual order id, and yyyy-mm-dd with the date when the order was placed. You should be able to find receipts from order confirmation emails.
 JSON: {"intent_type":"appworld_amazon_download_all_order_receipts","slots":{"directory_path":"~/bills/shopping_amazon/","file_format":"ordered-at-yyyy-mm-dd-order-id-<order_id>.txt"}}
+
+Task: I am going on a trip with friends this Saturday. For it, I need 3 kites and sleeping pads, each. Place an amazon order for them, making sure everything reaches my home by the end of the day before I leave.
+JSON: {"intent_type":"appworld_amazon_order_trip_supplies_by_deadline","slots":{"product_types":["kite","sleeping pad"],"quantity":3,"trip_day":"saturday","address_name":"Home","card_name":""}}
 
 Task: Initiate returns via FedEx for everything in my last 3 amazon order.
 JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_count":3,"deliverer_name":"FedEx"}}

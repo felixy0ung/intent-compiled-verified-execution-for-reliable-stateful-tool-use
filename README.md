@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 183/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 186/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -192,7 +192,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 132 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 133 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -296,6 +296,8 @@ AppWorld leaderboard submission.
   `results/appworld_venmo_flight_bill_email_20260525/20260525_025233/`
 - AppWorld held-out coworker Venmo gift + email slice:
   `results/appworld_venmo_coworker_sprint_gifts_20260525/20260525_030821/`
+- AppWorld held-out Amazon trip-supplies deadline slice:
+  `results/appworld_amazon_trip_supplies_deadline_20260525/20260525_102345/`
 - AppWorld held-out shared-subscription password + phone-text slice:
   `results/appworld_shared_subscription_password_text_20260525/20260525_032327/`
 - AppWorld static public-instruction coverage:

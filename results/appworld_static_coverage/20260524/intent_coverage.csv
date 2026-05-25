@@ -17,6 +17,7 @@ test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1
 test_challenge,appworld_amazon_order_exact_products_restore_cart,3,3,0,0,1
 test_challenge,appworld_amazon_order_preferred_color_size_product,3,3,0,0,1
 test_challenge,appworld_amazon_order_product_and_archive_receipt,3,3,0,0,1
+test_challenge,appworld_amazon_order_trip_supplies_by_deadline,3,3,0,0,1
 test_challenge,appworld_amazon_post_question_last_ordered_product,3,3,0,0,1
 test_challenge,appworld_amazon_purchase_phone_recommendation,3,3,0,0,1
 test_challenge,appworld_amazon_replace_last_product_adjacent_size,3,3,0,0,1

@@ -72,6 +72,7 @@ appworld_amazon_order_preferred_color_size_product,6,"product_name,relative_size
 appworld_amazon_order_product_and_archive_receipt,4,"product_name,quantity,address_name,bills_root",27,272,299,0,0,0,0,"amazon,file_system,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_order_product_type_from_saved_list,4,"source_container,product_type,address_name,card_name",19,114,133,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_order_saved_collections,3,"containers,address_name,card_name",26,126,152,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_order_trip_supplies_by_deadline,5,"product_types,quantity,trip_day,address_name,card_name",29,192,221,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_post_question_last_ordered_product,2,"product_type,question",16,72,88,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_purchase_phone_recommendation,4,"recommender_first_name,product_type,address_name,card_name",19,250,269,0,0,0,0,"amazon,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_replace_last_product_adjacent_size,5,"product_type,size_direction,preferred_color,address_name,card_name",25,218,243,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
