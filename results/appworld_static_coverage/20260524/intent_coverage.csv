@@ -26,6 +26,7 @@ test_challenge,appworld_amazon_return_same_product_except_size_this_week,3,3,0,0
 test_challenge,appworld_amazon_text_wishlist_itemized_costs,3,3,0,0,1
 test_challenge,appworld_amazon_update_last_month_order_review,3,3,0,0,1
 test_challenge,appworld_delete_gmail_empty_drafts,3,3,0,0,1
+test_challenge,appworld_gmail_amazon_promo_codes_answer,3,3,0,0,1
 test_challenge,appworld_gmail_attach_job_search_files_and_send,3,3,0,0,1
 test_challenge,appworld_gmail_delete_archived_threads_by_calendar_window,3,3,0,0,1
 test_challenge,appworld_gmail_download_flight_ticket_attachment,3,3,0,0,1

@@ -53,6 +53,7 @@ test_challenge,b3bdcc1,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,b71318e,3,3,3,1.0,1.0,appworld_venmo_pay_coworkers_and_email,
 test_challenge,ba46d91,3,3,3,1.0,1.0,appworld_membership_remaining_duration,
 test_challenge,cdf61bd,3,3,3,1.0,1.0,appworld_amazon_update_last_month_order_review,
+test_challenge,d37c235,3,3,3,1.0,1.0,appworld_gmail_amazon_promo_codes_answer,
 test_challenge,d9987f6,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,dbc0276,3,3,3,1.0,1.0,appworld_amazon_text_wishlist_itemized_costs,
 test_challenge,e0fe09c,3,3,3,1.0,1.0,appworld_gmail_label_notification_threads_by_app,
@@ -114,7 +115,6 @@ test_challenge,cb4ee7a,3,0,0,0.0,0.0,,"amazon_purchase_or_product_search,spotify
 test_challenge,cdaaea5,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,ce73d68,3,0,0,0.0,0.0,,gmail_email
 test_challenge,d037dc8,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,d37c235,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,d6d8cb6,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,d8e490b,3,0,0,0.0,0.0,,gmail_email
 test_challenge,dc5c5c6,3,0,0,0.0,0.0,,amazon_purchase_or_product_search

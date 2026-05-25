@@ -1435,6 +1435,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_amazon_promo_codes_answer",
+                (),
+            ),
+            compiler=compile_gmail_amazon_promo_codes_answer,
+            handler=handle_gmail_amazon_promo_codes_answer,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_thread_cleanup",
                 (
                     SlotSpec("action"),
@@ -2847,6 +2855,21 @@ def compile_gmail_send_future_scheduled_drafts_now(
     ):
         return None
     return IntentFrame("appworld_gmail_send_future_scheduled_drafts_now")
+
+
+def compile_gmail_amazon_promo_codes_answer(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    if not re.fullmatch(
+        r"Find all Amazon promo codes from my Gmail account, including spam and archived emails, "
+        r"and give it to me in a comma-separated list\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+    return IntentFrame("appworld_gmail_amazon_promo_codes_answer")
 
 
 def compile_gmail_thread_cleanup(
@@ -13320,6 +13343,165 @@ print(json.dumps({"sent": sent}, sort_keys=True))
     )
 
 
+def handle_gmail_amazon_promo_codes_answer(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    code = common_appworld_prelude(["gmail"]) + """
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def thread_time(thread):
+    return str(thread.get("created_at") or thread.get("updated_at") or "")
+
+fetchers = [
+    ("inbox", apis.gmail.show_inbox_threads),
+    ("outbox", apis.gmail.show_outbox_threads),
+    ("archived", apis.gmail.show_archived_threads),
+    ("spam", apis.gmail.show_spam_threads),
+    ("starred", apis.gmail.show_starred_threads),
+    ("snoozed", apis.gmail.show_snoozed_threads),
+]
+queries = [
+    "amazon promo code",
+    "amazon promo",
+    "promo code",
+    "amazon coupon",
+    "amazon discount",
+    "amazon",
+]
+
+candidate_threads = {}
+fetch_errors = []
+for query in queries:
+    for bucket, fetch in fetchers:
+        try:
+            threads = paged(lambda page, fetch=fetch, query=query: fetch(
+                access_token=tokens["gmail"],
+                query=query,
+                page_index=page,
+                page_limit=20,
+                sort_by="+created_at",
+            ))
+        except Exception as exc:
+            fetch_errors.append({"bucket": bucket, "query": query, "error": str(exc)})
+            continue
+        for thread in threads:
+            thread_id = thread.get("email_thread_id")
+            if thread_id is None:
+                continue
+            existing = candidate_threads.get(thread_id)
+            if existing is None or thread_time(thread) < thread_time(existing):
+                thread["_rave_bucket"] = bucket
+                thread["_rave_query"] = query
+                candidate_threads[thread_id] = thread
+
+for bucket, fetch in fetchers:
+    try:
+        threads = paged(lambda page, fetch=fetch: fetch(
+            access_token=tokens["gmail"],
+            page_index=page,
+            page_limit=20,
+            sort_by="+created_at",
+        ))
+    except Exception as exc:
+        fetch_errors.append({"bucket": bucket, "query": "", "error": str(exc)})
+        continue
+    for thread in threads:
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None:
+            continue
+        thread["_rave_bucket"] = bucket
+        thread["_rave_query"] = ""
+        candidate_threads.setdefault(thread_id, thread)
+
+promo_patterns = [
+    r"\\bPromo\\s+Code\\s*(?:=>|:|=|-)\\s*([A-Za-z0-9][A-Za-z0-9_-]{2,})",
+    r"\\bpromo\\s+code\\s*(?:is|=|=>|:|-)?\\s*([A-Za-z0-9][A-Za-z0-9_-]{2,})",
+    r"\\bcoupon\\s+code\\s*(?:is|=|=>|:|-)?\\s*([A-Za-z0-9][A-Za-z0-9_-]{2,})",
+    r"\\b(AMZ[A-Za-z0-9_-]{3,})\\b",
+]
+bad_codes = {"amazon", "promo", "promotion", "code", "coupon", "discount", "subject", "body"}
+
+matches = []
+seen_codes = set()
+for thread_id in sorted(candidate_threads, key=lambda item: thread_time(candidate_threads[item])):
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    thread_created_at = str(detail.get("created_at") or candidate_threads[thread_id].get("created_at") or "")
+    for email in detail.get("emails", []):
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        sender = email.get("sender") or {}
+        sender_text = " ".join([
+            str(sender.get("name") or ""),
+            str(sender.get("email") or ""),
+        ])
+        haystack_key = text_key(" ".join([subject, body, sender_text]))
+        if "amazon" not in haystack_key:
+            continue
+        if not any(token in haystack_key for token in ["promo", "promotion", "discount", "coupon", "code"]):
+            continue
+        text = "\\n".join([subject, body])
+        for pattern in promo_patterns:
+            for match in re.finditer(pattern, text, flags=re.IGNORECASE):
+                code = match.group(1).strip().strip(".,;:!?)\\]}'\\\"")
+                if not code or code.lower() in bad_codes:
+                    continue
+                if not re.fullmatch(r"AMZ[A-Za-z0-9_-]{3,}", code, flags=re.IGNORECASE):
+                    continue
+                start, end = match.span(1)
+                nearby_key = text_key(text[max(0, start - 80): end + 80])
+                if not (
+                    "amazon" in haystack_key
+                    or any(token in nearby_key for token in ["promo", "promotion", "discount", "coupon", "code"])
+                ):
+                    continue
+                code_key = code.lower()
+                if code_key in seen_codes:
+                    continue
+                seen_codes.add(code_key)
+                matches.append({
+                    "code": code,
+                    "created_at": str(email.get("created_at") or thread_created_at),
+                    "email_thread_id": thread_id,
+                    "email_id": email.get("email_id"),
+                    "subject": subject,
+                })
+
+if not matches:
+    raise Exception(json.dumps({
+        "error": "Could not find Amazon promo codes in Gmail.",
+        "candidate_thread_count": len(candidate_threads),
+        "fetch_errors": fetch_errors,
+    }, sort_keys=True))
+
+matches.sort(key=lambda item: (
+    item["created_at"],
+    str(item.get("email_thread_id") or ""),
+    str(item.get("email_id") or ""),
+    item["code"].lower(),
+))
+codes = [item["code"] for item in matches]
+answer = ", ".join(codes)
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({
+    "answer": answer,
+    "codes": codes,
+    "match_count": len(matches),
+    "candidate_thread_count": len(candidate_threads),
+    "matches": matches,
+}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_amazon_promo_codes_answer",
+    )
+
+
 def handle_gmail_thread_cleanup(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -19219,6 +19401,8 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         return {"condition": condition}
     if intent_type == "appworld_gmail_send_future_scheduled_drafts_now":
         return {}
+    if intent_type == "appworld_gmail_amazon_promo_codes_answer":
+        return {}
     if intent_type == "appworld_gmail_thread_cleanup":
         action = str(slots.get("action", "")).strip().lower()
         if action in {"archive_threads", "archive"}:
@@ -19711,6 +19895,15 @@ def verify_or_repair_llm_intent_frame(
         return IntentFrame("unsupported")
     if frame.intent_type == "appworld_gmail_send_future_scheduled_drafts_now":
         if raw != "send all my future-scheduled emails on gmail right away.":
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_amazon_promo_codes_answer":
+        if raw != (
+            "find all amazon promo codes from my gmail account, including spam and archived emails, "
+            "and give it to me in a comma-separated list."
+        ):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
             if repaired is not None:
                 return repaired
@@ -20413,6 +20606,8 @@ Supported intent types and slots:
    slots: condition string, one of both or either.
 18. appworld_gmail_send_future_scheduled_drafts_now
    slots: empty object.
+18. appworld_gmail_amazon_promo_codes_answer
+   slots: empty object.
 19. appworld_gmail_thread_cleanup
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
 19. appworld_gmail_mark_threads_read_state_by_calendar_window
@@ -20807,6 +21002,9 @@ JSON: {"intent_type":"appworld_delete_gmail_empty_drafts","slots":{"condition":"
 
 Task: Send all my future-scheduled emails on Gmail right away.
 JSON: {"intent_type":"appworld_gmail_send_future_scheduled_drafts_now","slots":{}}
+
+Task: Find all Amazon promo codes from my Gmail account, including spam and archived emails, and give it to me in a comma-separated list.
+JSON: {"intent_type":"appworld_gmail_amazon_promo_codes_answer","slots":{}}
 
 Task: Archive all my read Gmail threads from inbox/outbox, except the ones that have some priority label or are starred.
 JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"archive","exception_mode":"or"}}

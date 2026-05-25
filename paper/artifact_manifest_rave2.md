@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 186/417 `test_challenge` instructions to complete frames. The same
+  instructions and 189/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -448,6 +448,14 @@ extraction call per task plus the runtime-checked executor.
   bounded Home-address order, and reaches 3/3 success with 0 invalid calls and
   0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
   or leaderboard result.
+- Held-out AppWorld Gmail Amazon promo-code answer slice:
+  `results/appworld_gmail_amazon_promo_codes_20260525/20260525_104850` records three
+  local `test_challenge` answer-only tasks whose public instructions ask for all Amazon
+  promo codes in Gmail, including spam and archived emails, as a comma-separated list.
+  One general Gmail ICVE machine enumerates runtime-visible Gmail thread categories,
+  extracts official and non-official Amazon promo-code evidence without mutating Gmail,
+  and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes. This is
+  answer-only coverage evidence, not a full `test_challenge` or leaderboard result.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice:
   `results/appworld_membership_paid_total_answer_20260525/20260525_063804` records
   three local `test_challenge` answer-only tasks whose public instructions ask how much
