@@ -9,20 +9,20 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | metric | value |
 | --- | ---: |
-| registered_appworld_machines | 134 |
+| registered_appworld_machines | 135 |
 | total_tasks | 585 |
-| compiled | 357 |
-| dispatchable | 357 |
-| unsupported | 228 |
-| compiled_rate | 0.6103 |
-| dispatchable_rate | 0.6103 |
-| dispatchable_scenarios | 119 / 195 |
+| compiled | 363 |
+| dispatchable | 363 |
+| unsupported | 222 |
+| compiled_rate | 0.6205 |
+| dispatchable_rate | 0.6205 |
+| dispatchable_scenarios | 121 / 195 |
 
 ## By Split
 
 | split | tasks | compiled | dispatchable | unsupported | dispatchable rate | dispatchable scenarios |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| test_challenge | 417 | 189 | 189 | 228 | 0.4532 | 63 / 139 |
+| test_challenge | 417 | 195 | 195 | 222 | 0.4676 | 65 / 139 |
 | test_normal | 168 | 168 | 168 | 0 | 1.0000 | 56 / 56 |
 
 ## Top Dispatchable Intents
@@ -33,6 +33,7 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 | appworld_venmo_friend_transaction_counterparties | 6 |
 | appworld_amazon_order_product_type_from_saved_list | 6 |
 | appworld_amazon_order_saved_collections | 6 |
+| appworld_gmail_count_threads | 6 |
 | appworld_venmo_reset_friends_to_phone_friends | 3 |
 | appworld_spotify_filter_queue_by_liked_status | 3 |
 | appworld_spotify_navigate_until_private_status | 3 |
@@ -40,14 +41,13 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 | appworld_venmo_sum_month_transactions | 3 |
 | appworld_spotify_archive_playlist_songs_from_file | 3 |
 | appworld_spotify_reset_queue_with_recommendations | 3 |
-| appworld_venmo_settle_roommate_dinner | 3 |
 
 ## Top Unsupported Buckets
 
 | bucket | tasks |
 | --- | ---: |
 | amazon_purchase_or_product_search | 104 |
-| gmail_email | 83 |
+| gmail_email | 77 |
 | splitwise_vacation_or_expense | 28 |
 | spotify_music | 12 |
 | venmo_payment_or_request | 1 |
@@ -62,14 +62,14 @@ Full rows are in `coverage_roadmap.csv`.
 | split | bucket | tasks | scenarios | roadmap family |
 | --- | --- | ---: | ---: | --- |
 | test_challenge | amazon_purchase_or_product_search | 104 | 36 | Amazon search-and-purchase machines |
-| test_challenge | gmail_email | 83 | 28 | Gmail thread-and-draft machines |
+| test_challenge | gmail_email | 77 | 26 | Gmail thread-and-draft machines |
 | test_challenge | splitwise_vacation_or_expense | 28 | 10 | Splitwise expense-settlement machines |
 | test_challenge | spotify_music | 12 | 5 | Spotify search-and-library machines |
 | test_challenge | venmo_payment_or_request | 1 | 1 | Venmo payment/request machines |
 
 ## Scenario Coverage
 
-- Fully dispatchable scenarios: 119
+- Fully dispatchable scenarios: 121
 - Partially dispatchable scenarios: 0
 - Full per-scenario rows are in `scenario_coverage.csv`.
 

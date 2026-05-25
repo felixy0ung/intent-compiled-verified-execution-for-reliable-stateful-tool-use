@@ -1443,6 +1443,18 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_count_threads",
+                (
+                    SlotSpec("mailbox"),
+                    SlotSpec("read_state"),
+                    SlotSpec("label", required=False),
+                ),
+            ),
+            compiler=compile_gmail_count_threads,
+            handler=handle_gmail_count_threads,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_thread_cleanup",
                 (
                     SlotSpec("action"),
@@ -2870,6 +2882,28 @@ def compile_gmail_amazon_promo_codes_answer(
     ):
         return None
     return IntentFrame("appworld_gmail_amazon_promo_codes_answer")
+
+
+def compile_gmail_count_threads(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"How many (?:(?P<label>priority-[123]) )?(?P<state>read|unread) email threads "
+        r"are in my Gmail (?P<mailbox>inbox|outbox)\?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_count_threads")
+    frame.set_slot("mailbox", match.group("mailbox").lower(), source="regex")
+    frame.set_slot("read_state", match.group("state").lower(), source="regex")
+    label = match.group("label")
+    if label:
+        frame.set_slot("label", label.lower(), source="regex", required=False)
+    return frame
 
 
 def compile_gmail_thread_cleanup(
@@ -13502,6 +13536,71 @@ print(json.dumps({
     )
 
 
+def handle_gmail_count_threads(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    mailbox = str(frame.get("mailbox") or "").strip().lower()
+    read_state = str(frame.get("read_state") or "").strip().lower()
+    label = str(frame.get("label") or "").strip().lower()
+    if mailbox not in {"inbox", "outbox"} or read_state not in {"read", "unread"}:
+        frame.abstain_reason = "missing_or_unsupported_gmail_thread_count_slots"
+        return None
+    if label and label not in {"priority-1", "priority-2", "priority-3"}:
+        frame.abstain_reason = "missing_or_unsupported_gmail_thread_count_label"
+        return None
+    code = common_appworld_prelude(["gmail"]) + f"""
+mailbox = {json.dumps(mailbox)}
+read_state = {json.dumps(read_state)}
+label = {json.dumps(label)}
+fetch = apis.gmail.show_inbox_threads if mailbox == "inbox" else apis.gmail.show_outbox_threads
+kwargs = {{
+    "access_token": tokens["gmail"],
+    "read": read_state == "read",
+    "page_index": 0,
+    "page_limit": 20,
+    "sort_by": "+created_at",
+}}
+if label:
+    kwargs["label"] = label
+
+threads = []
+page_index = 0
+while True:
+    kwargs["page_index"] = page_index
+    batch = fetch(**kwargs)
+    threads.extend(batch)
+    if len(batch) < 20:
+        break
+    page_index += 1
+
+seen_thread_ids = set()
+thread_ids = []
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None or thread_id in seen_thread_ids:
+        continue
+    seen_thread_ids.add(thread_id)
+    thread_ids.append(thread_id)
+
+answer = str(len(thread_ids))
+apis.supervisor.complete_task(answer=answer)
+print(json.dumps({{
+    "answer": answer,
+    "mailbox": mailbox,
+    "read_state": read_state,
+    "label": label,
+    "thread_count": len(thread_ids),
+    "thread_ids": thread_ids,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_count_threads",
+    )
+
+
 def handle_gmail_thread_cleanup(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -19403,6 +19502,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         return {}
     if intent_type == "appworld_gmail_amazon_promo_codes_answer":
         return {}
+    if intent_type == "appworld_gmail_count_threads":
+        label = str(slots.get("label") or "").strip().lower()
+        read_state = str(slots.get("read_state") or slots.get("state") or "").strip().lower()
+        mailbox = str(slots.get("mailbox") or "").strip().lower()
+        return {"mailbox": mailbox, "read_state": read_state, "label": label}
     if intent_type == "appworld_gmail_thread_cleanup":
         action = str(slots.get("action", "")).strip().lower()
         if action in {"archive_threads", "archive"}:
@@ -19903,6 +20007,15 @@ def verify_or_repair_llm_intent_frame(
         if raw != (
             "find all amazon promo codes from my gmail account, including spam and archived emails, "
             "and give it to me in a comma-separated list."
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_count_threads":
+        if not re.fullmatch(
+            r"how many (?:(priority-[123]) )?(read|unread) email threads are in my gmail (inbox|outbox)\?",
+            raw,
         ):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
             if repaired is not None:
@@ -20608,29 +20721,31 @@ Supported intent types and slots:
    slots: empty object.
 18. appworld_gmail_amazon_promo_codes_answer
    slots: empty object.
-19. appworld_gmail_thread_cleanup
+19. appworld_gmail_count_threads
+   slots: mailbox string, one of inbox or outbox; read_state string, one of read or unread; label optional string, one of priority-1, priority-2, or priority-3.
+20. appworld_gmail_thread_cleanup
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
-19. appworld_gmail_mark_threads_read_state_by_calendar_window
+21. appworld_gmail_mark_threads_read_state_by_calendar_window
    slots: target_state string, one of read or unread; window string, one of before_the_last_calendar_month, in_the_current_calendar_month, or before_the_current_calendar_year.
-20. appworld_gmail_delete_archived_threads_by_calendar_window
+22. appworld_gmail_delete_archived_threads_by_calendar_window
    slots: window string, one of before_this_calendar_month, this_calendar_month, or this_or_the_last_calendar_month.
-21. appworld_gmail_forward_anniversary_announcement_email
+23. appworld_gmail_forward_anniversary_announcement_email
    slots: recipient_email string.
-21. appworld_gmail_forward_caterer_bill_to_manager_with_note
+24. appworld_gmail_forward_caterer_bill_to_manager_with_note
    slots: note_prefix string.
-22. appworld_gmail_reply_weekly_manager_tasks_by_star_state
+25. appworld_gmail_reply_weekly_manager_tasks_by_star_state
    slots: subject_prefix string; done_reply string; not_done_reply string.
-20. appworld_gmail_star_threads_by_relationship
+26. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
-20. appworld_gmail_label_notification_threads_by_app
+27. appworld_gmail_label_notification_threads_by_app
    slots: empty object.
-21. appworld_gmail_relabel_priority_threads
+28. appworld_gmail_relabel_priority_threads
    slots: source_label_1 string, source_label_2 string, target_label_1 string, target_label_2 string, remove_label string; labels are one of priority-1, priority-2, priority-3, P1, P2, P3, pr-1, pr-2, or pr-3.
-21. appworld_gmail_attach_job_search_files_and_send
+29. appworld_gmail_attach_job_search_files_and_send
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
-21. appworld_gmail_download_flight_ticket_attachment
+30. appworld_gmail_download_flight_ticket_attachment
    slots: destination string; directory_path string ending in /.
-21. appworld_remove_expired_payment_cards
+31. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
@@ -21005,6 +21120,12 @@ JSON: {"intent_type":"appworld_gmail_send_future_scheduled_drafts_now","slots":{
 
 Task: Find all Amazon promo codes from my Gmail account, including spam and archived emails, and give it to me in a comma-separated list.
 JSON: {"intent_type":"appworld_gmail_amazon_promo_codes_answer","slots":{}}
+
+Task: How many unread email threads are in my Gmail inbox?
+JSON: {"intent_type":"appworld_gmail_count_threads","slots":{"mailbox":"inbox","read_state":"unread","label":""}}
+
+Task: How many priority-2 read email threads are in my Gmail inbox?
+JSON: {"intent_type":"appworld_gmail_count_threads","slots":{"mailbox":"inbox","read_state":"read","label":"priority-2"}}
 
 Task: Archive all my read Gmail threads from inbox/outbox, except the ones that have some priority label or are starred.
 JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"archive","exception_mode":"or"}}

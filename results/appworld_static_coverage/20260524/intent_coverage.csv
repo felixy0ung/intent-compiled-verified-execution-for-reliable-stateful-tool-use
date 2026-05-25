@@ -2,6 +2,7 @@ split,intent_type,compiled,dispatchable,abstained,incomplete,scenarios
 test_challenge,appworld_amazon_order_filtered_product,27,27,0,0,9
 test_challenge,appworld_amazon_order_product_type_from_saved_list,6,6,0,0,2
 test_challenge,appworld_amazon_order_saved_collections,6,6,0,0,2
+test_challenge,appworld_gmail_count_threads,6,6,0,0,2
 test_challenge,appworld_amazon_answer_cart_wishlist_total,3,3,0,0,1
 test_challenge,appworld_amazon_answer_current_price_from_birthday_order,3,3,0,0,1
 test_challenge,appworld_amazon_answer_last_order_question_yes_no,3,3,0,0,1

@@ -58,7 +58,9 @@ test_challenge,d9987f6,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
 test_challenge,dbc0276,3,3,3,1.0,1.0,appworld_amazon_text_wishlist_itemized_costs,
 test_challenge,e0fe09c,3,3,3,1.0,1.0,appworld_gmail_label_notification_threads_by_app,
 test_challenge,e52623a,3,3,3,1.0,1.0,appworld_gmail_relabel_priority_threads,
+test_challenge,e775c78,3,3,3,1.0,1.0,appworld_gmail_count_threads,
 test_challenge,eb5ad85,3,3,3,1.0,1.0,appworld_amazon_answer_spending_total,
+test_challenge,f691597,3,3,3,1.0,1.0,appworld_gmail_count_threads,
 test_challenge,f6936d4,3,3,3,1.0,1.0,appworld_amazon_order_trip_supplies_by_deadline,
 test_challenge,f99d726,3,3,3,1.0,1.0,appworld_amazon_replace_last_product_adjacent_size,
 test_challenge,fddb6b6,3,3,3,1.0,1.0,appworld_gmail_forward_caterer_bill_to_manager_with_note,
@@ -122,7 +124,6 @@ test_challenge,dcb2559,3,0,0,0.0,0.0,,"amazon_purchase_or_product_search,spotify
 test_challenge,dcbd34b,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
 test_challenge,e201314,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,e70b117,3,0,0,0.0,0.0,,gmail_email
-test_challenge,e775c78,3,0,0,0.0,0.0,,gmail_email
 test_challenge,e7f15ba,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,ec437da,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,ec655df,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
@@ -130,7 +131,6 @@ test_challenge,efc3cea,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,f099b4c,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,f37e804,3,0,0,0.0,0.0,,gmail_email
 test_challenge,f3a6713,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,f691597,3,0,0,0.0,0.0,,gmail_email
 test_challenge,f6be291,3,0,0,0.0,0.0,,gmail_email
 test_challenge,f6f2e67,3,0,0,0.0,0.0,,gmail_email
 test_challenge,f86d850,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
