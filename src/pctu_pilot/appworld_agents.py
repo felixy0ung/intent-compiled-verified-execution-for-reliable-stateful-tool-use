@@ -1514,6 +1514,14 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_forward_roommate_bill_to_other_roommates",
+                (SlotSpec("file_name"),),
+            ),
+            compiler=compile_gmail_forward_roommate_bill_to_other_roommates,
+            handler=handle_gmail_forward_roommate_bill_to_other_roommates,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_forward_trip_expenses_thread_with_attachment",
                 (
                     SlotSpec("sender_first_name"),
@@ -3056,6 +3064,24 @@ def compile_gmail_forward_caterer_bill_to_manager_with_note(
         return None
     frame = IntentFrame("appworld_gmail_forward_caterer_bill_to_manager_with_note")
     frame.set_slot("note_prefix", match.group("note").strip(), source="regex")
+    return frame
+
+
+def compile_gmail_forward_roommate_bill_to_other_roommates(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'My roommate sent me "(?P<file_name>[\w.\-]+\.pdf)" on Gmail sometime ago\. '
+        r"Please find it and forward that email to the rest of my roommates in a single email\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_forward_roommate_bill_to_other_roommates")
+    frame.set_slot("file_name", match.group("file_name").strip(), source="regex")
     return frame
 
 
@@ -14366,6 +14392,161 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_forward_roommate_bill_to_other_roommates(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    file_name = str(frame.get("file_name") or "").strip()
+    if not re.fullmatch(r"[\w.\-]+\.pdf", file_name):
+        frame.abstain_reason = "missing_or_invalid_roommate_bill_file_name"
+        return None
+    code = common_appworld_prelude(["gmail", "phone"]) + f"""
+file_name = {json.dumps(file_name)}
+file_name_key = file_name.strip().lower()
+
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def attachment_file_names(email):
+    return [
+        str(attachment.get("file_name") or "").strip()
+        for attachment in email.get("attachments", []) or []
+        if str(attachment.get("file_name") or "").strip()
+    ]
+
+roommate_contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship="roommate",
+    page_index=page,
+    page_limit=20,
+))
+roommate_emails = sorted({{
+    str(contact.get("email") or "").strip().lower()
+    for contact in roommate_contacts
+    if str(contact.get("email") or "").strip()
+}})
+if len(roommate_emails) < 2:
+    raise Exception(f"Expected at least two roommate emails, found {{roommate_emails}}.")
+roommate_email_set = set(roommate_emails)
+
+queries = [
+    file_name,
+    file_name.rsplit(".", 1)[0].replace("_", " "),
+    "bill pdf",
+    "bill",
+]
+threads = []
+seen_thread_ids = set()
+for query in queries:
+    for thread in paged(lambda page, query=query: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        query=query,
+        attachment=True,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )):
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None or thread_id in seen_thread_ids:
+            continue
+        seen_thread_ids.add(thread_id)
+        threads.append(thread)
+
+if not threads:
+    for thread in paged(lambda page: apis.gmail.show_inbox_threads(
+        access_token=tokens["gmail"],
+        attachment=True,
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    )):
+        thread_id = thread.get("email_thread_id")
+        if thread_id is None or thread_id in seen_thread_ids:
+            continue
+        seen_thread_ids.add(thread_id)
+        threads.append(thread)
+
+candidates = []
+for thread in threads:
+    thread_id = thread.get("email_thread_id")
+    if thread_id is None:
+        continue
+    detail = apis.gmail.show_thread(
+        access_token=tokens["gmail"],
+        email_thread_id=thread_id,
+    )
+    for email in detail.get("emails", []):
+        sender = email.get("sender") or {{}}
+        sender_email = str(sender.get("email") or "").strip().lower()
+        if sender_email not in roommate_email_set:
+            continue
+        names = attachment_file_names(email)
+        if file_name_key not in {{name.lower() for name in names}}:
+            continue
+        recipient_emails = [
+            email_address for email_address in roommate_emails
+            if email_address != sender_email
+        ]
+        if not recipient_emails:
+            continue
+        subject = str(email.get("subject") or "")
+        body = str(email.get("body") or "")
+        haystack = text_key(" ".join([subject, body, " ".join(names)]))
+        file_stem = text_key(file_name.rsplit(".", 1)[0])
+        score = 0
+        if "bill" in haystack:
+            score += 2
+        if file_stem and file_stem in haystack:
+            score += 3
+        candidates.append({{
+            "email_thread_id": thread_id,
+            "email_id": email.get("email_id"),
+            "created_at": email.get("created_at") or detail.get("created_at") or "",
+            "sender_email": sender_email,
+            "recipient_emails": recipient_emails,
+            "subject": subject,
+            "attachment_names": names,
+            "score": score,
+        }})
+
+if not candidates:
+    raise Exception(json.dumps({{
+        "error": "Could not find roommate email with requested bill attachment.",
+        "file_name": file_name,
+        "roommate_emails": roommate_emails,
+        "candidate_thread_count": len(threads),
+    }}, sort_keys=True))
+candidates.sort(key=lambda item: (item["score"], item["created_at"], str(item["email_thread_id"])), reverse=True)
+target = candidates[0]
+
+result = apis.gmail.forward_email_from_thread(
+    access_token=tokens["gmail"],
+    email_thread_id=target["email_thread_id"],
+    email_id=target["email_id"],
+    email_addresses=target["recipient_emails"],
+    draft_not_send=False,
+)
+if "sent_email_id" not in result and "sent_email_thread_id" not in result:
+    raise Exception(f"Unable to forward roommate bill email: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "file_name": file_name,
+    "source_sender_email": target["sender_email"],
+    "recipient_emails": target["recipient_emails"],
+    "source_email_thread_id": target["email_thread_id"],
+    "source_email_id": target["email_id"],
+    "candidate_count": len(candidates),
+    "forward_result": result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_forward_roommate_bill_to_other_roommates",
+    )
+
+
 def handle_gmail_forward_trip_expenses_thread_with_attachment(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -15341,7 +15522,7 @@ print(json.dumps({{
     "file_description": file_description,
     "relationship": relationship,
     "recipient_email": recipient_email,
-    "file_path": file_path,
+    "file_name": path_basename(file_path),
     "candidate_count": len(ranked),
     "sent_email_thread_id": sent.get("sent_email_thread_id"),
     "sent_email_id": sent.get("sent_email_id"),
@@ -20174,6 +20355,15 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
                 slots.get("note_prefix") or slots.get("note") or slots.get("message") or ""
             ).strip()
         }
+    if intent_type == "appworld_gmail_forward_roommate_bill_to_other_roommates":
+        return {
+            "file_name": str(
+                slots.get("file_name")
+                or slots.get("attachment_name")
+                or slots.get("attachment")
+                or ""
+            ).strip()
+        }
     if intent_type == "appworld_gmail_forward_trip_expenses_thread_with_attachment":
         return {
             "sender_first_name": str(
@@ -20756,6 +20946,17 @@ def verify_or_repair_llm_intent_frame(
             "caterers have emailed me the bill",
             "forward it to my manager",
             "note prefixed to its body",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_forward_roommate_bill_to_other_roommates":
+        required = [
+            "my roommate sent me",
+            "on gmail sometime ago",
+            "forward that email to the rest of my roommates in a single email",
         ]
         if not all(part in raw for part in required):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -21447,23 +21648,25 @@ Supported intent types and slots:
    slots: recipient_email string.
 25. appworld_gmail_forward_caterer_bill_to_manager_with_note
    slots: note_prefix string.
-26. appworld_gmail_forward_trip_expenses_thread_with_attachment
+26. appworld_gmail_forward_roommate_bill_to_other_roommates
+   slots: file_name PDF attachment base name such as electricity_bill.pdf.
+27. appworld_gmail_forward_trip_expenses_thread_with_attachment
    slots: sender_first_name string; recipient_first_name string; attachment_path string under ~/documents/personal/ ending in .pdf; note_prefix string.
-27. appworld_gmail_reply_weekly_manager_tasks_by_star_state
+28. appworld_gmail_reply_weekly_manager_tasks_by_star_state
    slots: subject_prefix string; done_reply string; not_done_reply string.
-28. appworld_gmail_star_threads_by_relationship
+29. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
-29. appworld_gmail_label_notification_threads_by_app
+30. appworld_gmail_label_notification_threads_by_app
    slots: empty object.
-30. appworld_gmail_relabel_priority_threads
+31. appworld_gmail_relabel_priority_threads
    slots: source_label_1 string, source_label_2 string, target_label_1 string, target_label_2 string, remove_label string; labels are one of priority-1, priority-2, priority-3, P1, P2, P3, pr-1, pr-2, or pr-3.
-31. appworld_gmail_attach_job_search_files_and_send
+32. appworld_gmail_attach_job_search_files_and_send
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
-32. appworld_gmail_download_flight_ticket_attachment
+33. appworld_gmail_download_flight_ticket_attachment
    slots: destination string; directory_path string ending in /.
-33. appworld_gmail_email_named_file_to_relationship
+34. appworld_gmail_email_named_file_to_relationship
    slots: file_description string such as driving license, headshot, or birth certificate; relationship string such as partner, manager, or husband.
-34. appworld_remove_expired_payment_cards
+35. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
@@ -21868,6 +22071,9 @@ JSON: {"intent_type":"appworld_gmail_forward_anniversary_announcement_email","sl
 
 Task: I helped organize my company celebration recently. The caterers have emailed me the bill. Forward it to my manager with a note prefixed to its body, "Bill for our last celebration.".
 JSON: {"intent_type":"appworld_gmail_forward_caterer_bill_to_manager_with_note","slots":{"note_prefix":"Bill for our last celebration."}}
+
+Task: My roommate sent me "internet_bill.pdf" on Gmail sometime ago. Please find it and forward that email to the rest of my roommates in a single email.
+JSON: {"intent_type":"appworld_gmail_forward_roommate_bill_to_other_roommates","slots":{"file_name":"internet_bill.pdf"}}
 
 Task: Denise, Glenn and I went on a trip recently. Yesterday, Denise emailed me their expenses in a pdf. Forward that thread to Glenn with an additional attachment of "~/documents/personal/expenses_james.pdf" from my file system, and a note prefixed to its body, "Can you please take care of splitting expenses? PFA for both of our expenses.".
 JSON: {"intent_type":"appworld_gmail_forward_trip_expenses_thread_with_attachment","slots":{"sender_first_name":"Denise","recipient_first_name":"Glenn","attachment_path":"~/documents/personal/expenses_james.pdf","note_prefix":"Can you please take care of splitting expenses? PFA for both of our expenses."}}

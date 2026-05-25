@@ -536,9 +536,9 @@ test_challenge,ac62177_3,ac62177,0,0,0,0,unsupported,,,gmail_email,507e8d0f7b051
 test_challenge,4441ee9_1,4441ee9,1,1,0,0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,,,,64073ba73a457736
 test_challenge,4441ee9_2,4441ee9,1,1,0,0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,,,,cb56480952fc42fe
 test_challenge,4441ee9_3,4441ee9,1,1,0,0,appworld_gmail_reply_weekly_manager_tasks_by_star_state,,,,71e966c18d3d46f9
-test_challenge,96bf160_1,96bf160,0,0,0,0,unsupported,,,gmail_email,03828b1a5a13c9fe
-test_challenge,96bf160_2,96bf160,0,0,0,0,unsupported,,,gmail_email,3e5dbdeca13a350d
-test_challenge,96bf160_3,96bf160,0,0,0,0,unsupported,,,gmail_email,70083f96bdf3d96e
+test_challenge,96bf160_1,96bf160,1,1,0,0,appworld_gmail_forward_roommate_bill_to_other_roommates,,,,03828b1a5a13c9fe
+test_challenge,96bf160_2,96bf160,1,1,0,0,appworld_gmail_forward_roommate_bill_to_other_roommates,,,,3e5dbdeca13a350d
+test_challenge,96bf160_3,96bf160,1,1,0,0,appworld_gmail_forward_roommate_bill_to_other_roommates,,,,70083f96bdf3d96e
 test_challenge,adb1060_1,adb1060,0,0,0,0,unsupported,,,gmail_email,0e6fa9bbe151b6da
 test_challenge,adb1060_2,adb1060,0,0,0,0,unsupported,,,gmail_email,bcc722bf43d8d931
 test_challenge,adb1060_3,adb1060,0,0,0,0,unsupported,,,gmail_email,899a5b61a8deb4c2

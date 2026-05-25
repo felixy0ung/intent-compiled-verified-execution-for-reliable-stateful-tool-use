@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 204/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 207/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -156,6 +156,10 @@ AppWorld leaderboard submission.
   finds a requested document or image in the file system and emails it to the unique
   contact for the requested relationship across 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
+- Held-out AppWorld Gmail roommate-bill forward slice: one Gmail + phone machine finds
+  a requested bill attachment from a roommate and forwards that email to the remaining
+  roommates in one message across 3 `test_challenge` tasks with 3/3 success,
+  0 invalid calls, and 0 unsafe changes.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice: one general
   subscription-history machine covers 3 `test_challenge` answer-only tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
@@ -211,7 +215,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 138 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 139 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 
@@ -327,6 +331,8 @@ AppWorld leaderboard submission.
   `results/appworld_gmail_trip_expense_forward_20260525/20260525_114918/`
 - AppWorld held-out Gmail file-email slice:
   `results/appworld_gmail_file_email_20260525/20260525_120329/`
+- AppWorld held-out Gmail roommate-bill forward slice:
+  `results/appworld_gmail_roommate_bill_forward_20260525/20260525_121705/`
 - AppWorld held-out shared-subscription password + phone-text slice:
   `results/appworld_shared_subscription_password_text_20260525/20260525_032327/`
 - AppWorld static public-instruction coverage:

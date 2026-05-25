@@ -81,6 +81,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_gmail_amazon_promo_codes_20260525": {"20260525_104850"},
     "appworld_gmail_file_email_20260525": {"20260525_120329"},
     "appworld_gmail_resignation_schedule_20260525": {"20260525_112350"},
+    "appworld_gmail_roommate_bill_forward_20260525": {"20260525_121705"},
     "appworld_gmail_trip_expense_forward_20260525": {"20260525_114918"},
     "appworld_gmail_thread_count_20260525": {"20260525_110722"},
     "appworld_membership_paid_total_answer_20260525": {"20260525_063804"},
