@@ -62,6 +62,7 @@ appworld_amazon_answer_returned_product_yes_no,2,"product_type,period",17,81,98,
 appworld_amazon_answer_spending_total,1,period,15,60,75,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_answer_verified_battery_life_hours,1,product_name,16,160,176,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_buy_last_product_variants,4,"product_type,colors,address_name,card_name",27,173,200,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_amazon_cart_buy_cheapest_per_type_move_rest,2,"address_name,card_name",16,117,133,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_product_type_between_saved_lists,3,"source_container,target_container,product_type",18,58,76,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_move_rating_filtered_products,4,"source_container,target_container,comparison,threshold_rating",20,58,78,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_amazon_order_exact_products_restore_cart,4,"items,address_name,preferred_card_name,restore_cart",25,175,200,0,0,0,0,"amazon,supervisor","schema,compiler,handler,ledger,policy",not_recorded

@@ -212,9 +212,9 @@ test_challenge,b0934aa_3,b0934aa,1,1,0,0,appworld_amazon_order_filtered_product,
 test_challenge,245cb43_1,245cb43,1,1,0,0,appworld_amazon_order_filtered_product,,,,b6ff857acb2e028b
 test_challenge,245cb43_2,245cb43,1,1,0,0,appworld_amazon_order_filtered_product,,,,9c5d97f9c6e318c9
 test_challenge,245cb43_3,245cb43,1,1,0,0,appworld_amazon_order_filtered_product,,,,70c2089496114d58
-test_challenge,a8f302f_1,a8f302f,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0629c72d9cb8f217
-test_challenge,a8f302f_2,a8f302f,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0629c72d9cb8f217
-test_challenge,a8f302f_3,a8f302f,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0629c72d9cb8f217
+test_challenge,a8f302f_1,a8f302f,1,1,0,0,appworld_amazon_cart_buy_cheapest_per_type_move_rest,,,,0629c72d9cb8f217
+test_challenge,a8f302f_2,a8f302f,1,1,0,0,appworld_amazon_cart_buy_cheapest_per_type_move_rest,,,,0629c72d9cb8f217
+test_challenge,a8f302f_3,a8f302f,1,1,0,0,appworld_amazon_cart_buy_cheapest_per_type_move_rest,,,,0629c72d9cb8f217
 test_challenge,1c4bd27_1,1c4bd27,1,1,0,0,appworld_amazon_return_recent_orders,,,,6d32c550805d8c05
 test_challenge,1c4bd27_2,1c4bd27,1,1,0,0,appworld_amazon_return_recent_orders,,,,2ebf7c5e282ec88c
 test_challenge,1c4bd27_3,1c4bd27,1,1,0,0,appworld_amazon_return_recent_orders,,,,aeb7b923b23d1bc5

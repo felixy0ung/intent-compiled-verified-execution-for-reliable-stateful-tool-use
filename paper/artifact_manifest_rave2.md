@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 174/417 `test_challenge` instructions to complete frames. The same
+  instructions and 177/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -413,6 +413,15 @@ extraction call per task plus the runtime-checked executor.
   filters runtime-visible Amazon search results by those sellers and price/inventory
   constraints, and reaches 3/3 success with 0 invalid calls and 0 unsafe state changes.
   This is a narrow held-out slice, not a full `test_challenge` or leaderboard result.
+- Held-out AppWorld Amazon cart cheapest-per-type slice:
+  `results/appworld_amazon_cart_cheapest_per_type_20260525/20260525_094418`
+  records three local `test_challenge` tasks whose public instructions ask to buy the
+  cheapest Amazon cart product for each product type and move the rest to the wishlist.
+  One Amazon ICVE machine groups runtime-visible cart items by runtime-visible product
+  type, keeps the cheapest product in each group, moves the remaining cart items to the
+  wishlist, places the bounded order, and reaches 3/3 success with 0 invalid calls and
+  0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
+  or leaderboard result.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice:
   `results/appworld_membership_paid_total_answer_20260525/20260525_063804` records
   three local `test_challenge` answer-only tasks whose public instructions ask how much

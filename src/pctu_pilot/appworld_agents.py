@@ -1154,6 +1154,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_cart_buy_cheapest_per_type_move_rest",
+                (
+                    SlotSpec("address_name"),
+                    SlotSpec("card_name"),
+                ),
+            ),
+            compiler=compile_amazon_cart_buy_cheapest_per_type_move_rest,
+            handler=handle_amazon_cart_buy_cheapest_per_type_move_rest,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_order_exact_products_restore_cart",
                 (
                     SlotSpec("items"),
@@ -4326,6 +4337,24 @@ def compile_amazon_order_saved_collections(
     frame = IntentFrame("appworld_amazon_order_saved_collections")
     frame.set_slot("containers", containers, source="regex")
     frame.set_slot("address_name", match.group("address").title(), source="regex")
+    frame.set_slot("card_name", "", source="default")
+    return frame
+
+
+def compile_amazon_cart_buy_cheapest_per_type_move_rest(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    if not re.fullmatch(
+        r"I have a few things in my amazon cart\. For each product type in it, "
+        r"buy the cheapest product and move the rest to the wish list\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    ):
+        return None
+    frame = IntentFrame("appworld_amazon_cart_buy_cheapest_per_type_move_rest")
+    frame.set_slot("address_name", "Home", source="default")
     frame.set_slot("card_name", "", source="default")
     return frame
 
@@ -9895,6 +9924,135 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_saved_collections",
+    )
+
+
+def handle_amazon_cart_buy_cheapest_per_type_move_rest(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    address_name = str(frame.get("address_name") or "Home")
+    card_name = str(frame.get("card_name") or "")
+    code = common_appworld_prelude(["amazon"]) + f"""
+address_name = {json.dumps(address_name)}
+card_name = {json.dumps(card_name)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if normalize_text(address.get("name")) == normalize_text(address_name):
+            return address
+    if normalize_text(address_name) == "home" and len(addresses) == 1:
+        return addresses[0]
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = [
+        card
+        for card in apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+        if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+    ]
+    candidates = []
+    for card in cards:
+        if card_name and normalize_text(card_name) not in normalize_text(card.get("card_name")):
+            continue
+        candidates.append(card)
+    if not candidates:
+        raise Exception(f"No Amazon payment card matched {{card_name or 'any card'}}.")
+    return sorted(
+        candidates,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+cart = apis.amazon.show_cart(access_token=tokens["amazon"])
+cart_items = list(cart.get("cart_items", []))
+if not cart_items:
+    raise Exception("Amazon cart is empty.")
+
+groups = {{}}
+for item in cart_items:
+    product = apis.amazon.show_product(product_id=item["product_id"])
+    product_type = normalize_text(product.get("product_type"))
+    if not product_type:
+        raise Exception(f"Cart product {{item['product_id']}} has no product_type.")
+    quantity = int(item.get("quantity") or 1)
+    if quantity < 1:
+        raise Exception(f"Invalid cart quantity for product {{item['product_id']}}: {{quantity}}")
+    inventory = int(item.get("inventory_quantity") or product.get("inventory_quantity") or 0)
+    if inventory < quantity:
+        raise Exception(f"Insufficient inventory for cart product {{item['product_id']}}.")
+    groups.setdefault(product_type, []).append({{
+        "cart_item": item,
+        "product": product,
+        "quantity": quantity,
+        "price": float(item.get("price") if item.get("price") is not None else product.get("price") or 0),
+    }})
+
+to_buy = []
+to_move = []
+for product_type, entries in groups.items():
+    entries.sort(key=lambda row: (row["price"], int(row["product"]["product_id"])))
+    to_buy.append(entries[0])
+    to_move.extend(entries[1:])
+
+for entry in to_move:
+    result = apis.amazon.move_product_from_cart_to_wish_list(
+        access_token=tokens["amazon"],
+        product_id=entry["product"]["product_id"],
+        quantity=entry["quantity"],
+    )
+    if result.get("message") and "not" in str(result.get("message")).lower() and "success" not in str(result.get("message")).lower():
+        raise Exception(f"Unable to move non-cheapest cart product {{entry['product']['product_id']}} to wishlist: {{result}}")
+
+remaining_cart = apis.amazon.show_cart(access_token=tokens["amazon"]).get("cart_items", [])
+remaining_ids = {{int(item["product_id"]) for item in remaining_cart}}
+expected_ids = {{int(entry["product"]["product_id"]) for entry in to_buy}}
+if remaining_ids != expected_ids:
+    raise Exception(f"Unexpected cart contents before order: expected {{expected_ids}}, found {{remaining_ids}}")
+
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+for card in pick_payment_cards():
+    payment_card_id = card["payment_card_id"]
+    result = apis.amazon.place_order(
+        access_token=tokens["amazon"],
+        payment_card_id=payment_card_id,
+        address_id=address["address_id"],
+    )
+    if "order_id" in result:
+        break
+    failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+if "order_id" not in result:
+    raise Exception(f"Unable to place Amazon cheapest-per-type order: {{result}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "ordered_product_ids": sorted(expected_ids),
+    "moved_product_ids": sorted(int(entry["product"]["product_id"]) for entry in to_move),
+    "product_types": sorted(groups.keys()),
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_cart_buy_cheapest_per_type_move_rest",
     )
 
 
@@ -18124,6 +18282,11 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
+    if intent_type == "appworld_amazon_cart_buy_cheapest_per_type_move_rest":
+        return {
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "card_name": str(slots.get("card_name") or "").strip(),
+        }
     if intent_type == "appworld_amazon_order_exact_products_restore_cart":
         items_value = slots.get("items") or slots.get("products") or []
         items = []
@@ -18922,6 +19085,15 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_cart_buy_cheapest_per_type_move_rest":
+        if raw != (
+            "i have a few things in my amazon cart. for each product type in it, "
+            "buy the cheapest product and move the rest to the wish list."
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_order_exact_products_restore_cart":
         if not re.fullmatch(
             r"place an amazon order for .+?, and have it delivered to my (home|work)\. "
@@ -19426,6 +19598,8 @@ Supported intent types and slots:
    slots: empty object.
 18. appworld_amazon_order_saved_collections
    slots: containers list using values from [cart, wish_list]; address_name string, one of Home or Work; card_name string, optional.
+18. appworld_amazon_cart_buy_cheapest_per_type_move_rest
+   slots: address_name string, default Home; card_name string, optional.
 18. appworld_amazon_order_exact_products_restore_cart
    slots: items list of objects with product_name string and quantity integer; address_name string, one of Home or Work; preferred_card_name string; restore_cart boolean.
 18. appworld_amazon_return_recent_orders
@@ -19776,6 +19950,9 @@ JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"contain
 
 Task: Place an order for everything in my amazon cart and wishlist for my home address.
 JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"containers":["cart","wish_list"],"address_name":"Home","card_name":""}}
+
+Task: I have a few things in my amazon cart. For each product type in it, buy the cheapest product and move the rest to the wish list.
+JSON: {"intent_type":"appworld_amazon_cart_buy_cheapest_per_type_move_rest","slots":{"address_name":"Home","card_name":""}}
 
 Task: Place an amazon order for 1 quantity of 'Sony PlayStation 5', 1 quantity of 'Etekcity Food Kitchen Scale' and 1 quantity of 'Xbox Series S Console', and have it delivered to my home. Use Discover payment card if it's already in my account, otherwise use what I have in it. Also, I have important things in my cart, so revert its state to as it is now after the order.
 JSON: {"intent_type":"appworld_amazon_order_exact_products_restore_cart","slots":{"items":[{"product_name":"Sony PlayStation 5","quantity":1},{"product_name":"Etekcity Food Kitchen Scale","quantity":1},{"product_name":"Xbox Series S Console","quantity":1}],"address_name":"Home","preferred_card_name":"Discover","restore_cart":true}}
