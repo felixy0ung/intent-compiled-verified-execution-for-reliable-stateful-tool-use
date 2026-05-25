@@ -1154,6 +1154,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_order_exact_products_restore_cart",
+                (
+                    SlotSpec("items"),
+                    SlotSpec("address_name"),
+                    SlotSpec("preferred_card_name"),
+                    SlotSpec("restore_cart"),
+                ),
+            ),
+            compiler=compile_amazon_order_exact_products_restore_cart,
+            handler=handle_amazon_order_exact_products_restore_cart,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_return_recent_orders",
                 (
                     SlotSpec("order_count"),
@@ -4313,6 +4326,56 @@ def compile_amazon_order_saved_collections(
     frame.set_slot("containers", containers, source="regex")
     frame.set_slot("address_name", match.group("address").title(), source="regex")
     frame.set_slot("card_name", "", source="default")
+    return frame
+
+
+def parse_amazon_exact_order_items(items_text: str) -> list[dict[str, Any]]:
+    items: list[dict[str, Any]] = []
+    pattern = re.compile(
+        r"(?P<quantity>\d+)\s+quantity\s+of\s+'(?P<product_name>[^']+)'",
+        flags=re.IGNORECASE,
+    )
+    position = 0
+    for match in pattern.finditer(items_text):
+        separator = items_text[position:match.start()].strip()
+        if separator and not re.fullmatch(r",|\band\b|,\s*\band\b", separator, flags=re.IGNORECASE):
+            return []
+        quantity = int(match.group("quantity"))
+        product_name = compact_text(match.group("product_name"))
+        if quantity < 1 or not product_name:
+            return []
+        items.append({"product_name": product_name, "quantity": quantity})
+        position = match.end()
+    trailing = items_text[position:].strip()
+    if trailing:
+        return []
+    return items
+
+
+def compile_amazon_order_exact_products_restore_cart(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Place an amazon order for (?P<items>.+?), and have it delivered to my "
+        r"(?P<address>home|work)\. Use (?P<card_name>[A-Za-z0-9 .&'-]+?) payment card "
+        r"if it's already in my account, otherwise use what I have in it\. "
+        r"Also, I have important things in my cart, so revert its state to as it is now "
+        r"after the order\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    items = parse_amazon_exact_order_items(match.group("items"))
+    if not items:
+        return None
+    frame = IntentFrame("appworld_amazon_order_exact_products_restore_cart")
+    frame.set_slot("items", items, source="regex")
+    frame.set_slot("address_name", match.group("address").title(), source="regex")
+    frame.set_slot("preferred_card_name", compact_text(match.group("card_name")), source="regex")
+    frame.set_slot("restore_cart", True, source="regex")
     return frame
 
 
@@ -9796,6 +9859,192 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_saved_collections",
+    )
+
+
+def handle_amazon_order_exact_products_restore_cart(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    raw_items = frame.get("items") or []
+    if not isinstance(raw_items, list) or not raw_items:
+        frame.abstain_reason = "missing_amazon_exact_order_items"
+        return None
+    items: list[dict[str, Any]] = []
+    for item in raw_items:
+        if not isinstance(item, dict):
+            frame.abstain_reason = "invalid_amazon_exact_order_item"
+            return None
+        product_name = compact_text(str(item.get("product_name") or ""))
+        quantity = int(item.get("quantity") or 0)
+        if not product_name or quantity < 1:
+            frame.abstain_reason = "invalid_amazon_exact_order_item"
+            return None
+        items.append({"product_name": product_name, "quantity": quantity})
+    address_name = str(frame.get("address_name") or "Home")
+    preferred_card_name = str(frame.get("preferred_card_name") or "")
+    restore_cart = bool(frame.get("restore_cart"))
+    if not restore_cart:
+        frame.abstain_reason = "amazon_exact_order_requires_cart_restore"
+        return None
+    code = common_appworld_prelude(["amazon"]) + f"""
+requested_items = {json.dumps(items)}
+address_name = {json.dumps(address_name)}
+preferred_card_name = {json.dumps(preferred_card_name)}
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if str(address.get("name", "")).strip().lower() == address_name.strip().lower():
+            return address
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def card_rank(card):
+    return (
+        int(card.get("expiry_year") or 0),
+        int(card.get("expiry_month") or 0),
+        int(card["payment_card_id"]),
+    )
+
+def pick_payment_cards():
+    cards = sorted(
+        apis.amazon.show_payment_cards(access_token=tokens["amazon"]),
+        key=card_rank,
+        reverse=True,
+    )
+    if not cards:
+        raise Exception("No Amazon payment card available.")
+    preferred = []
+    if preferred_card_name.strip():
+        preferred = [
+            card for card in cards
+            if preferred_card_name.strip().lower() in str(card.get("card_name", "")).strip().lower()
+        ]
+    fallback = [card for card in cards if card not in preferred]
+    return preferred + fallback
+
+def all_search_results(query):
+    results = []
+    page = 0
+    while True:
+        batch = apis.amazon.search_products(query=query, page_index=page, page_limit=20)
+        if not batch:
+            break
+        results.extend(batch)
+        if len(batch) < 20:
+            break
+        page += 1
+    return results
+
+def resolve_product(product_name, quantity):
+    matches = [
+        product for product in all_search_results(product_name)
+        if str(product.get("name", "")).strip().lower() == product_name.strip().lower()
+    ]
+    unique_by_id = {{}}
+    for product in matches:
+        unique_by_id[int(product["product_id"])] = product
+    matches = list(unique_by_id.values())
+    if len(matches) != 1:
+        raise Exception(f"Could not uniquely resolve Amazon product {{product_name}}; found {{len(matches)}}.")
+    product = apis.amazon.show_product(product_id=matches[0]["product_id"])
+    inventory = int(product.get("inventory_quantity") or 0)
+    if inventory < quantity:
+        raise Exception(f"Insufficient inventory for {{product_name}}: need {{quantity}}, have {{inventory}}.")
+    return product
+
+def restore_cart(snapshot):
+    apis.amazon.clear_cart(access_token=tokens["amazon"])
+    first = True
+    for item in snapshot.get("cart_items", []):
+        result = apis.amazon.add_product_to_cart(
+            access_token=tokens["amazon"],
+            product_id=item["product_id"],
+            quantity=int(item.get("quantity") or 1),
+            clear_cart_first=first,
+        )
+        first = False
+        if result.get("message") and "not" in str(result.get("message")).lower() and "success" not in str(result.get("message")).lower():
+            raise Exception(f"Unable to restore Amazon cart item {{item}}: {{result}}")
+        gift_wrap_quantity = int(item.get("gift_wrap_quantity") or 0)
+        if gift_wrap_quantity:
+            update_result = apis.amazon.add_gift_wrapping_to_product(
+                access_token=tokens["amazon"],
+                product_id=item["product_id"],
+                quantity=gift_wrap_quantity,
+            )
+            if update_result.get("message") and "not" in str(update_result.get("message")).lower() and "success" not in str(update_result.get("message")).lower():
+                raise Exception(f"Unable to restore Amazon gift wrapping for {{item}}: {{update_result}}")
+    promo_code = snapshot.get("promo_code")
+    if promo_code:
+        result = apis.amazon.apply_promo_code_to_cart(
+            access_token=tokens["amazon"],
+            promo_code=promo_code,
+        )
+        if result.get("message") and "not" in str(result.get("message")).lower() and "success" not in str(result.get("message")).lower():
+            raise Exception(f"Unable to restore Amazon cart promo code {{promo_code}}: {{result}}")
+
+cart_snapshot = apis.amazon.show_cart(access_token=tokens["amazon"])
+target_items = []
+for item in requested_items:
+    product = resolve_product(item["product_name"], int(item["quantity"]))
+    target_items.append({{
+        "product_id": product["product_id"],
+        "product_name": product["name"],
+        "quantity": int(item["quantity"]),
+    }})
+
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+try:
+    apis.amazon.clear_cart(access_token=tokens["amazon"])
+    first = True
+    for item in target_items:
+        add_result = apis.amazon.add_product_to_cart(
+            access_token=tokens["amazon"],
+            product_id=item["product_id"],
+            quantity=item["quantity"],
+            clear_cart_first=first,
+        )
+        first = False
+        if add_result.get("message") and "not" in str(add_result.get("message")).lower() and "success" not in str(add_result.get("message")).lower():
+            raise Exception(f"Unable to stage Amazon product {{item}}: {{add_result}}")
+    staged_cart = apis.amazon.show_cart(access_token=tokens["amazon"])
+    if staged_cart.get("promo_code") and not bool(staged_cart.get("promo_valid")):
+        apis.amazon.remove_promo_code_from_cart(access_token=tokens["amazon"])
+    for card in pick_payment_cards():
+        payment_card_id = card["payment_card_id"]
+        result = apis.amazon.place_order(
+            access_token=tokens["amazon"],
+            payment_card_id=payment_card_id,
+            address_id=address["address_id"],
+        )
+        if "order_id" in result:
+            break
+        failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+    if "order_id" not in result:
+        raise Exception(f"Unable to place Amazon exact-products order: {{result}}")
+finally:
+    restore_cart(cart_snapshot)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "address_name": address_name,
+    "address_id": address["address_id"],
+    "preferred_card_name": preferred_card_name,
+    "payment_card_id": payment_card_id,
+    "order_id": result["order_id"],
+    "ordered_items": target_items,
+    "cart_snapshot_count": len(cart_snapshot.get("cart_items", [])),
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_order_exact_products_restore_cart",
     )
 
 
@@ -17818,6 +18067,26 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
         }
+    if intent_type == "appworld_amazon_order_exact_products_restore_cart":
+        items_value = slots.get("items") or slots.get("products") or []
+        items = []
+        if isinstance(items_value, list):
+            for item in items_value:
+                if isinstance(item, dict):
+                    product_name = compact_text(str(item.get("product_name") or item.get("name") or ""))
+                    quantity = int(item.get("quantity") or 0)
+                    if product_name and quantity > 0:
+                        items.append({"product_name": product_name, "quantity": quantity})
+        return {
+            "items": items,
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "preferred_card_name": str(
+                slots.get("preferred_card_name")
+                or slots.get("card_name")
+                or ""
+            ).strip(),
+            "restore_cart": bool(slots.get("restore_cart", True)),
+        }
     if intent_type == "appworld_amazon_return_recent_orders":
         return {
             "order_count": int(slots.get("order_count") or slots.get("count") or 0),
@@ -18595,6 +18864,17 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_order_exact_products_restore_cart":
+        if not re.fullmatch(
+            r"place an amazon order for .+?, and have it delivered to my (home|work)\. "
+            r"use [a-z0-9 .&'-]+ payment card if it's already in my account, otherwise use what i have in it\. "
+            r"also, i have important things in my cart, so revert its state to as it is now after the order\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_return_recent_orders":
         if not re.fullmatch(
             r"initiate returns via [a-z0-9 .&'-]+ for everything in my last \d+ amazon order\.?",
@@ -19083,6 +19363,8 @@ Supported intent types and slots:
    slots: empty object.
 18. appworld_amazon_order_saved_collections
    slots: containers list using values from [cart, wish_list]; address_name string, one of Home or Work; card_name string, optional.
+18. appworld_amazon_order_exact_products_restore_cart
+   slots: items list of objects with product_name string and quantity integer; address_name string, one of Home or Work; preferred_card_name string; restore_cart boolean.
 18. appworld_amazon_return_recent_orders
    slots: order_count integer; deliverer_name string such as FedEx.
 18. appworld_amazon_return_same_product_except_size_this_week
@@ -19431,6 +19713,9 @@ JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"contain
 
 Task: Place an order for everything in my amazon cart and wishlist for my home address.
 JSON: {"intent_type":"appworld_amazon_order_saved_collections","slots":{"containers":["cart","wish_list"],"address_name":"Home","card_name":""}}
+
+Task: Place an amazon order for 1 quantity of 'Sony PlayStation 5', 1 quantity of 'Etekcity Food Kitchen Scale' and 1 quantity of 'Xbox Series S Console', and have it delivered to my home. Use Discover payment card if it's already in my account, otherwise use what I have in it. Also, I have important things in my cart, so revert its state to as it is now after the order.
+JSON: {"intent_type":"appworld_amazon_order_exact_products_restore_cart","slots":{"items":[{"product_name":"Sony PlayStation 5","quantity":1},{"product_name":"Etekcity Food Kitchen Scale","quantity":1},{"product_name":"Xbox Series S Console","quantity":1}],"address_name":"Home","preferred_card_name":"Discover","restore_cart":true}}
 
 Task: Initiate returns via FedEx for everything in my last 3 amazon order.
 JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_count":3,"deliverer_name":"FedEx"}}

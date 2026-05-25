@@ -12,6 +12,7 @@ test_challenge,appworld_amazon_answer_verified_battery_life_hours,3,3,0,0,1
 test_challenge,appworld_amazon_buy_last_product_variants,3,3,0,0,1
 test_challenge,appworld_amazon_move_product_type_between_saved_lists,3,3,0,0,1
 test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1
+test_challenge,appworld_amazon_order_exact_products_restore_cart,3,3,0,0,1
 test_challenge,appworld_amazon_order_preferred_color_size_product,3,3,0,0,1
 test_challenge,appworld_amazon_post_question_last_ordered_product,3,3,0,0,1
 test_challenge,appworld_amazon_purchase_phone_recommendation,3,3,0,0,1
