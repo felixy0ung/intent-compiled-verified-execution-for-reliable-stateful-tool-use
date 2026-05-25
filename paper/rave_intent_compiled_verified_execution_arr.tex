@@ -641,9 +641,9 @@ The coverage assumption is auditable rather than implicit. ToolSandbox uses 13 s
 machines; AppWorld has 128 registered machines, of which 55 cover all 168
 \texttt{test\_normal.txt} tasks (3.05 tasks per used machine). For used AppWorld
 machines, the median slots/compiler LOC/handler LOC/total LOC are 1/18/74/94. A static
-public-instruction audit compiles 168/168 \texttt{test\_normal} and 165/417
+public-instruction audit compiles 168/168 \texttt{test\_normal} and 168/417
 \texttt{test\_challenge} instructions without tools, databases, or ground truth; the
-roadmap keeps unsupported Amazon purchase/search (128), Gmail (83), Splitwise (28), Spotify (12), and Venmo (1)
+roadmap keeps unsupported Amazon purchase/search (125), Gmail (83), Splitwise (28), Spotify (12), and Venmo (1)
 buckets as coverage gaps. Forty-four held-out \texttt{test\_challenge} slices now cover
 135 additional tasks across phone, Gmail, file-system, payment-card, Venmo, Spotify, Amazon
 shopping, Amazon answer-only, subscription-history, and cross-app workflows, reaching
@@ -726,7 +726,7 @@ families.
 The added diagnostics make this boundary falsifiable. On ToolSandbox
 insufficient-information tasks, ReAct produces 0.4286 unsafe mutations and 2.1786 invalid
 calls per task; ICVE reduces both to zero, while removing abstention restores the unsafe
-rate. On AppWorld, the 168-task local \texttt{test\_normal.txt} diagnostic, 165/417 static
+rate. On AppWorld, the 168-task local \texttt{test\_normal.txt} diagnostic, 168/417 static
 \texttt{test\_challenge} compile audit, and 135-task held-out slice collection expose both
 coverage and non-coverage. The dynamic diagnostic also induces five boolean-setting
 machines from unseen API signatures without model calls.
@@ -852,7 +852,7 @@ Coverage gaps become reported no-action outcomes rather than hidden unsafe mutat
 Unsupported or similar-looking tasks would be forced through machines and mutate state
 unsafely. &
 On local \texttt{test\_normal.txt}, ICVE supports and succeeds on 168/168 tasks with
-zero unsafe state changes. A static public-instruction audit compiles only 165/417
+zero unsafe state changes. A static public-instruction audit compiles only 168/417
 \texttt{test\_challenge} tasks, and the executable prefix still leaves 9/24 Amazon
 product-search purchase tasks unsupported under conservative Amazon machines,
 again with zero unsafe

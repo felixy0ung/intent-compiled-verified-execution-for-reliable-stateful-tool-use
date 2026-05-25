@@ -53,10 +53,10 @@ The static public-instruction audit covers all local AppWorld `test_normal.txt` 
 `test_challenge.txt` IDs without executing tools or loading ground truth. It compiles
 168/168
 `test_normal` instructions and
-165/417
+168/417
 `test_challenge` instructions to complete intent frames. Unsupported `test_challenge`
 rows cluster mainly in amazon_purchase_or_product_search
-(128 tasks) and
+(125 tasks) and
 gmail_email
 (83 tasks), making the coverage boundary
 auditable rather than implicit.

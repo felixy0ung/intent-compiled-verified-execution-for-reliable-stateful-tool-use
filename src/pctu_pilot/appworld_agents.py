@@ -1222,15 +1222,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
                 "appworld_amazon_order_filtered_product",
                 (
                     SlotSpec("product_type"),
+                    SlotSpec("min_price", required=False),
                     SlotSpec("max_price", required=False),
                     SlotSpec("min_product_rating", required=False),
                     SlotSpec("min_product_reviews", required=False),
                     SlotSpec("min_seller_rating", required=False),
+                    SlotSpec("price_bounds_inclusive", required=False),
                     SlotSpec("rating_threshold_inclusive", required=False),
                     SlotSpec("prefer_highest_seller", required=False),
                     SlotSpec("source_container", required=False),
                     SlotSpec("max_length", required=False),
                     SlotSpec("max_width", required=False),
+                    SlotSpec("quantity_relationship", required=False),
+                    SlotSpec("allow_mixed_products", required=False),
                     SlotSpec("quantity"),
                     SlotSpec("address_name"),
                     SlotSpec("card_name"),
@@ -4463,15 +4467,19 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
         frame.set_slot("min_product_rating", None, source="default", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
         frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
@@ -4486,15 +4494,19 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
         frame.set_slot("min_product_rating", float(match.group("min_rating")), source="regex", required=False)
         frame.set_slot("min_product_reviews", int(match.group("min_reviews")), source="regex", required=False)
         frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
@@ -4509,15 +4521,19 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", None, source="default", required=False)
         frame.set_slot("min_product_rating", float(match.group("min_rating")), source="regex", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
         frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
@@ -4533,15 +4549,19 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", None, source="default", required=False)
         frame.set_slot("min_product_rating", float(match.group("min_product_rating")), source="regex", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
         frame.set_slot("min_seller_rating", float(match.group("min_seller_rating")), source="regex", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", True, source="regex", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", int(match.group("quantity")), source="regex")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
@@ -4555,15 +4575,19 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", None, source="default", required=False)
         frame.set_slot("min_product_rating", None, source="default", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
         frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
         frame.set_slot("prefer_highest_seller", True, source="regex", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", compact_text(match.group("card_name")).lower(), source="regex")
@@ -4579,15 +4603,19 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", None, source="default", required=False)
         frame.set_slot("min_product_rating", None, source="default", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
         frame.set_slot("min_seller_rating", float(match.group("min_seller_rating")), source="regex", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", True, source="regex", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
         frame.set_slot("max_length", float(match.group("max_length")), source="regex", required=False)
         frame.set_slot("max_width", float(match.group("max_width")), source="regex", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", "Home", source="default")
         frame.set_slot("card_name", "", source="default")
@@ -4602,17 +4630,49 @@ def compile_amazon_order_filtered_product(
     if match:
         frame = IntentFrame("appworld_amazon_order_filtered_product")
         frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
         frame.set_slot("max_price", None, source="default", required=False)
         frame.set_slot("min_product_rating", None, source="default", required=False)
         frame.set_slot("min_product_reviews", None, source="default", required=False)
         frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
         frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "wish_list", source="regex", required=False)
         frame.set_slot("max_length", float(match.group("max_length")), source="regex", required=False)
         frame.set_slot("max_width", float(match.group("max_width")), source="regex", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", "Home", source="default")
+        frame.set_slot("card_name", "", source="default")
+        return frame
+    match = re.fullmatch(
+        r"Buy the highest-rated (?P<product_type>.+?) on amazon in "
+        r"(?P<min_price>\d+(?:\.\d+)?)-(?P<max_price>\d+(?:\.\d+)?) price range "
+        r"\(ignoring tax and other fees\) for each of my (?P<relationship>roommates|siblings) "
+        r"and get them delivered to my home\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", float(match.group("min_price")), source="regex", required=False)
+        frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
+        frame.set_slot("min_product_rating", None, source="default", required=False)
+        frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", True, source="regex", required=False)
+        frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
+        frame.set_slot("prefer_highest_seller", False, source="default", required=False)
+        frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("max_length", None, source="default", required=False)
+        frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", match.group("relationship").lower(), source="regex", required=False)
+        frame.set_slot("allow_mixed_products", False, source="regex", required=False)
+        frame.set_slot("quantity", 0, source="derived_from_relationship")
+        frame.set_slot("address_name", "Home", source="regex")
         frame.set_slot("card_name", "", source="default")
         return frame
     return None
@@ -10580,38 +10640,50 @@ def handle_amazon_order_filtered_product(
     available_tools: AvailableTools,
 ) -> ToolAction | None:
     product_type = normalize_amazon_product_type(frame.get("product_type") or "")
+    min_price_value = frame.get("min_price")
     max_price_value = frame.get("max_price")
     min_rating_value = frame.get("min_product_rating")
     min_reviews_value = frame.get("min_product_reviews")
     min_seller_rating_value = frame.get("min_seller_rating")
+    price_bounds_inclusive = bool(frame.get("price_bounds_inclusive"))
     rating_threshold_inclusive = bool(frame.get("rating_threshold_inclusive"))
     prefer_highest_seller = bool(frame.get("prefer_highest_seller"))
     source_container = frame.get("source_container") or "search"
     max_length_value = frame.get("max_length")
     max_width_value = frame.get("max_width")
+    quantity_relationship = str(frame.get("quantity_relationship") or "").strip().lower()
+    allow_mixed_products = bool(frame.get("allow_mixed_products", True))
     quantity = int(frame.get("quantity") or 0)
     address_name = frame.get("address_name") or "Home"
     card_name = frame.get("card_name") or ""
-    if not product_type or quantity < 1:
+    if not product_type or (quantity < 1 and not quantity_relationship):
         frame.abstain_reason = "missing_amazon_filtered_product_order_slots"
         return None
+    min_price = float(min_price_value) if min_price_value is not None else None
     max_price = float(max_price_value) if max_price_value is not None else None
     min_rating = float(min_rating_value) if min_rating_value is not None else None
     min_reviews = int(min_reviews_value) if min_reviews_value is not None else None
     min_seller_rating = float(min_seller_rating_value) if min_seller_rating_value is not None else None
     max_length = float(max_length_value) if max_length_value is not None else None
     max_width = float(max_width_value) if max_width_value is not None else None
-    code = common_appworld_prelude(["amazon"]) + f"""
+    app_names = ["amazon"]
+    if quantity_relationship:
+        app_names.append("phone")
+    code = common_appworld_prelude(app_names) + f"""
 target_product_type = {json.dumps(product_type)}
+min_price = {repr(min_price)}
 max_price = {repr(max_price)}
 min_rating = {repr(min_rating)}
 min_reviews = {repr(min_reviews)}
 min_seller_rating = {repr(min_seller_rating)}
+price_bounds_inclusive = {repr(price_bounds_inclusive)}
 rating_threshold_inclusive = {repr(rating_threshold_inclusive)}
 prefer_highest_seller = {repr(prefer_highest_seller)}
 source_container = {json.dumps(str(source_container))}
 max_length = {repr(max_length)}
 max_width = {repr(max_width)}
+quantity_relationship = {json.dumps(quantity_relationship)}
+allow_mixed_products = {repr(allow_mixed_products)}
 quantity = {quantity}
 address_name = {json.dumps(str(address_name))}
 card_name = {json.dumps(str(card_name))}
@@ -10648,6 +10720,31 @@ def product_type_matches(product):
         str(product.get("product_type") or ""),
     ])
     return bool(target_words) and target_words <= word_set(text)
+
+def singular_relationship(value):
+    value = normalize_text(value)
+    if value in {{"roommates", "roommate"}}:
+        return "roommate"
+    if value in {{"siblings", "sibling", "sisters", "brothers"}}:
+        return "sibling"
+    return value[:-1] if value.endswith("s") else value
+
+if quantity_relationship:
+    relationship = singular_relationship(quantity_relationship)
+    contacts = paged(lambda page: apis.phone.search_contacts(
+        access_token=tokens["phone"],
+        relationship=relationship,
+        page_index=page,
+        page_limit=20,
+    ))
+    seen_contacts = set()
+    for contact in contacts:
+        key = contact.get("contact_id") or contact.get("email") or contact.get("phone_number")
+        if key is not None:
+            seen_contacts.add(str(key))
+    quantity = len(seen_contacts)
+    if quantity < 1:
+        raise Exception(f"No phone contacts found for relationship {{quantity_relationship}}.")
 
 def pick_address():
     addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
@@ -10736,6 +10833,8 @@ search_kwargs = {{
     "page_limit": 20,
     "sort_by": "-rating",
 }}
+if min_price is not None:
+    search_kwargs["min_price"] = min_price
 if max_price is not None:
     search_kwargs["max_price"] = max_price
 if min_rating is not None:
@@ -10784,14 +10883,27 @@ for product in products:
         continue
     if not fits_dimensions(product):
         continue
-    if max_price is not None and float(product.get("price") or 0) >= max_price:
+    inventory_quantity = int(product.get("inventory_quantity") or 0)
+    if inventory_quantity < 1:
+        continue
+    price = float(product.get("price") or 0)
+    if min_price is not None:
+        if price_bounds_inclusive:
+            if price < min_price:
+                continue
+        elif price <= min_price:
+            continue
+    if max_price is not None:
+        if price_bounds_inclusive:
+            if price > max_price:
+                continue
+        elif price >= max_price:
+            continue
+    if not allow_mixed_products and inventory_quantity < quantity:
         continue
     if below_minimum(product.get("rating"), min_rating):
         continue
     if min_reviews is not None and int(product.get("num_product_reviews") or 0) <= min_reviews:
-        continue
-    inventory_quantity = int(product.get("inventory_quantity") or 0)
-    if inventory_quantity < 1:
         continue
     seller = seller_for_product(product)
     seller_rating = float(seller.get("rating") or 0)
@@ -10826,12 +10938,21 @@ if not candidates:
 candidates.sort(reverse=True)
 remaining_quantity = quantity
 selected_items = []
-for _, product, seller, inventory_quantity in candidates:
-    if remaining_quantity <= 0:
-        break
-    item_quantity = min(remaining_quantity, inventory_quantity)
-    selected_items.append((product, seller, item_quantity))
-    remaining_quantity -= item_quantity
+if allow_mixed_products:
+    for _, product, seller, inventory_quantity in candidates:
+        if remaining_quantity <= 0:
+            break
+        item_quantity = min(remaining_quantity, inventory_quantity)
+        selected_items.append((product, seller, item_quantity))
+        remaining_quantity -= item_quantity
+else:
+    _sort_key, product, seller, inventory_quantity = candidates[0]
+    if inventory_quantity < quantity:
+        raise Exception(
+            f"Best in-stock {{target_product_type}} candidate has only {{inventory_quantity}} units; need {{quantity}}."
+        )
+    selected_items.append((product, seller, quantity))
+    remaining_quantity = 0
 if remaining_quantity > 0:
     raise Exception(
         f"Only found {{quantity - remaining_quantity}} in-stock {{target_product_type}} units "
@@ -10885,6 +11006,7 @@ print(json.dumps({{
     ],
     "quantity": quantity,
     "source_container": source_container,
+    "quantity_relationship": quantity_relationship,
     "address_id": address["address_id"],
     "payment_card_id": payment_card_id,
     "order_id": result["order_id"],
@@ -17773,6 +17895,7 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "card_name": str(slots.get("card_name") or "").strip(),
         }
     if intent_type == "appworld_amazon_order_filtered_product":
+        min_price_value = slots.get("min_price")
         max_price_value = slots.get("max_price")
         min_rating_value = slots.get("min_product_rating") or slots.get("min_rating")
         min_reviews_value = slots.get("min_product_reviews") or slots.get("min_reviews")
@@ -17781,17 +17904,21 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         max_width_value = slots.get("max_width") or slots.get("width")
         return {
             "product_type": normalize_amazon_product_type(slots.get("product_type", "")),
+            "min_price": float(min_price_value) if min_price_value is not None else None,
             "max_price": float(max_price_value) if max_price_value is not None else None,
             "min_product_rating": float(min_rating_value) if min_rating_value is not None else None,
             "min_product_reviews": int(min_reviews_value) if min_reviews_value is not None else None,
             "min_seller_rating": (
                 float(min_seller_rating_value) if min_seller_rating_value is not None else None
             ),
+            "price_bounds_inclusive": bool(slots.get("price_bounds_inclusive")),
             "rating_threshold_inclusive": bool(slots.get("rating_threshold_inclusive")),
             "prefer_highest_seller": bool(slots.get("prefer_highest_seller")),
             "source_container": str(slots.get("source_container") or "search").strip(),
             "max_length": float(max_length_value) if max_length_value is not None else None,
             "max_width": float(max_width_value) if max_width_value is not None else None,
+            "quantity_relationship": str(slots.get("quantity_relationship") or "").strip(),
+            "allow_mixed_products": bool(slots.get("allow_mixed_products", True)),
             "quantity": int(slots.get("quantity") or 1),
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "card_name": str(slots.get("card_name") or "").strip(),
@@ -18559,6 +18686,12 @@ def verify_or_repair_llm_intent_frame(
             or re.fullmatch(
                 r"buy me a .+? from my amazon wishlist that will fit in my .+? "
                 r"of \d+(?:\.\d+)?x\d+(?:\.\d+)? \(lxw\) inches\.?",
+                raw,
+            )
+            or re.fullmatch(
+                r"buy the highest-rated .+? on amazon in \d+(?:\.\d+)?-\d+(?:\.\d+)? "
+                r"price range \(ignoring tax and other fees\) for each of my "
+                r"(roommates|siblings) and get them delivered to my home\.?",
                 raw,
             )
         ):

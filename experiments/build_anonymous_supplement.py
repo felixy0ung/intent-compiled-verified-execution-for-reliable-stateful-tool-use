@@ -71,6 +71,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_rating_filtered_product_order_20260525": {"20260525_081926"},
     "appworld_amazon_seller_filtered_order_20260525": {"20260525_083318"},
     "appworld_amazon_dimension_filtered_order_20260525": {"20260525_084518"},
+    "appworld_amazon_relationship_price_range_order_20260525": {"20260525_085404"},
     "appworld_membership_paid_total_answer_20260525": {"20260525_063804"},
     "appworld_membership_payment_card_answer_20260525": {"20260525_064427"},
     "appworld_membership_remaining_duration_answer_20260525": {"20260525_065048"},

@@ -311,9 +311,9 @@ test_challenge,cb4ee7a_3,cb4ee7a,0,0,0,0,unsupported,,,amazon_purchase_or_produc
 test_challenge,e201314_1,e201314,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,750f52a67d5e5e26
 test_challenge,e201314_2,e201314,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,4f84d9575b68a26c
 test_challenge,e201314_3,e201314,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,c14d90d556949d68
-test_challenge,20c1328_1,20c1328,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,37e39da5b547246d
-test_challenge,20c1328_2,20c1328,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,4a578e1e864852f2
-test_challenge,20c1328_3,20c1328,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,0b4aa31f0be8aaaa
+test_challenge,20c1328_1,20c1328,1,1,0,0,appworld_amazon_order_filtered_product,,,,37e39da5b547246d
+test_challenge,20c1328_2,20c1328,1,1,0,0,appworld_amazon_order_filtered_product,,,,4a578e1e864852f2
+test_challenge,20c1328_3,20c1328,1,1,0,0,appworld_amazon_order_filtered_product,,,,0b4aa31f0be8aaaa
 test_challenge,dbc0276_1,dbc0276,1,1,0,0,appworld_amazon_text_wishlist_itemized_costs,,,,e3b050a8f04c3a26
 test_challenge,dbc0276_2,dbc0276,1,1,0,0,appworld_amazon_text_wishlist_itemized_costs,,,,9c14909eb48fe580
 test_challenge,dbc0276_3,dbc0276,1,1,0,0,appworld_amazon_text_wishlist_itemized_costs,,,,19c24f42dafacf40
