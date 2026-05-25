@@ -37,7 +37,7 @@ AppWorld leaderboard submission.
 - AppWorld local `test_normal.txt` diagnostic: deterministic ICVE now supports and
   solves 168/168 tasks with 0 invalid calls and 0 unsafe state changes.
 - Static public-instruction coverage audit: the registry compiles 168/168 local
-  `test_normal.txt` instructions and 177/417 local `test_challenge.txt` instructions.
+  `test_normal.txt` instructions and 180/417 local `test_challenge.txt` instructions.
   The remaining `test_challenge` buckets are reported as coverage gaps, not successes.
 - Held-out AppWorld phone-message account-verification slice: one general machine covers
   3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and 0 unsafe changes.
@@ -129,6 +129,10 @@ AppWorld leaderboard submission.
   cheapest visible cart item for each product type and moves the remaining cart items to
   the wishlist across 3 `test_challenge` tasks with 3/3 success, 0 invalid calls, and
   0 unsafe changes.
+- Held-out AppWorld Amazon order-receipt archive slice: one Amazon + file-system
+  machine buys one explicit product, infers the existing `~/bills/amazon/` receipt
+  naming pattern, and archives the new receipt across 3 `test_challenge` tasks with
+  3/3 success, 0 invalid calls, and 0 unsafe changes.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice: one general
   subscription-history machine covers 3 `test_challenge` answer-only tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
@@ -184,7 +188,7 @@ AppWorld leaderboard submission.
 - Held-out AppWorld shared-subscription password + phone-text slice: one general
   Amazon/Spotify + Gmail + phone machine covers 3 `test_challenge` tasks with 3/3
   success, 0 invalid calls, and 0 unsafe changes.
-- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 130 registered
+- Development-cost audit: ToolSandbox uses 13 static machines; AppWorld has 131 registered
   machines, with 55 used by the 168 local `test_normal.txt` tasks (3.05 tasks per used
   machine; median used-machine total LOC is 94).
 

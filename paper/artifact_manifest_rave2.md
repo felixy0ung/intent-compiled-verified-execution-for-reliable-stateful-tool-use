@@ -165,7 +165,7 @@ extraction call per task plus the runtime-checked executor.
   `specs.json` instructions for all `test_normal.txt` and `test_challenge.txt` IDs,
   then runs the ICVE registry compile step without starting AppWorld, executing tools,
   inspecting databases, or loading ground truth. It compiles 168/168 `test_normal`
-  instructions and 177/417 `test_challenge` instructions to complete frames. The same
+  instructions and 180/417 `test_challenge` instructions to complete frames. The same
   directory includes `coverage_roadmap.csv`, a derived roadmap that maps unsupported
   public-instruction buckets to required machine capabilities, non-coverage reasons, and
   validation gates.
@@ -422,6 +422,15 @@ extraction call per task plus the runtime-checked executor.
   wishlist, places the bounded order, and reaches 3/3 success with 0 invalid calls and
   0 unsafe state changes. This is a narrow held-out slice, not a full `test_challenge`
   or leaderboard result.
+- Held-out AppWorld Amazon order-receipt archive slice:
+  `results/appworld_amazon_order_receipt_archive_20260525/20260525_095958`
+  records three local `test_challenge` tasks whose public instructions ask to order one
+  explicit Amazon product and save the new receipt under the user's organized
+  `~/bills/` folder. One Amazon + file-system ICVE machine orders the product, infers
+  the existing runtime-visible `~/bills/amazon/` filename convention, downloads the
+  receipt to that path, restores the prior cart state, and reaches 3/3 success with
+  0 invalid calls and 0 unsafe state changes. This is a narrow held-out slice, not a
+  full `test_challenge` or leaderboard result.
 - Held-out AppWorld Amazon/Spotify membership paid-total answer slice:
   `results/appworld_membership_paid_total_answer_20260525/20260525_063804` records
   three local `test_challenge` answer-only tasks whose public instructions ask how much

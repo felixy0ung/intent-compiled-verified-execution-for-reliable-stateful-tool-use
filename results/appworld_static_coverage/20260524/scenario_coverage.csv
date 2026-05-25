@@ -5,6 +5,7 @@ test_challenge,0d22252,3,3,3,1.0,1.0,appworld_amazon_order_product_type_from_sav
 test_challenge,0de03ad,3,3,3,1.0,1.0,appworld_gmail_star_threads_by_relationship,
 test_challenge,143527e,3,3,3,1.0,1.0,appworld_spotify_reply_liked_song_recommendations_email,
 test_challenge,16be9ce,3,3,3,1.0,1.0,appworld_amazon_answer_current_price_from_birthday_order,
+test_challenge,1b2bae9,3,3,3,1.0,1.0,appworld_amazon_order_product_and_archive_receipt,
 test_challenge,1b988ac,3,3,3,1.0,1.0,appworld_spotify_update_song_recommendation_draft_from_library,
 test_challenge,1c4bd27,3,3,3,1.0,1.0,appworld_amazon_return_recent_orders,
 test_challenge,20c1328,3,3,3,1.0,1.0,appworld_amazon_order_filtered_product,
@@ -61,7 +62,6 @@ test_challenge,fddb6b6,3,3,3,1.0,1.0,appworld_gmail_forward_caterer_bill_to_mana
 test_challenge,099174d,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,18670a5,3,0,0,0.0,0.0,,gmail_email
 test_challenge,1a79e37,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
-test_challenge,1b2bae9,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,2e9b91e,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,2ff4dfb,3,0,0,0.0,0.0,,gmail_email
 test_challenge,30e8586,3,0,0,0.0,0.0,,amazon_purchase_or_product_search

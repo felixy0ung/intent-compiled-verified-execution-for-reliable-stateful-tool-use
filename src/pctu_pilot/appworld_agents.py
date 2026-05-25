@@ -1178,6 +1178,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_order_product_and_archive_receipt",
+                (
+                    SlotSpec("product_name"),
+                    SlotSpec("quantity"),
+                    SlotSpec("address_name"),
+                    SlotSpec("bills_root"),
+                ),
+            ),
+            compiler=compile_amazon_order_product_and_archive_receipt,
+            handler=handle_amazon_order_product_and_archive_receipt,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_return_recent_orders",
                 (
                     SlotSpec("order_count"),
@@ -4406,6 +4419,35 @@ def compile_amazon_order_exact_products_restore_cart(
     frame.set_slot("address_name", match.group("address").title(), source="regex")
     frame.set_slot("preferred_card_name", compact_text(match.group("card_name")), source="regex")
     frame.set_slot("restore_cart", True, source="regex")
+    return frame
+
+
+def compile_amazon_order_product_and_archive_receipt(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Order (?P<quantity>one|\d+) (?P<product_name>.+?) on Amazon for "
+        r"(?P<address>home|work) delivery\. Save the receipt in the "
+        r"\"(?P<bills_root>~/bills/)\" folder\. I keep my receipts well-organized "
+        r"by category in that folder\. So make sure the file location and name are "
+        r"as per the existing organization\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    quantity_text = match.group("quantity").strip().lower()
+    quantity = 1 if quantity_text == "one" else int(quantity_text)
+    product_name = compact_text(match.group("product_name"))
+    if quantity < 1 or not product_name:
+        return None
+    frame = IntentFrame("appworld_amazon_order_product_and_archive_receipt")
+    frame.set_slot("product_name", product_name, source="regex")
+    frame.set_slot("quantity", quantity, source="regex")
+    frame.set_slot("address_name", match.group("address").title(), source="regex")
+    frame.set_slot("bills_root", match.group("bills_root"), source="regex")
     return frame
 
 
@@ -10239,6 +10281,294 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_exact_products_restore_cart",
+    )
+
+
+def handle_amazon_order_product_and_archive_receipt(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    product_name = compact_text(str(frame.get("product_name") or ""))
+    quantity = int(frame.get("quantity") or 0)
+    address_name = str(frame.get("address_name") or "Home")
+    bills_root = str(frame.get("bills_root") or "~/bills/")
+    if not product_name or quantity < 1:
+        frame.abstain_reason = "missing_amazon_product_receipt_slots"
+        return None
+    if not bills_root.startswith("~/") or not bills_root.endswith("/"):
+        frame.abstain_reason = "unsupported_amazon_receipt_bills_root"
+        return None
+    code = common_appworld_prelude(["amazon", "file_system"]) + f"""
+product_name = {json.dumps(product_name)}
+quantity = {quantity}
+address_name = {json.dumps(address_name)}
+bills_root = {json.dumps(bills_root)}
+
+def normalize_text(value):
+    value = str(value or "").lower()
+    value = value.replace("&", " and ")
+    value = re.sub(r"[^a-z0-9]+", " ", value)
+    return " ".join(value.split())
+
+def safe_slug(value):
+    slug = re.sub(r"[^a-z0-9]+", "_", str(value or "").lower()).strip("_")
+    return slug or "amazon_order"
+
+def is_success_message(result):
+    message = str(result.get("message", "")).lower()
+    return not ("not" in message and "success" not in message)
+
+def pick_address():
+    addresses = apis.amazon.show_addresses(access_token=tokens["amazon"])
+    for address in addresses:
+        if normalize_text(address.get("name")) == normalize_text(address_name):
+            return address
+    if normalize_text(address_name) == "home" and len(addresses) == 1:
+        return addresses[0]
+    raise Exception(f"No unique Amazon address named {{address_name}}.")
+
+def pick_payment_cards():
+    cards = [
+        card
+        for card in apis.amazon.show_payment_cards(access_token=tokens["amazon"])
+        if DateTime(card["expiry_year"], card["expiry_month"], 1).start_of("month") > DateTime.now()
+    ]
+    if not cards:
+        raise Exception("No unexpired Amazon payment card available.")
+    return sorted(
+        cards,
+        key=lambda card: (
+            int(card.get("expiry_year") or 0),
+            int(card.get("expiry_month") or 0),
+            int(card["payment_card_id"]),
+        ),
+        reverse=True,
+    )
+
+def all_search_results(query):
+    results = []
+    page = 0
+    while True:
+        batch = apis.amazon.search_products(query=query, page_index=page, page_limit=20)
+        if not batch:
+            break
+        results.extend(batch)
+        if len(batch) < 20:
+            break
+        page += 1
+    return results
+
+def resolve_product():
+    target = normalize_text(product_name)
+    matches = []
+    seen = set()
+    for product in all_search_results(product_name):
+        product_id = int(product["product_id"])
+        if product_id in seen:
+            continue
+        seen.add(product_id)
+        if normalize_text(product.get("name")) == target:
+            details = apis.amazon.show_product(product_id=product_id)
+            if int(details.get("inventory_quantity") or 0) >= quantity:
+                matches.append(details)
+    if len(matches) != 1:
+        raise Exception(f"Could not uniquely resolve in-stock Amazon product {{product_name}}; found {{len(matches)}}.")
+    return matches[0]
+
+def restore_cart(snapshot):
+    apis.amazon.clear_cart(access_token=tokens["amazon"])
+    first = True
+    for item in snapshot.get("cart_items", []):
+        result = apis.amazon.add_product_to_cart(
+            access_token=tokens["amazon"],
+            product_id=item["product_id"],
+            quantity=int(item.get("quantity") or 1),
+            clear_cart_first=first,
+        )
+        first = False
+        if not is_success_message(result):
+            raise Exception(f"Unable to restore Amazon cart item {{item}}: {{result}}")
+        gift_wrap_quantity = int(item.get("gift_wrap_quantity") or 0)
+        if gift_wrap_quantity:
+            gift_result = apis.amazon.add_gift_wrapping_to_product(
+                access_token=tokens["amazon"],
+                product_id=item["product_id"],
+                quantity=gift_wrap_quantity,
+            )
+            if not is_success_message(gift_result):
+                raise Exception(f"Unable to restore Amazon gift wrapping for {{item}}: {{gift_result}}")
+    promo_code = snapshot.get("promo_code")
+    if promo_code:
+        promo_result = apis.amazon.apply_promo_code_to_cart(
+            access_token=tokens["amazon"],
+            promo_code=promo_code,
+        )
+        if not is_success_message(promo_result):
+            raise Exception(f"Unable to restore Amazon cart promo code {{promo_code}}: {{promo_result}}")
+
+def ensure_directory(path):
+    apis.file_system.create_directory(
+        access_token=tokens["file_system"],
+        directory_path=path,
+        recursive=True,
+        allow_if_exists=True,
+    )
+
+def infer_receipt_directory(product):
+    root = bills_root.rstrip("/") + "/"
+    ensure_directory(root)
+    directories = apis.file_system.show_directory(
+        access_token=tokens["file_system"],
+        directory_path=root,
+        entry_type="directories",
+        recursive=True,
+    )
+    product_type = normalize_text(product.get("product_type"))
+    best = None
+    best_score = -1
+    for directory in directories:
+        lowered = str(directory).lower().rstrip("/") + "/"
+        if not lowered.startswith(root.lower()):
+            continue
+        rel = lowered[len(root):].strip("/")
+        score = 0
+        if "amazon" in rel:
+            score += 4
+        if any(word in rel for word in ["shopping", "purchase", "order", "receipt", "bill"]):
+            score += 2
+        if product_type and normalize_text(rel) == product_type:
+            score += 3
+        depth_penalty = rel.count("/")
+        score -= depth_penalty
+        if score > best_score:
+            best = directory
+            best_score = score
+    if best is not None and best_score > 0:
+        directory = str(best).rstrip("/") + "/"
+    else:
+        directory = root + "amazon/"
+    ensure_directory(directory)
+    return directory
+
+def existing_receipt_style(directory):
+    files = apis.file_system.show_directory(
+        access_token=tokens["file_system"],
+        directory_path=directory,
+        entry_type="files",
+        recursive=False,
+    )
+    basenames = [str(path).rstrip("/").split("/")[-1] for path in files]
+    if any(re.fullmatch(r"\\d{{4}}-\\d{{2}}-\\d{{2}}_order_id_\\d+\\.txt", name) for name in basenames):
+        return "yyyy-mm-dd_order_id"
+    if any(re.fullmatch(r"\\d{{4}}_\\d{{2}}_\\d{{2}}__orderid_\\d+\\.txt", name) for name in basenames):
+        return "yyyy_mm_dd__orderid"
+    if any(re.fullmatch(r"\\d{{4}}-\\d{{2}}-\\d{{2}}-order-id-\\d+\\.txt", name) for name in basenames):
+        return "yyyy-mm-dd-order-id"
+    if any("ordered_at_" in name and "_order_id_" in name for name in basenames):
+        return "ordered_at_yyyy-mm-dd_order_id"
+    if any("ordered-at-" in name and "-order-id-" in name for name in basenames):
+        return "ordered-at-yyyy-mm-dd-order-id"
+    if any(re.search(r"\\d{{4}}-\\d{{2}}-\\d{{2}}__", name) for name in basenames):
+        return "yyyy-mm-dd__order_id"
+    if any("amazon" in name.lower() or "order" in name.lower() for name in basenames):
+        return "amazon_order_id_date"
+    return "ordered_at_yyyy-mm-dd_order_id"
+
+def receipt_path(directory, order_id):
+    orders = apis.amazon.show_orders(
+        access_token=tokens["amazon"],
+        query=str(order_id),
+        page_index=0,
+        page_limit=20,
+    )
+    created_at = None
+    for order in orders:
+        if int(order.get("order_id") or -1) == int(order_id):
+            created_at = str(order.get("created_at") or "")[:10]
+            break
+    if not created_at:
+        created_at = DateTime.now().to_date_string()
+    style = existing_receipt_style(directory)
+    if style == "yyyy-mm-dd_order_id":
+        filename = f"{{created_at}}_order_id_{{order_id}}.txt"
+    elif style == "yyyy_mm_dd__orderid":
+        filename = f"{{created_at.replace('-', '_')}}__orderid_{{order_id}}.txt"
+    elif style == "yyyy-mm-dd-order-id":
+        filename = f"{{created_at}}-order-id-{{order_id}}.txt"
+    elif style == "ordered-at-yyyy-mm-dd-order-id":
+        filename = f"ordered-at-{{created_at}}-order-id-{{order_id}}.txt"
+    elif style == "yyyy-mm-dd__order_id":
+        filename = f"{{created_at}}__{{order_id}}.txt"
+    elif style == "amazon_order_id_date":
+        filename = f"amazon_order_{{order_id}}_{{created_at}}.txt"
+    else:
+        filename = f"ordered_at_{{created_at}}_order_id_{{order_id}}.txt"
+    return directory.rstrip("/") + "/" + filename
+
+cart_snapshot = apis.amazon.show_cart(access_token=tokens["amazon"])
+product = resolve_product()
+address = pick_address()
+failed_payment_attempts = []
+result = {{"message": "No payment card attempted."}}
+payment_card_id = None
+receipt_result = None
+download_path = None
+try:
+    apis.amazon.clear_cart(access_token=tokens["amazon"])
+    add_result = apis.amazon.add_product_to_cart(
+        access_token=tokens["amazon"],
+        product_id=product["product_id"],
+        quantity=quantity,
+        clear_cart_first=True,
+    )
+    if not is_success_message(add_result):
+        raise Exception(f"Unable to stage Amazon product {{product['product_id']}}: {{add_result}}")
+    staged_cart = apis.amazon.show_cart(access_token=tokens["amazon"])
+    if staged_cart.get("promo_code") and not bool(staged_cart.get("promo_valid")):
+        apis.amazon.remove_promo_code_from_cart(access_token=tokens["amazon"])
+    for card in pick_payment_cards():
+        payment_card_id = card["payment_card_id"]
+        result = apis.amazon.place_order(
+            access_token=tokens["amazon"],
+            payment_card_id=payment_card_id,
+            address_id=address["address_id"],
+        )
+        if "order_id" in result:
+            break
+        failed_payment_attempts.append({{"payment_card_id": payment_card_id, "message": result.get("message")}})
+    if "order_id" not in result:
+        raise Exception(f"Unable to place Amazon receipt order: {{result}}")
+    receipt_directory = infer_receipt_directory(product)
+    download_path = receipt_path(receipt_directory, result["order_id"])
+    receipt_result = apis.amazon.download_order_receipt(
+        access_token=tokens["amazon"],
+        order_id=result["order_id"],
+        download_to_file_path=download_path,
+        overwrite=True,
+        file_system_access_token=tokens["file_system"],
+    )
+    if "file_path" not in receipt_result:
+        raise Exception(f"Unable to download Amazon order receipt: {{receipt_result}}")
+finally:
+    restore_cart(cart_snapshot)
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "product_name": product_name,
+    "product_id": product["product_id"],
+    "quantity": quantity,
+    "address_id": address["address_id"],
+    "payment_card_id": payment_card_id,
+    "order_id": result.get("order_id"),
+    "receipt_path": receipt_result.get("file_path") if receipt_result else download_path,
+    "cart_snapshot_count": len(cart_snapshot.get("cart_items", [])),
+    "failed_payment_attempts": failed_payment_attempts,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_order_product_and_archive_receipt",
     )
 
 
@@ -18307,6 +18637,21 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             ).strip(),
             "restore_cart": bool(slots.get("restore_cart", True)),
         }
+    if intent_type == "appworld_amazon_order_product_and_archive_receipt":
+        quantity_value = slots.get("quantity") or 1
+        if isinstance(quantity_value, str):
+            quantity = 1 if quantity_value.strip().lower() == "one" else int(quantity_value)
+        else:
+            quantity = int(quantity_value)
+        bills_root = str(slots.get("bills_root") or slots.get("directory_path") or "~/bills/").strip()
+        if bills_root and not bills_root.endswith("/"):
+            bills_root += "/"
+        return {
+            "product_name": compact_text(str(slots.get("product_name") or "")),
+            "quantity": quantity,
+            "address_name": str(slots.get("address_name") or "Home").strip(),
+            "bills_root": bills_root,
+        }
     if intent_type == "appworld_amazon_return_recent_orders":
         return {
             "order_count": int(slots.get("order_count") or slots.get("count") or 0),
@@ -19105,6 +19450,18 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_order_product_and_archive_receipt":
+        if not re.fullmatch(
+            r"order (one|\d+) .+? on amazon for (home|work) delivery\. "
+            r"save the receipt in the \"~/bills/\" folder\. "
+            r"i keep my receipts well-organized by category in that folder\. "
+            r"so make sure the file location and name are as per the existing organization\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_return_recent_orders":
         if not re.fullmatch(
             r"initiate returns via [a-z0-9 .&'-]+ for everything in my last \d+ amazon order\.?",
@@ -19602,6 +19959,8 @@ Supported intent types and slots:
    slots: address_name string, default Home; card_name string, optional.
 18. appworld_amazon_order_exact_products_restore_cart
    slots: items list of objects with product_name string and quantity integer; address_name string, one of Home or Work; preferred_card_name string; restore_cart boolean.
+18. appworld_amazon_order_product_and_archive_receipt
+   slots: product_name string; quantity integer; address_name string, one of Home or Work; bills_root string, default ~/bills/.
 18. appworld_amazon_return_recent_orders
    slots: order_count integer; deliverer_name string such as FedEx.
 18. appworld_amazon_return_same_product_except_size_this_week
@@ -19956,6 +20315,9 @@ JSON: {"intent_type":"appworld_amazon_cart_buy_cheapest_per_type_move_rest","slo
 
 Task: Place an amazon order for 1 quantity of 'Sony PlayStation 5', 1 quantity of 'Etekcity Food Kitchen Scale' and 1 quantity of 'Xbox Series S Console', and have it delivered to my home. Use Discover payment card if it's already in my account, otherwise use what I have in it. Also, I have important things in my cart, so revert its state to as it is now after the order.
 JSON: {"intent_type":"appworld_amazon_order_exact_products_restore_cart","slots":{"items":[{"product_name":"Sony PlayStation 5","quantity":1},{"product_name":"Etekcity Food Kitchen Scale","quantity":1},{"product_name":"Xbox Series S Console","quantity":1}],"address_name":"Home","preferred_card_name":"Discover","restore_cart":true}}
+
+Task: Order one Apple Watch Series 7 on Amazon for home delivery. Save the receipt in the "~/bills/" folder. I keep my receipts well-organized by category in that folder. So make sure the file location and name are as per the existing organization.
+JSON: {"intent_type":"appworld_amazon_order_product_and_archive_receipt","slots":{"product_name":"Apple Watch Series 7","quantity":1,"address_name":"Home","bills_root":"~/bills/"}}
 
 Task: Initiate returns via FedEx for everything in my last 3 amazon order.
 JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_count":3,"deliverer_name":"FedEx"}}
