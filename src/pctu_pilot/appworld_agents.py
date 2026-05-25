@@ -1244,6 +1244,7 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
                     SlotSpec("rating_threshold_inclusive", required=False),
                     SlotSpec("prefer_highest_seller", required=False),
                     SlotSpec("source_container", required=False),
+                    SlotSpec("prior_ordered_sellers_only", required=False),
                     SlotSpec("max_length", required=False),
                     SlotSpec("max_width", required=False),
                     SlotSpec("quantity_relationship", required=False),
@@ -4539,12 +4540,40 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
         frame.set_slot("allow_mixed_products", True, source="default", required=False)
         frame.set_slot("quantity", 1, source="default")
         frame.set_slot("address_name", match.group("address").title(), source="regex")
+        frame.set_slot("card_name", "", source="default")
+        return frame
+    match = re.fullmatch(
+        r"Buy me a (?P<product_type>.+?) from amazon within \$(?P<max_price>\d+(?:\.\d+)?) "
+        r"\(excluding tax\)\. Only trust sellers I have ordered from in the past\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("min_price", None, source="default", required=False)
+        frame.set_slot("max_price", float(match.group("max_price")), source="regex", required=False)
+        frame.set_slot("min_product_rating", None, source="default", required=False)
+        frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("min_seller_rating", None, source="default", required=False)
+        frame.set_slot("price_bounds_inclusive", False, source="default", required=False)
+        frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
+        frame.set_slot("prefer_highest_seller", False, source="default", required=False)
+        frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", True, source="regex", required=False)
+        frame.set_slot("max_length", None, source="default", required=False)
+        frame.set_slot("max_width", None, source="default", required=False)
+        frame.set_slot("quantity_relationship", "", source="default", required=False)
+        frame.set_slot("allow_mixed_products", True, source="default", required=False)
+        frame.set_slot("quantity", 1, source="default")
+        frame.set_slot("address_name", "Home", source="default")
         frame.set_slot("card_name", "", source="default")
         return frame
     match = re.fullmatch(
@@ -4566,6 +4595,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
@@ -4593,6 +4623,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", False, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
@@ -4621,6 +4652,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", True, source="regex", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
@@ -4647,6 +4679,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
         frame.set_slot("prefer_highest_seller", True, source="regex", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
@@ -4675,6 +4708,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", True, source="regex", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", float(match.group("max_length")), source="regex", required=False)
         frame.set_slot("max_width", float(match.group("max_width")), source="regex", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
@@ -4702,6 +4736,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "wish_list", source="regex", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", float(match.group("max_length")), source="regex", required=False)
         frame.set_slot("max_width", float(match.group("max_width")), source="regex", required=False)
         frame.set_slot("quantity_relationship", "", source="default", required=False)
@@ -4730,6 +4765,7 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("rating_threshold_inclusive", True, source="default", required=False)
         frame.set_slot("prefer_highest_seller", False, source="default", required=False)
         frame.set_slot("source_container", "search", source="default", required=False)
+        frame.set_slot("prior_ordered_sellers_only", False, source="default", required=False)
         frame.set_slot("max_length", None, source="default", required=False)
         frame.set_slot("max_width", None, source="default", required=False)
         frame.set_slot("quantity_relationship", match.group("relationship").lower(), source="regex", required=False)
@@ -10898,6 +10934,7 @@ def handle_amazon_order_filtered_product(
     rating_threshold_inclusive = bool(frame.get("rating_threshold_inclusive"))
     prefer_highest_seller = bool(frame.get("prefer_highest_seller"))
     source_container = frame.get("source_container") or "search"
+    prior_ordered_sellers_only = bool(frame.get("prior_ordered_sellers_only"))
     max_length_value = frame.get("max_length")
     max_width_value = frame.get("max_width")
     quantity_relationship = str(frame.get("quantity_relationship") or "").strip().lower()
@@ -10929,6 +10966,7 @@ price_bounds_inclusive = {repr(price_bounds_inclusive)}
 rating_threshold_inclusive = {repr(rating_threshold_inclusive)}
 prefer_highest_seller = {repr(prefer_highest_seller)}
 source_container = {json.dumps(str(source_container))}
+prior_ordered_sellers_only = {repr(prior_ordered_sellers_only)}
 max_length = {repr(max_length)}
 max_width = {repr(max_width)}
 quantity_relationship = {json.dumps(quantity_relationship)}
@@ -11111,6 +11149,23 @@ def seller_for_product(product):
         seller_cache[seller_id] = apis.amazon.show_seller(seller_id=seller_id)
     return seller_cache[seller_id]
 
+prior_ordered_seller_ids = set()
+if prior_ordered_sellers_only:
+    orders = paged(lambda page: apis.amazon.show_orders(
+        access_token=tokens["amazon"],
+        page_index=page,
+        page_limit=20,
+        sort_by="-created_at",
+    ))
+    for order in orders:
+        for item in order.get("order_items", []):
+            product = apis.amazon.show_product(product_id=item["product_id"])
+            seller_id = product.get("seller_id")
+            if seller_id is not None:
+                prior_ordered_seller_ids.add(int(seller_id))
+    if not prior_ordered_seller_ids:
+        raise Exception("No prior Amazon order sellers found.")
+
 def below_minimum(value, threshold):
     if threshold is None:
         return False
@@ -11155,6 +11210,8 @@ for product in products:
     if min_reviews is not None and int(product.get("num_product_reviews") or 0) <= min_reviews:
         continue
     seller = seller_for_product(product)
+    if prior_ordered_sellers_only and int(product.get("seller_id") or 0) not in prior_ordered_seller_ids:
+        continue
     seller_rating = float(seller.get("rating") or 0)
     if below_minimum(seller_rating, min_seller_rating):
         continue
@@ -18184,6 +18241,7 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "rating_threshold_inclusive": bool(slots.get("rating_threshold_inclusive")),
             "prefer_highest_seller": bool(slots.get("prefer_highest_seller")),
             "source_container": str(slots.get("source_container") or "search").strip(),
+            "prior_ordered_sellers_only": bool(slots.get("prior_ordered_sellers_only")),
             "max_length": float(max_length_value) if max_length_value is not None else None,
             "max_width": float(max_width_value) if max_width_value is not None else None,
             "quantity_relationship": str(slots.get("quantity_relationship") or "").strip(),
@@ -18936,6 +18994,11 @@ def verify_or_repair_llm_intent_frame(
                 raw,
             )
             or re.fullmatch(
+                r"buy me a .+? from amazon within \$\d+(?:\.\d+)? "
+                r"\(excluding tax\)\. only trust sellers i have ordered from in the past\.?",
+                raw,
+            )
+            or re.fullmatch(
                 r"buy me a .+? on amazon under \$\d+(?:\.\d+)? "
                 r"\(excluding tax\), over \d+(?:\.\d+)? rating, and over "
                 r"\d+ reviews, and have it delivered to (home|work) address\.?",
@@ -19376,7 +19439,7 @@ Supported intent types and slots:
 18. appworld_amazon_order_preferred_color_size_product
    slots: product_name string; relative_size string; color_preferences list in preference order; quantity integer; address_name string, default Home; card_name string, optional.
 18. appworld_amazon_order_filtered_product
-   slots: product_type string; max_price number or null; min_product_rating number or null; min_product_reviews integer or null; quantity integer; address_name string, one of Home or Work; card_name string, optional.
+   slots: product_type string; max_price number or null; min_product_rating number or null; min_product_reviews integer or null; prior_ordered_sellers_only boolean; quantity integer; address_name string, one of Home or Work; card_name string, optional.
 18. appworld_amazon_post_question_last_ordered_product
    slots: product_type string; question string.
 18. appworld_amazon_update_last_month_order_review
@@ -19734,6 +19797,9 @@ JSON: {"intent_type":"appworld_amazon_order_preferred_color_size_product","slots
 
 Task: Buy me a kitchen timer on amazon within $10 (excluding tax) and have it delivered to my home address.
 JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"kitchen timer","max_price":10,"min_product_rating":null,"min_product_reviews":null,"quantity":1,"address_name":"Home","card_name":""}}
+
+Task: Buy me a cutting board from amazon within $30 (excluding tax). Only trust sellers I have ordered from in the past.
+JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"cutting board","max_price":30,"min_product_rating":null,"min_product_reviews":null,"prior_ordered_sellers_only":true,"quantity":1,"address_name":"Home","card_name":""}}
 
 Task: Buy me a board game on amazon under $20 (excluding tax), over 3.9 rating, and over 4 reviews, and have it delivered to home address.
 JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"board game","max_price":20,"min_product_rating":3.9,"min_product_reviews":4,"quantity":1,"address_name":"Home","card_name":""}}
