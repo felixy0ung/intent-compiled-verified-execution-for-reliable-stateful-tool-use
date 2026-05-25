@@ -11,28 +11,28 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 | --- | ---: |
 | registered_appworld_machines | 128 |
 | total_tasks | 585 |
-| compiled | 318 |
-| dispatchable | 318 |
-| unsupported | 267 |
-| compiled_rate | 0.5436 |
-| dispatchable_rate | 0.5436 |
-| dispatchable_scenarios | 106 / 195 |
+| compiled | 321 |
+| dispatchable | 321 |
+| unsupported | 264 |
+| compiled_rate | 0.5487 |
+| dispatchable_rate | 0.5487 |
+| dispatchable_scenarios | 107 / 195 |
 
 ## By Split
 
 | split | tasks | compiled | dispatchable | unsupported | dispatchable rate | dispatchable scenarios |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
-| test_challenge | 417 | 150 | 150 | 267 | 0.3597 | 50 / 139 |
+| test_challenge | 417 | 153 | 153 | 264 | 0.3669 | 51 / 139 |
 | test_normal | 168 | 168 | 168 | 0 | 1.0000 | 56 / 56 |
 
 ## Top Dispatchable Intents
 
 | intent_type | tasks |
 | --- | ---: |
+| appworld_amazon_order_filtered_product | 9 |
 | appworld_venmo_friend_transaction_counterparties | 6 |
 | appworld_amazon_order_product_type_from_saved_list | 6 |
 | appworld_amazon_order_saved_collections | 6 |
-| appworld_amazon_order_filtered_product | 6 |
 | appworld_venmo_reset_friends_to_phone_friends | 3 |
 | appworld_spotify_filter_queue_by_liked_status | 3 |
 | appworld_spotify_navigate_until_private_status | 3 |
@@ -46,7 +46,7 @@ compile/coverage diagnostics, not task-success or leaderboard metrics.
 
 | bucket | tasks |
 | --- | ---: |
-| amazon_purchase_or_product_search | 143 |
+| amazon_purchase_or_product_search | 140 |
 | gmail_email | 83 |
 | splitwise_vacation_or_expense | 28 |
 | spotify_music | 12 |
@@ -61,7 +61,7 @@ Full rows are in `coverage_roadmap.csv`.
 
 | split | bucket | tasks | scenarios | roadmap family |
 | --- | --- | ---: | ---: | --- |
-| test_challenge | amazon_purchase_or_product_search | 143 | 49 | Amazon search-and-purchase machines |
+| test_challenge | amazon_purchase_or_product_search | 140 | 48 | Amazon search-and-purchase machines |
 | test_challenge | gmail_email | 83 | 28 | Gmail thread-and-draft machines |
 | test_challenge | splitwise_vacation_or_expense | 28 | 10 | Splitwise expense-settlement machines |
 | test_challenge | spotify_music | 12 | 5 | Spotify search-and-library machines |
@@ -69,7 +69,7 @@ Full rows are in `coverage_roadmap.csv`.
 
 ## Scenario Coverage
 
-- Fully dispatchable scenarios: 106
+- Fully dispatchable scenarios: 107
 - Partially dispatchable scenarios: 0
 - Full per-scenario rows are in `scenario_coverage.csv`.
 

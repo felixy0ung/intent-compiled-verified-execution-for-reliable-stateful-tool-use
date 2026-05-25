@@ -4481,6 +4481,23 @@ def compile_amazon_order_filtered_product(
         frame.set_slot("address_name", match.group("address").title(), source="regex")
         frame.set_slot("card_name", "", source="default")
         return frame
+    match = re.fullmatch(
+        r"Buy me a (?P<product_type>.+?) on amazon with a rating over "
+        r"(?P<min_rating>\d+(?:\.\d+)?) and have it delivered to my "
+        r"(?P<address>home|work) address\.?",
+        text,
+        flags=re.IGNORECASE,
+    )
+    if match:
+        frame = IntentFrame("appworld_amazon_order_filtered_product")
+        frame.set_slot("product_type", normalize_amazon_product_type(match.group("product_type")), source="regex")
+        frame.set_slot("max_price", None, source="default", required=False)
+        frame.set_slot("min_product_rating", float(match.group("min_rating")), source="regex", required=False)
+        frame.set_slot("min_product_reviews", None, source="default", required=False)
+        frame.set_slot("quantity", 1, source="default")
+        frame.set_slot("address_name", match.group("address").title(), source="regex")
+        frame.set_slot("card_name", "", source="default")
+        return frame
     return None
 
 
@@ -18295,6 +18312,11 @@ def verify_or_repair_llm_intent_frame(
                 r"\d+ reviews, and have it delivered to (home|work) address\.?",
                 raw,
             )
+            or re.fullmatch(
+                r"buy me a .+? on amazon with a rating over \d+(?:\.\d+)? "
+                r"and have it delivered to my (home|work) address\.?",
+                raw,
+            )
         ):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
             if repaired is not None:
@@ -19053,6 +19075,9 @@ JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_
 
 Task: Buy me a board game on amazon under $20 (excluding tax), over 3.9 rating, and over 4 reviews, and have it delivered to home address.
 JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"board game","max_price":20,"min_product_rating":3.9,"min_product_reviews":4,"quantity":1,"address_name":"Home","card_name":""}}
+
+Task: Buy me a extension cord on amazon with a rating over 4.5 and have it delivered to my home address.
+JSON: {"intent_type":"appworld_amazon_order_filtered_product","slots":{"product_type":"extension cord","max_price":null,"min_product_rating":4.5,"min_product_reviews":null,"quantity":1,"address_name":"Home","card_name":""}}
 
 Task: Post a question about the last t-shirt I ordered on amazon, "Has anyone experienced the color fade after the first wash?".
 JSON: {"intent_type":"appworld_amazon_post_question_last_ordered_product","slots":{"product_type":"t-shirt","question":"Has anyone experienced the color fade after the first wash?"}}
