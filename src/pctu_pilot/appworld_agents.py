@@ -1455,6 +1455,19 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_schedule_resignation_draft",
+                (
+                    SlotSpec("attachment_path"),
+                    SlotSpec("weekday"),
+                    SlotSpec("week_offset"),
+                    SlotSpec("hour"),
+                ),
+            ),
+            compiler=compile_gmail_schedule_resignation_draft,
+            handler=handle_gmail_schedule_resignation_draft,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_gmail_thread_cleanup",
                 (
                     SlotSpec("action"),
@@ -2903,6 +2916,30 @@ def compile_gmail_count_threads(
     label = match.group("label")
     if label:
         frame.set_slot("label", label.lower(), source="regex", required=False)
+    return frame
+
+
+def compile_gmail_schedule_resignation_draft(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r'I have drafted my resignation email on Gmail\. Attach "(?P<path>~\/documents\/work\/[^"]+\.pdf)" '
+        r"from my file system to it and schedule it to be sent to my manager on "
+        r"(?P<week_ref>next|next to next) (?P<weekday>Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday) "
+        r"at (?P<hour>\d{1,2}) am\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_gmail_schedule_resignation_draft")
+    week_ref = match.group("week_ref").lower()
+    frame.set_slot("attachment_path", match.group("path").strip(), source="regex")
+    frame.set_slot("weekday", match.group("weekday").lower(), source="regex")
+    frame.set_slot("week_offset", 2 if week_ref == "next to next" else 1, source="regex")
+    frame.set_slot("hour", int(match.group("hour")), source="regex")
     return frame
 
 
@@ -13601,6 +13638,172 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_schedule_resignation_draft(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    attachment_path = str(frame.get("attachment_path") or "").strip()
+    weekday = str(frame.get("weekday") or "").strip().lower()
+    try:
+        week_offset = int(frame.get("week_offset") or 0)
+        hour = int(frame.get("hour") or -1)
+    except (TypeError, ValueError):
+        frame.abstain_reason = "missing_or_invalid_resignation_schedule_slots"
+        return None
+    if not re.fullmatch(r"~/documents/work/[\w.\-]+\.pdf", attachment_path):
+        frame.abstain_reason = "missing_or_invalid_resignation_attachment_path"
+        return None
+    if weekday not in {
+        "monday",
+        "tuesday",
+        "wednesday",
+        "thursday",
+        "friday",
+        "saturday",
+        "sunday",
+    } or week_offset not in {1, 2} or hour < 1 or hour > 11:
+        frame.abstain_reason = "missing_or_invalid_resignation_schedule_slots"
+        return None
+    code = common_appworld_prelude(["gmail", "phone", "file_system"]) + f"""
+attachment_path = {json.dumps(attachment_path)}
+weekday = {json.dumps(weekday)}
+week_offset = {week_offset}
+hour = {hour}
+
+weekday_to_index = {{
+    "monday": 0,
+    "tuesday": 1,
+    "wednesday": 2,
+    "thursday": 3,
+    "friday": 4,
+    "saturday": 5,
+    "sunday": 6,
+}}
+
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def path_basename(path):
+    return str(path).rstrip("/").split("/")[-1]
+
+manager_contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship="manager",
+    page_index=page,
+    page_limit=20,
+))
+manager_emails = sorted({{
+    str(contact.get("email") or "").strip().lower()
+    for contact in manager_contacts
+    if str(contact.get("email") or "").strip()
+}})
+if len(manager_emails) != 1:
+    raise Exception(f"Expected exactly one manager email, found {{manager_emails}}.")
+manager_email = manager_emails[0]
+
+file_info = apis.file_system.show_file(
+    access_token=tokens["file_system"],
+    file_path=attachment_path,
+)
+if path_basename(attachment_path).lower() != path_basename(file_info.get("path") or attachment_path).lower():
+    raise Exception(f"Unexpected file metadata for {{attachment_path}}: {{file_info}}")
+
+now = DateTime.now()
+days_until = (weekday_to_index[weekday] - now.weekday()) % 7
+if days_until == 0:
+    days_until = 7
+days_until += 7 * (week_offset - 1)
+scheduled_at = now.add(days=days_until).replace(hour=hour, minute=0, second=0, microsecond=0)
+scheduled_send_at = scheduled_at.format("YYYY-MM-DD|HH:mm:ss")
+
+drafts = paged(lambda page: apis.gmail.show_drafts(
+    access_token=tokens["gmail"],
+    query="resignation",
+    page_index=page,
+    page_limit=20,
+    sort_by="-updated_at",
+))
+if not drafts:
+    drafts = paged(lambda page: apis.gmail.show_drafts(
+        access_token=tokens["gmail"],
+        page_index=page,
+        page_limit=20,
+        sort_by="-updated_at",
+    ))
+
+candidates = []
+for draft in drafts:
+    subject = str(draft.get("subject") or "")
+    body = str(draft.get("body") or "")
+    haystack = text_key(subject + " " + body)
+    if "resignation" not in haystack and "resign" not in haystack:
+        continue
+    recipients = draft.get("recipients") or []
+    recipient_emails = sorted({{
+        str(recipient.get("email") or "").strip().lower()
+        for recipient in recipients
+        if str(recipient.get("email") or "").strip()
+    }})
+    if recipient_emails and manager_email not in recipient_emails:
+        continue
+    candidates.append({{
+        "draft": draft,
+        "recipient_emails": recipient_emails,
+    }})
+
+if len(candidates) != 1:
+    raise Exception(f"Expected one resignation draft for manager {{manager_email}}, found {{len(candidates)}}.")
+
+draft = candidates[0]["draft"]
+draft_id = draft["draft_id"]
+recipient_emails = candidates[0]["recipient_emails"] or [manager_email]
+apis.gmail.update_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    email_addresses=recipient_emails,
+)
+attachment_result = apis.gmail.upload_attachments_to_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    attachment_file_paths=[attachment_path],
+    overwrite=True,
+    file_system_access_token=tokens["file_system"],
+)
+apis.gmail.update_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+    scheduled_send_at=scheduled_send_at,
+)
+updated = apis.gmail.show_draft(
+    access_token=tokens["gmail"],
+    draft_id=draft_id,
+)
+if str(updated.get("scheduled_send_at") or "").replace("T", "|")[:16] != scheduled_send_at[:16]:
+    raise Exception(f"Draft schedule mismatch: expected {{scheduled_send_at}}, got {{updated.get('scheduled_send_at')}}")
+updated_attachment_names = {{
+    str(attachment.get("file_name") or "").strip().lower()
+    for attachment in updated.get("attachments", []) or []
+}}
+if path_basename(attachment_path).lower() not in updated_attachment_names:
+    raise Exception(f"Draft attachment missing after update: {{updated_attachment_names}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "draft_id": draft_id,
+    "manager_email": manager_email,
+    "recipient_emails": recipient_emails,
+    "attachment_path": attachment_path,
+    "scheduled_send_at": scheduled_send_at,
+    "attachment_result": attachment_result,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_schedule_resignation_draft",
+    )
+
+
 def handle_gmail_thread_cleanup(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -19507,6 +19710,13 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
         read_state = str(slots.get("read_state") or slots.get("state") or "").strip().lower()
         mailbox = str(slots.get("mailbox") or "").strip().lower()
         return {"mailbox": mailbox, "read_state": read_state, "label": label}
+    if intent_type == "appworld_gmail_schedule_resignation_draft":
+        return {
+            "attachment_path": str(slots.get("attachment_path") or slots.get("file_path") or "").strip(),
+            "weekday": str(slots.get("weekday") or slots.get("day") or "").strip().lower(),
+            "week_offset": int(slots.get("week_offset") or 0),
+            "hour": int(slots.get("hour") or 0),
+        }
     if intent_type == "appworld_gmail_thread_cleanup":
         action = str(slots.get("action", "")).strip().lower()
         if action in {"archive_threads", "archive"}:
@@ -20017,6 +20227,17 @@ def verify_or_repair_llm_intent_frame(
             r"how many (?:(priority-[123]) )?(read|unread) email threads are in my gmail (inbox|outbox)\?",
             raw,
         ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_schedule_resignation_draft":
+        required = [
+            "i have drafted my resignation email on gmail",
+            "attach \"~/documents/work/",
+            "schedule it to be sent to my manager",
+        ]
+        if not all(part in raw for part in required):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
             if repaired is not None:
                 return repaired
@@ -20723,29 +20944,31 @@ Supported intent types and slots:
    slots: empty object.
 19. appworld_gmail_count_threads
    slots: mailbox string, one of inbox or outbox; read_state string, one of read or unread; label optional string, one of priority-1, priority-2, or priority-3.
-20. appworld_gmail_thread_cleanup
+20. appworld_gmail_schedule_resignation_draft
+   slots: attachment_path string; weekday string; week_offset integer, 1 for next and 2 for next to next; hour integer in 12-hour morning time.
+21. appworld_gmail_thread_cleanup
    slots: action string, one of archive or delete; exception_mode string, one of and or or.
-21. appworld_gmail_mark_threads_read_state_by_calendar_window
+22. appworld_gmail_mark_threads_read_state_by_calendar_window
    slots: target_state string, one of read or unread; window string, one of before_the_last_calendar_month, in_the_current_calendar_month, or before_the_current_calendar_year.
-22. appworld_gmail_delete_archived_threads_by_calendar_window
+23. appworld_gmail_delete_archived_threads_by_calendar_window
    slots: window string, one of before_this_calendar_month, this_calendar_month, or this_or_the_last_calendar_month.
-23. appworld_gmail_forward_anniversary_announcement_email
+24. appworld_gmail_forward_anniversary_announcement_email
    slots: recipient_email string.
-24. appworld_gmail_forward_caterer_bill_to_manager_with_note
+25. appworld_gmail_forward_caterer_bill_to_manager_with_note
    slots: note_prefix string.
-25. appworld_gmail_reply_weekly_manager_tasks_by_star_state
+26. appworld_gmail_reply_weekly_manager_tasks_by_star_state
    slots: subject_prefix string; done_reply string; not_done_reply string.
-26. appworld_gmail_star_threads_by_relationship
+27. appworld_gmail_star_threads_by_relationship
    slots: relationship string, singular contact relationship such as manager, coworker, or friend.
-27. appworld_gmail_label_notification_threads_by_app
+28. appworld_gmail_label_notification_threads_by_app
    slots: empty object.
-28. appworld_gmail_relabel_priority_threads
+29. appworld_gmail_relabel_priority_threads
    slots: source_label_1 string, source_label_2 string, target_label_1 string, target_label_2 string, remove_label string; labels are one of priority-1, priority-2, priority-3, P1, P2, P3, pr-1, pr-2, or pr-3.
-29. appworld_gmail_attach_job_search_files_and_send
+30. appworld_gmail_attach_job_search_files_and_send
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
-30. appworld_gmail_download_flight_ticket_attachment
+31. appworld_gmail_download_flight_ticket_attachment
    slots: destination string; directory_path string ending in /.
-31. appworld_remove_expired_payment_cards
+32. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
@@ -21126,6 +21349,9 @@ JSON: {"intent_type":"appworld_gmail_count_threads","slots":{"mailbox":"inbox","
 
 Task: How many priority-2 read email threads are in my Gmail inbox?
 JSON: {"intent_type":"appworld_gmail_count_threads","slots":{"mailbox":"inbox","read_state":"read","label":"priority-2"}}
+
+Task: I have drafted my resignation email on Gmail. Attach "~/documents/work/resignation.pdf" from my file system to it and schedule it to be sent to my manager on next Monday at 9 am.
+JSON: {"intent_type":"appworld_gmail_schedule_resignation_draft","slots":{"attachment_path":"~/documents/work/resignation.pdf","weekday":"monday","week_offset":1,"hour":9}}
 
 Task: Archive all my read Gmail threads from inbox/outbox, except the ones that have some priority label or are starred.
 JSON: {"intent_type":"appworld_gmail_thread_cleanup","slots":{"action":"archive","exception_mode":"or"}}

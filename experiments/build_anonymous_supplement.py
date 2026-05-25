@@ -79,6 +79,7 @@ RESULT_DIR_ALLOWLISTS = {
     "appworld_amazon_all_receipts_download_20260525": {"20260525_100831"},
     "appworld_amazon_trip_supplies_deadline_20260525": {"20260525_102345"},
     "appworld_gmail_amazon_promo_codes_20260525": {"20260525_104850"},
+    "appworld_gmail_resignation_schedule_20260525": {"20260525_112350"},
     "appworld_gmail_thread_count_20260525": {"20260525_110722"},
     "appworld_membership_paid_total_answer_20260525": {"20260525_063804"},
     "appworld_membership_payment_card_answer_20260525": {"20260525_064427"},
