@@ -40,6 +40,7 @@ test_challenge,81be677,3,3,3,1.0,1.0,appworld_amazon_answer_order_arrival_date,
 test_challenge,82d2e01,3,3,3,1.0,1.0,appworld_venmo_pay_flight_bill_from_email,
 test_challenge,8a13317,3,3,3,1.0,1.0,appworld_spotify_playlist_from_workout_email,
 test_challenge,9871968,3,3,3,1.0,1.0,appworld_amazon_order_saved_collections,
+test_challenge,98d2608,3,3,3,1.0,1.0,appworld_gmail_email_named_file_to_relationship,
 test_challenge,9aae7da,3,3,3,1.0,1.0,appworld_amazon_answer_cart_wishlist_total,
 test_challenge,9b2dc64,3,3,3,1.0,1.0,appworld_amazon_buy_last_product_variants,
 test_challenge,9bf2c8a,3,3,3,1.0,1.0,appworld_amazon_move_product_type_between_saved_lists,
@@ -93,7 +94,6 @@ test_challenge,92fe421,3,0,0,0.0,0.0,,"amazon_purchase_or_product_search,venmo_p
 test_challenge,953b296,3,0,0,0.0,0.0,,amazon_purchase_or_product_search
 test_challenge,96bf160,3,0,0,0.0,0.0,,gmail_email
 test_challenge,988af8e,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
-test_challenge,98d2608,3,0,0,0.0,0.0,,gmail_email
 test_challenge,998908e,3,0,0,0.0,0.0,,splitwise_vacation_or_expense
 test_challenge,9a16324,3,0,0,0.0,0.0,,spotify_music
 test_challenge,9ef034e,3,0,0,0.0,0.0,,amazon_purchase_or_product_search

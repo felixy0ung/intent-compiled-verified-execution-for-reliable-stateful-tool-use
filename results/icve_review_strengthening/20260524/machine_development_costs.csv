@@ -89,6 +89,7 @@ appworld_gmail_attach_job_search_files_and_send,2,"days_back,file_name",19,93,11
 appworld_gmail_count_threads,3,"mailbox,read_state,label",20,60,80,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_delete_archived_threads_by_calendar_window,1,window,16,73,89,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_download_flight_ticket_attachment,2,"destination,directory_path",20,97,117,0,0,0,0,"file_system,gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
+appworld_gmail_email_named_file_to_relationship,2,"file_description,relationship",20,121,141,0,0,0,0,"file_system,gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_forward_anniversary_announcement_email,1,recipient_email,15,99,114,0,0,0,0,"gmail,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_forward_caterer_bill_to_manager_with_note,1,note_prefix,16,148,164,0,0,0,0,"gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded
 appworld_gmail_forward_trip_expenses_thread_with_attachment,4,"sender_first_name,recipient_first_name,attachment_path,note_prefix",22,212,234,0,0,0,0,"file_system,gmail,phone,supervisor","schema,compiler,handler,ledger,policy",not_recorded

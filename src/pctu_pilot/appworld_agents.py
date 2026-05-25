@@ -1591,6 +1591,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_gmail_email_named_file_to_relationship",
+                (
+                    SlotSpec("file_description"),
+                    SlotSpec("relationship"),
+                ),
+            ),
+            compiler=compile_gmail_email_named_file_to_relationship,
+            handler=handle_gmail_email_named_file_to_relationship,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_remove_expired_payment_cards",
                 (),
             ),
@@ -3195,6 +3206,28 @@ def compile_gmail_download_flight_ticket_attachment(
     frame = IntentFrame("appworld_gmail_download_flight_ticket_attachment")
     frame.set_slot("destination", match.group("destination").strip(), source="regex")
     frame.set_slot("directory_path", directory_path, source="regex")
+    return frame
+
+
+def compile_gmail_email_named_file_to_relationship(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Email the (?P<file_description>[a-z ]+) found in my file system to my (?P<relationship>[a-z]+)\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    relationship = RELATION_ALIASES.get(
+        match.group("relationship").lower(),
+        match.group("relationship").lower(),
+    )
+    frame = IntentFrame("appworld_gmail_email_named_file_to_relationship")
+    frame.set_slot("file_description", match.group("file_description").strip().lower(), source="regex")
+    frame.set_slot("relationship", relationship, source="regex")
     return frame
 
 
@@ -15188,6 +15221,139 @@ print(json.dumps({{
     )
 
 
+def handle_gmail_email_named_file_to_relationship(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    file_description = str(frame.get("file_description") or "").strip().lower()
+    relationship = str(frame.get("relationship") or "").strip().lower()
+    if not file_description or not relationship:
+        frame.abstain_reason = "missing_gmail_file_email_slots"
+        return None
+    if relationship not in {
+        "partner",
+        "manager",
+        "husband",
+        "wife",
+        "parent",
+        "mother",
+        "father",
+        "sibling",
+        "brother",
+        "sister",
+    }:
+        frame.abstain_reason = "unsupported_gmail_file_email_relationship"
+        return None
+    code = common_appworld_prelude(["gmail", "phone", "file_system"]) + f"""
+file_description = {json.dumps(file_description)}
+relationship = {json.dumps(relationship)}
+
+def text_key(value):
+    return re.sub(r"[^a-z0-9]+", " ", str(value or "").lower()).strip()
+
+def path_basename(path):
+    return str(path).rstrip("/").split("/")[-1]
+
+description_key = text_key(file_description)
+search_terms = {{
+    "driving license": ["driving_license", "drivers_license", "driver_license", "license", "driving"],
+    "headshot": ["headshot", "head_shot", "profile_photo", "profile_picture"],
+    "birth certificate": ["birth_certificate", "certificate", "birth"],
+}}.get(description_key, [description_key.replace(" ", "_"), description_key])
+
+contacts = paged(lambda page: apis.phone.search_contacts(
+    access_token=tokens["phone"],
+    relationship=relationship,
+    page_index=page,
+    page_limit=20,
+))
+recipient_emails = sorted({{
+    str(contact.get("email") or "").strip().lower()
+    for contact in contacts
+    if str(contact.get("email") or "").strip()
+}})
+if len(recipient_emails) != 1:
+    raise Exception(f"Expected exactly one {{relationship}} contact email, found {{recipient_emails}}.")
+recipient_email = recipient_emails[0]
+
+candidate_paths = []
+seen_paths = set()
+for term in search_terms:
+    for path in apis.file_system.show_directory(
+        access_token=tokens["file_system"],
+        directory_path="/",
+        substring=term,
+        entry_type="files",
+        recursive=True,
+    ):
+        if path in seen_paths:
+            continue
+        seen_paths.add(path)
+        candidate_paths.append(path)
+
+allowed_extensions = {{
+    "driving license": [".pdf", ".jpg", ".jpeg", ".png"],
+    "headshot": [".jpg", ".jpeg", ".png"],
+    "birth certificate": [".pdf", ".jpg", ".jpeg", ".png"],
+}}.get(description_key, [".pdf", ".jpg", ".jpeg", ".png"])
+
+ranked = []
+for path in candidate_paths:
+    lower_path = path.lower()
+    base = path_basename(path).lower()
+    if any(part in lower_path for part in ["/trash/", "/recycle_bin/"]):
+        continue
+    if not any(base.endswith(extension) for extension in allowed_extensions):
+        continue
+    base_key = text_key(base.rsplit(".", 1)[0])
+    if description_key not in text_key(lower_path) and not any(text_key(term) in base_key for term in search_terms):
+        continue
+    file_info = apis.file_system.show_file(
+        access_token=tokens["file_system"],
+        file_path=path,
+    )
+    ranked.append({{
+        "path": path,
+        "base": base,
+        "updated_at": str(file_info.get("updated_at") or ""),
+        "exact": base_key == description_key or base_key == description_key.replace(" ", "_"),
+    }})
+
+if not ranked:
+    raise Exception(f"No file found for {{file_description}} using search terms {{search_terms}}.")
+ranked.sort(key=lambda item: (item["exact"], item["updated_at"], item["path"]), reverse=True)
+file_path = ranked[0]["path"]
+
+subject = file_description.title()
+sent = apis.gmail.send_email(
+    access_token=tokens["gmail"],
+    email_addresses=[recipient_email],
+    subject=subject,
+    body="",
+    attachment_file_paths=[file_path],
+    file_system_access_token=tokens["file_system"],
+)
+if "sent_email_id" not in sent:
+    raise Exception(f"Unable to send file email: {{sent}}")
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "file_description": file_description,
+    "relationship": relationship,
+    "recipient_email": recipient_email,
+    "file_path": file_path,
+    "candidate_count": len(ranked),
+    "sent_email_thread_id": sent.get("sent_email_thread_id"),
+    "sent_email_id": sent.get("sent_email_id"),
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_gmail_email_named_file_to_relationship",
+    )
+
+
 def handle_remove_expired_payment_cards(
     frame: IntentFrame,
     available_tools: AvailableTools,
@@ -20084,6 +20250,18 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "destination": str(slots.get("destination") or "").strip(),
             "directory_path": directory_path,
         }
+    if intent_type == "appworld_gmail_email_named_file_to_relationship":
+        relationship = str(slots.get("relationship") or "").strip().lower()
+        relationship = RELATION_ALIASES.get(relationship, relationship)
+        return {
+            "file_description": str(
+                slots.get("file_description")
+                or slots.get("document")
+                or slots.get("file")
+                or ""
+            ).strip().lower(),
+            "relationship": relationship,
+        }
     if intent_type == "appworld_bucket_list_status_update":
         done_value = slots.get("done")
         if isinstance(done_value, str):
@@ -20592,6 +20770,17 @@ def verify_or_repair_llm_intent_frame(
             "forward that thread",
             "additional attachment",
             "note prefixed to its body",
+        ]
+        if not all(part in raw for part in required):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_gmail_email_named_file_to_relationship":
+        required = [
+            "email the",
+            "found in my file system",
+            "to my",
         ]
         if not all(part in raw for part in required):
             repaired = runtime.compile_frame(instruction, instruction, available_tools)
@@ -21272,7 +21461,9 @@ Supported intent types and slots:
    slots: days_back integer; file_name PDF base name such as resume.pdf or cv.pdf.
 32. appworld_gmail_download_flight_ticket_attachment
    slots: destination string; directory_path string ending in /.
-33. appworld_remove_expired_payment_cards
+33. appworld_gmail_email_named_file_to_relationship
+   slots: file_description string such as driving license, headshot, or birth certificate; relationship string such as partner, manager, or husband.
+34. appworld_remove_expired_payment_cards
    slots: empty object.
 18. appworld_bucket_list_status_update
    slots: item string, done boolean.
@@ -21695,6 +21886,9 @@ JSON: {"intent_type":"appworld_gmail_attach_job_search_files_and_send","slots":{
 
 Task: Download the ticket for my flight to Tokyo this weekend from gmail into the "~/downloads" folder of my file system.
 JSON: {"intent_type":"appworld_gmail_download_flight_ticket_attachment","slots":{"destination":"Tokyo","directory_path":"~/downloads/"}}
+
+Task: Email the driving license found in my file system to my partner.
+JSON: {"intent_type":"appworld_gmail_email_named_file_to_relationship","slots":{"file_description":"driving license","relationship":"partner"}}
 
 Task: Mark "Learning to cook a signature dish from scratch" in my Bucket List Simple Note as done.
 JSON: {"intent_type":"appworld_bucket_list_status_update","slots":{"item":"Learning to cook a signature dish from scratch","done":true}}

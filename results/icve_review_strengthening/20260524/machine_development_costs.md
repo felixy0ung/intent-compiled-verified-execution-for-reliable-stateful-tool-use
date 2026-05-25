@@ -6,7 +6,7 @@ Historical wall-clock adaptation time was not logged, so the field is explicitly
 `not_recorded`; compiler/handler LOC, slots, shared API namespaces, and covered task
 counts are reproducible proxies for development cost and reuse.
 
-- Registered AppWorld machines: 137
+- Registered AppWorld machines: 138
 - Used by full168 supported tasks: 55
 - Supported tasks: 168
 - Tasks per used machine: 3.05
@@ -104,6 +104,7 @@ counts are reproducible proxies for development cost and reuse.
 | appworld_gmail_count_threads | 3 | 20 | 60 | 0 | gmail,supervisor | not_recorded |
 | appworld_gmail_delete_archived_threads_by_calendar_window | 1 | 16 | 73 | 0 | gmail,supervisor | not_recorded |
 | appworld_gmail_download_flight_ticket_attachment | 2 | 20 | 97 | 0 | file_system,gmail,supervisor | not_recorded |
+| appworld_gmail_email_named_file_to_relationship | 2 | 20 | 121 | 0 | file_system,gmail,phone,supervisor | not_recorded |
 | appworld_gmail_forward_anniversary_announcement_email | 1 | 15 | 99 | 0 | gmail,supervisor | not_recorded |
 | appworld_gmail_forward_caterer_bill_to_manager_with_note | 1 | 16 | 148 | 0 | gmail,phone,supervisor | not_recorded |
 | appworld_gmail_forward_trip_expenses_thread_with_attachment | 4 | 22 | 212 | 0 | file_system,gmail,phone,supervisor | not_recorded |
