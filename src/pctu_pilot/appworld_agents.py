@@ -1191,6 +1191,17 @@ def build_appworld_intent_machines() -> list[IntentMachine]:
         ),
         IntentMachine(
             schema=IntentSchema(
+                "appworld_amazon_download_all_order_receipts",
+                (
+                    SlotSpec("directory_path"),
+                    SlotSpec("file_format"),
+                ),
+            ),
+            compiler=compile_amazon_download_all_order_receipts,
+            handler=handle_amazon_download_all_order_receipts,
+        ),
+        IntentMachine(
+            schema=IntentSchema(
                 "appworld_amazon_return_recent_orders",
                 (
                     SlotSpec("order_count"),
@@ -4448,6 +4459,28 @@ def compile_amazon_order_product_and_archive_receipt(
     frame.set_slot("quantity", quantity, source="regex")
     frame.set_slot("address_name", match.group("address").title(), source="regex")
     frame.set_slot("bills_root", match.group("bills_root"), source="regex")
+    return frame
+
+
+def compile_amazon_download_all_order_receipts(
+    request: str,
+    raw_request: str,
+    available_tools: AvailableTools,
+) -> IntentFrame | None:
+    match = re.fullmatch(
+        r"Download receipts of all my amazon orders in \"(?P<directory>~/[^\"]+/)\" "
+        r"folder in my file system\. Name the files in the format, "
+        r"\"(?P<file_format>[^\"]+?)\"\. Replace <order_id> with the actual order id, "
+        r"and yyyy-mm-dd with the date when the order was placed\. You should be able "
+        r"to find receipts from order confirmation emails\.?",
+        raw_request.strip(),
+        flags=re.IGNORECASE,
+    )
+    if not match:
+        return None
+    frame = IntentFrame("appworld_amazon_download_all_order_receipts")
+    frame.set_slot("directory_path", match.group("directory"), source="regex")
+    frame.set_slot("file_format", match.group("file_format"), source="regex")
     return frame
 
 
@@ -10569,6 +10602,80 @@ print(json.dumps({{
         tool="execute_code",
         args={"code": clean_code(code)},
         reason="appworld_rave_amazon_order_product_and_archive_receipt",
+    )
+
+
+def handle_amazon_download_all_order_receipts(
+    frame: IntentFrame,
+    available_tools: AvailableTools,
+) -> ToolAction | None:
+    directory_path = str(frame.get("directory_path") or "").strip()
+    file_format = str(frame.get("file_format") or "").strip()
+    if not directory_path.startswith("~/") or not directory_path.endswith("/") or not file_format:
+        frame.abstain_reason = "missing_amazon_all_receipts_slots"
+        return None
+    code = common_appworld_prelude(["amazon", "file_system"]) + f"""
+directory_path = {json.dumps(directory_path)}
+file_format = {json.dumps(file_format)}
+
+def filename_for_order(order):
+    order_id = int(order["order_id"])
+    date = str(order.get("created_at") or "")[:10]
+    if not re.fullmatch(r"\\d{{4}}-\\d{{2}}-\\d{{2}}", date):
+        raise Exception(f"Amazon order {{order_id}} has no yyyy-mm-dd created_at date.")
+    if file_format == "ordered_at_yyyy-mm-dd_order_id_<order_id>.txt":
+        return f"ordered_at_{{date}}_order_id_{{order_id}}.txt"
+    if file_format == "ordered-at-yyyy-mm-dd-order-id-<order_id>.txt":
+        return f"ordered-at-{{date}}-order-id-{{order_id}}.txt"
+    if file_format == "yyyy-mm-dd__<order_id>.txt":
+        return f"{{date}}__{{order_id}}.txt"
+    raise Exception(f"Unsupported Amazon receipt filename format: {{file_format}}")
+
+apis.file_system.create_directory(
+    access_token=tokens["file_system"],
+    directory_path=directory_path,
+    recursive=True,
+    allow_if_exists=True,
+)
+orders = paged(lambda page: apis.amazon.show_orders(
+    access_token=tokens["amazon"],
+    page_index=page,
+    page_limit=20,
+    sort_by="+created_at",
+))
+if not orders:
+    raise Exception("No Amazon orders found.")
+
+downloaded = []
+for order in orders:
+    target_path = directory_path.rstrip("/") + "/" + filename_for_order(order)
+    result = apis.amazon.download_order_receipt(
+        access_token=tokens["amazon"],
+        order_id=order["order_id"],
+        download_to_file_path=target_path,
+        overwrite=True,
+        file_system_access_token=tokens["file_system"],
+    )
+    if "file_path" not in result:
+        raise Exception(f"Unable to download Amazon receipt for order {{order['order_id']}}: {{result}}")
+    downloaded.append({{
+        "order_id": int(order["order_id"]),
+        "created_at": str(order.get("created_at") or "")[:10],
+        "file_path": result["file_path"],
+    }})
+
+apis.supervisor.complete_task(answer=None)
+print(json.dumps({{
+    "directory_path": directory_path,
+    "file_format": file_format,
+    "downloaded_count": len(downloaded),
+    "downloaded": downloaded,
+}}, sort_keys=True))
+"""
+    return ToolAction(
+        tool="execute_code",
+        args={"code": clean_code(code)},
+        reason="appworld_rave_amazon_download_all_order_receipts",
     )
 
 
@@ -18652,6 +18759,18 @@ def normalize_llm_slots(intent_type: str, slots: dict[str, Any]) -> dict[str, An
             "address_name": str(slots.get("address_name") or "Home").strip(),
             "bills_root": bills_root,
         }
+    if intent_type == "appworld_amazon_download_all_order_receipts":
+        directory_path = str(
+            slots.get("directory_path")
+            or slots.get("directory")
+            or ""
+        ).strip()
+        if directory_path and not directory_path.endswith("/"):
+            directory_path += "/"
+        return {
+            "directory_path": directory_path,
+            "file_format": str(slots.get("file_format") or "").strip(),
+        }
     if intent_type == "appworld_amazon_return_recent_orders":
         return {
             "order_count": int(slots.get("order_count") or slots.get("count") or 0),
@@ -19462,6 +19581,18 @@ def verify_or_repair_llm_intent_frame(
             if repaired is not None:
                 return repaired
             return IntentFrame("unsupported")
+    if frame.intent_type == "appworld_amazon_download_all_order_receipts":
+        if not re.fullmatch(
+            r"download receipts of all my amazon orders in \"~/[^\"]+/\" folder in my file system\. "
+            r"name the files in the format, \"[^\"]+\"\. replace <order_id> with the actual order id, "
+            r"and yyyy-mm-dd with the date when the order was placed\. "
+            r"you should be able to find receipts from order confirmation emails\.?",
+            raw,
+        ):
+            repaired = runtime.compile_frame(instruction, instruction, available_tools)
+            if repaired is not None:
+                return repaired
+            return IntentFrame("unsupported")
     if frame.intent_type == "appworld_amazon_return_recent_orders":
         if not re.fullmatch(
             r"initiate returns via [a-z0-9 .&'-]+ for everything in my last \d+ amazon order\.?",
@@ -19961,6 +20092,8 @@ Supported intent types and slots:
    slots: items list of objects with product_name string and quantity integer; address_name string, one of Home or Work; preferred_card_name string; restore_cart boolean.
 18. appworld_amazon_order_product_and_archive_receipt
    slots: product_name string; quantity integer; address_name string, one of Home or Work; bills_root string, default ~/bills/.
+18. appworld_amazon_download_all_order_receipts
+   slots: directory_path string ending with /; file_format string exactly as requested.
 18. appworld_amazon_return_recent_orders
    slots: order_count integer; deliverer_name string such as FedEx.
 18. appworld_amazon_return_same_product_except_size_this_week
@@ -20318,6 +20451,9 @@ JSON: {"intent_type":"appworld_amazon_order_exact_products_restore_cart","slots"
 
 Task: Order one Apple Watch Series 7 on Amazon for home delivery. Save the receipt in the "~/bills/" folder. I keep my receipts well-organized by category in that folder. So make sure the file location and name are as per the existing organization.
 JSON: {"intent_type":"appworld_amazon_order_product_and_archive_receipt","slots":{"product_name":"Apple Watch Series 7","quantity":1,"address_name":"Home","bills_root":"~/bills/"}}
+
+Task: Download receipts of all my amazon orders in "~/bills/shopping_amazon/" folder in my file system. Name the files in the format, "ordered-at-yyyy-mm-dd-order-id-<order_id>.txt". Replace <order_id> with the actual order id, and yyyy-mm-dd with the date when the order was placed. You should be able to find receipts from order confirmation emails.
+JSON: {"intent_type":"appworld_amazon_download_all_order_receipts","slots":{"directory_path":"~/bills/shopping_amazon/","file_format":"ordered-at-yyyy-mm-dd-order-id-<order_id>.txt"}}
 
 Task: Initiate returns via FedEx for everything in my last 3 amazon order.
 JSON: {"intent_type":"appworld_amazon_return_recent_orders","slots":{"order_count":3,"deliverer_name":"FedEx"}}

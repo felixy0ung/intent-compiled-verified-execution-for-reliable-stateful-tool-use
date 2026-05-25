@@ -269,9 +269,9 @@ test_challenge,f99d726_3,f99d726,1,1,0,0,appworld_amazon_replace_last_product_ad
 test_challenge,1b2bae9_1,1b2bae9,1,1,0,0,appworld_amazon_order_product_and_archive_receipt,,,,1367a203b91f133c
 test_challenge,1b2bae9_2,1b2bae9,1,1,0,0,appworld_amazon_order_product_and_archive_receipt,,,,dc072070bbbe173b
 test_challenge,1b2bae9_3,1b2bae9,1,1,0,0,appworld_amazon_order_product_and_archive_receipt,,,,cdf6e67228b84126
-test_challenge,b05f69a_1,b05f69a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,11eee4cee50c4604
-test_challenge,b05f69a_2,b05f69a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,fcf99846712e5183
-test_challenge,b05f69a_3,b05f69a,0,0,0,0,unsupported,,,amazon_purchase_or_product_search,40cca77343aa1417
+test_challenge,b05f69a_1,b05f69a,1,1,0,0,appworld_amazon_download_all_order_receipts,,,,11eee4cee50c4604
+test_challenge,b05f69a_2,b05f69a,1,1,0,0,appworld_amazon_download_all_order_receipts,,,,fcf99846712e5183
+test_challenge,b05f69a_3,b05f69a,1,1,0,0,appworld_amazon_download_all_order_receipts,,,,40cca77343aa1417
 test_challenge,f6be291_1,f6be291,0,0,0,0,unsupported,,,gmail_email,a88a6e8b9a169d54
 test_challenge,f6be291_2,f6be291,0,0,0,0,unsupported,,,gmail_email,6557dcaecc49f63a
 test_challenge,f6be291_3,f6be291,0,0,0,0,unsupported,,,gmail_email,497d358dfdba3012

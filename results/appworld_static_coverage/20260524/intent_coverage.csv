@@ -11,6 +11,7 @@ test_challenge,appworld_amazon_answer_spending_total,3,3,0,0,1
 test_challenge,appworld_amazon_answer_verified_battery_life_hours,3,3,0,0,1
 test_challenge,appworld_amazon_buy_last_product_variants,3,3,0,0,1
 test_challenge,appworld_amazon_cart_buy_cheapest_per_type_move_rest,3,3,0,0,1
+test_challenge,appworld_amazon_download_all_order_receipts,3,3,0,0,1
 test_challenge,appworld_amazon_move_product_type_between_saved_lists,3,3,0,0,1
 test_challenge,appworld_amazon_move_rating_filtered_products,3,3,0,0,1
 test_challenge,appworld_amazon_order_exact_products_restore_cart,3,3,0,0,1
